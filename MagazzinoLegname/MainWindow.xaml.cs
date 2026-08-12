@@ -1,24 +1,26 @@
-﻿using System.Text;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+using MagazzinoLegname.Navigation;
 
-namespace MagazzinoLegname
+namespace MagazzinoLegname;
+
+public partial class MainWindow : Window
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
-    public partial class MainWindow : Window
+    private readonly NavigationService _navigationService = new();
+
+    public MainWindow()
     {
-        public MainWindow()
+        InitializeComponent();
+        _navigationService.PageChanged += (_, page) => PageContent.Content = page;
+        _navigationService.NavigateTo(PageKey.Dashboard);
+    }
+
+    private void NavigationButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is RadioButton { Tag: string pageName }
+            && Enum.TryParse(pageName, out PageKey pageKey))
         {
-            InitializeComponent();
+            _navigationService.NavigateTo(pageKey);
         }
     }
 }

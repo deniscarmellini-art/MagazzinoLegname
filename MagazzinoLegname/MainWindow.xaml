@@ -1,179 +1,65 @@
-﻿<Window x:Class="MagazzinoLegname.MainWindow"
+<Window x:Class="MagazzinoLegname.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Magazzino Legname"
-        Height="850"
-        Width="1450"
-        MinHeight="700"
-        MinWidth="1200"
-        WindowStartupLocation="CenterScreen"
-        Background="#F4F6F8">
-
+        Title="Magazzino Legname" Height="820" Width="1360"
+        MinHeight="640" MinWidth="960" WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource AppBackgroundBrush}" FontFamily="Segoe UI">
     <Grid>
-
         <Grid.RowDefinitions>
-            <RowDefinition Height="72"/>
+            <RowDefinition Height="76"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-
-        <!-- =====================================================
-             BARRA SUPERIORE
-             ===================================================== -->
-        <Border Grid.Row="0"
-                Background="#17202A">
-
-            <Grid Margin="24,0">
-
+        <Border Background="{DynamicResource HeaderBackgroundBrush}">
+            <Grid Margin="28,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-
-                <StackPanel Grid.Column="0"
-                            VerticalAlignment="Center">
-
-                    <TextBlock Text="MAGAZZINO LEGNAME"
-                               Foreground="White"
-                               FontSize="22"
-                               FontWeight="SemiBold"/>
-
-                    <TextBlock Text="Gestione magazzino CLT"
-                               Foreground="#B8C2CC"
-                               FontSize="12"/>
-
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="Magazzino Legname" Foreground="{DynamicResource HeaderForegroundBrush}"
+                               FontSize="23" FontWeight="SemiBold"/>
+                    <TextBlock Text="Gestione centralizzata del magazzino" Foreground="{DynamicResource HeaderMutedBrush}"
+                               FontSize="12.5" Margin="0,3,0,0"/>
                 </StackPanel>
-
-                <TextBlock Grid.Column="2"
-                           Text="ESSEPI"
-                           Foreground="White"
-                           FontSize="16"
-                           FontWeight="SemiBold"
-                           VerticalAlignment="Center"/>
-
+                <Border Grid.Column="2" Background="{DynamicResource HeaderBadgeBrush}" CornerRadius="18"
+                        Padding="14,8" VerticalAlignment="Center">
+                    <TextBlock Text="GESTIONALE AZIENDALE" Foreground="{DynamicResource HeaderForegroundBrush}"
+                               FontSize="11" FontWeight="SemiBold"/>
+                </Border>
             </Grid>
-
         </Border>
-
-
-        <!-- =====================================================
-             AREA PRINCIPALE
-             ===================================================== -->
         <Grid Grid.Row="1">
-
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="230"/>
+                <ColumnDefinition Width="252"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-
-
-            <!-- =================================================
-                 MENU LATERALE
-                 ================================================= -->
-            <Border Grid.Column="0"
-                    Background="White"
-                    BorderBrush="#E1E5E9"
+            <Border Background="{DynamicResource SidebarBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="0,0,1,0">
-
-                <StackPanel Margin="12,20">
-
-                    <Button Content="Dashboard"
-                            Height="48"
-                            Margin="0,0,0,6"/>
-
-                    <Button Content="Entrata merce"
-                            Height="48"
-                            Margin="0,0,0,6"/>
-
-                    <Button Content="Classificazione"
-                            Height="48"
-                            Margin="0,0,0,6"/>
-
-                    <Button Content="Rettifica scarti"
-                            Height="48"
-                            Margin="0,0,0,6"/>
-
-                    <Button Content="Scarico materiale"
-                            Height="48"
-                            Margin="0,0,0,6"/>
-
-                    <Button Content="Giacenze"
-                            Height="48"
-                            Margin="0,0,0,6"/>
-
-                    <Button Content="Pianificazione"
-                            Height="48"
-                            Margin="0,0,0,6"/>
-
-                    <Button Content="Storico"
-                            Height="48"
-                            Margin="0,0,0,6"/>
-
-                    <Separator Margin="10,15"/>
-
-                    <Button Content="Impostazioni"
-                            Height="48"/>
-
-                </StackPanel>
-
-            </Border>
-
-
-            <!-- =================================================
-                 CONTENUTO PAGINA
-                 ================================================= -->
-            <Grid Grid.Column="1"
-                  Margin="32">
-
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-
-                <StackPanel>
-
-                    <TextBlock Text="Dashboard"
-                               FontSize="30"
-                               FontWeight="SemiBold"
-                               Foreground="#17202A"/>
-
-                    <TextBlock Text="Situazione generale del magazzino"
-                               FontSize="14"
-                               Foreground="#6C757D"
-                               Margin="0,5,0,0"/>
-
-                </StackPanel>
-
-
-                <Border Grid.Row="1"
-                        Background="White"
-                        CornerRadius="8"
-                        Margin="0,25,0,0"
-                        Padding="30">
-
-                    <StackPanel VerticalAlignment="Center"
-                                HorizontalAlignment="Center">
-
-                        <TextBlock Text="Magazzino Legname"
-                                   FontSize="28"
-                                   FontWeight="SemiBold"
-                                   Foreground="#17202A"
-                                   HorizontalAlignment="Center"/>
-
-                        <TextBlock Text="La struttura principale dell'applicazione è pronta."
-                                   FontSize="15"
-                                   Foreground="#6C757D"
-                                   Margin="0,10,0,0"
-                                   HorizontalAlignment="Center"/>
-
+                <Grid Margin="14,22,14,18">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="MENU PRINCIPALE" Style="{StaticResource SidebarSectionLabelStyle}"/>
+                    <StackPanel Grid.Row="1" Margin="0,12,0,0">
+                        <RadioButton Content="Dashboard" Tag="Dashboard" IsChecked="True" Style="{StaticResource NavigationButtonStyle}" Click="NavigationButton_Click"/>
+                        <RadioButton Content="Entrata merce" Tag="GoodsReceipt" Style="{StaticResource NavigationButtonStyle}" Click="NavigationButton_Click"/>
+                        <RadioButton Content="Classificazione" Tag="Classification" Style="{StaticResource NavigationButtonStyle}" Click="NavigationButton_Click"/>
+                        <RadioButton Content="Rettifica scarti" Tag="WasteCorrection" Style="{StaticResource NavigationButtonStyle}" Click="NavigationButton_Click"/>
+                        <RadioButton Content="Scarico materiale" Tag="MaterialDispatch" Style="{StaticResource NavigationButtonStyle}" Click="NavigationButton_Click"/>
+                        <RadioButton Content="Giacenze" Tag="Inventory" Style="{StaticResource NavigationButtonStyle}" Click="NavigationButton_Click"/>
+                        <RadioButton Content="Pianificazione" Tag="Planning" Style="{StaticResource NavigationButtonStyle}" Click="NavigationButton_Click"/>
+                        <RadioButton Content="Storico" Tag="History" Style="{StaticResource NavigationButtonStyle}" Click="NavigationButton_Click"/>
                     </StackPanel>
-
-                </Border>
-
-            </Grid>
-
+                    <StackPanel Grid.Row="2">
+                        <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="8,0,8,12"/>
+                        <RadioButton Content="Impostazioni" Tag="Settings" Style="{StaticResource NavigationButtonStyle}" Click="NavigationButton_Click"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <ContentControl x:Name="PageContent" Grid.Column="1"/>
         </Grid>
-
     </Grid>
-
 </Window>

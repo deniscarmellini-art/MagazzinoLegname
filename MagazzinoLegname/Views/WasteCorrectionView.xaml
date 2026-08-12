@@ -1,0 +1,6 @@
+<UserControl x:Class="MagazzinoLegname.Views.WasteCorrectionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shared="clr-namespace:MagazzinoLegname.Views.Shared">
+    <shared:PageScaffold PageTitle="Rettifica scarti" PageSubtitle="Verifica e rettifica dei materiali classificati come scarto."/>
+</UserControl>
