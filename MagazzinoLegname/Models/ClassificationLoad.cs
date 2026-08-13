@@ -16,6 +16,8 @@ public sealed class ClassificationLoad : ObservableObject
     public Guid Id { get; init; } = Guid.NewGuid();
     public required string LoadNumber { get; init; }
     public required string SupplierName { get; init; }
+    public required string SupplierCode { get; init; }
+    public string Certification { get; init; } = "PEFC";
     public DateTime ArrivalDate { get; init; }
     public ObservableCollection<MaterialGroupClassification> Groups { get; }
     public string SelectedOperator

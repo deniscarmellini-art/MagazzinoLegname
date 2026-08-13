@@ -13,7 +13,7 @@ public sealed class ClassificationViewModel : ObservableObject
 
     public ClassificationViewModel()
     {
-        _allLoads = new ClassificationDemoService().CreateLoads();
+        _allLoads = ClassificationWorkflowService.Shared.Loads;
         Operators = ["Andrea Rossi", "Elena Bianchi", "Marco Conti"];
         foreach (var load in _allLoads) load.PropertyChanged += Load_PropertyChanged;
         ApplyFilters();
@@ -34,6 +34,7 @@ public sealed class ClassificationViewModel : ObservableObject
         var load = _allLoads.FirstOrDefault(item => item.Id == group.LoadId);
         if (group.IsClassified || load is null || string.IsNullOrWhiteSpace(load.SelectedOperator)) return;
         group.MarkAsClassified(load.SelectedOperator, DateTime.Now);
+        ClassificationWorkflowService.Shared.NotifyClassificationChanged();
     }
 
     private void ApplyFilters()

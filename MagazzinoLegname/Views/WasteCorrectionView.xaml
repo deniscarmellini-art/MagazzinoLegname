@@ -1,6 +1,81 @@
 <UserControl x:Class="MagazzinoLegname.Views.WasteCorrectionView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:shared="clr-namespace:MagazzinoLegname.Views.Shared">
-    <shared:PageScaffold PageTitle="Rettifica scarti" PageSubtitle="Verifica e rettifica dei materiali classificati come scarto."/>
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="24,20,24,24">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="245"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <Grid Margin="0,0,0,18">
+            <StackPanel><TextBlock Text="Rettifica scarti" Style="{StaticResource PageTitleStyle}"/><TextBlock Text="Consuntivo per gruppo materiale classificato; nessuno scarto viene distribuito sui singoli pacchi." Style="{StaticResource PageSubtitleStyle}"/></StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Border Background="#172839" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="13,9" Margin="0,0,12,0"><TextBlock Text="{Binding PendingCountText}" FontWeight="Bold"/></Border>
+                <StackPanel Width="220"><TextBlock Text="OPERATORE RETTIFICA" Style="{StaticResource FieldLabelStyle}"/><ComboBox ItemsSource="{Binding Operators}" SelectedItem="{Binding SelectedOperator}"/></StackPanel>
+            </StackPanel>
+        </Grid>
+
+        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="0" Margin="0,0,0,14" ClipToBounds="True">
+            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <StackPanel Margin="16,12"><TextBlock Text="GRUPPI CLASSIFICATI · SCARTI DA VERIFICARE" FontWeight="Bold"/><TextBlock Text="Sono mostrati solamente i gruppi classificati non ancora disponibili." Style="{StaticResource PageSubtitleStyle}"/></StackPanel>
+                <DataGrid Grid.Row="1" ItemsSource="{Binding Groups}" SelectedItem="{Binding SelectedGroup}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" SelectionUnit="FullRow" RowHeight="40">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Carico" Width="80" Binding="{Binding LoadNumber, Mode=OneWay}"/>
+                        <DataGridTextColumn Header="Fornitore" Width="*" Binding="{Binding SupplierName, Mode=OneWay}"/>
+                        <DataGridTextColumn Header="Data" Width="105" Binding="{Binding ArrivalDate, Mode=OneWay, StringFormat=dd/MM/yyyy}"/>
+                        <DataGridTextColumn Header="Sp. ingresso" Width="100" Binding="{Binding Group.IncomingThickness, Mode=OneWay, StringFormat=N0}"/>
+                        <DataGridTextColumn Header="Sp. conv." Width="90" Binding="{Binding Group.ConventionalThickness, Mode=OneWay, StringFormat=N0}"/>
+                        <DataGridTextColumn Header="Larg. ingresso" Width="110" Binding="{Binding Group.IncomingWidth, Mode=OneWay, StringFormat=N0}"/>
+                        <DataGridTextColumn Header="Dopo prepiall." Width="110" Binding="{Binding Group.WidthAfterPlaning, Mode=OneWay, StringFormat=N0}"/>
+                        <DataGridTextColumn Header="Lunghezza" Width="100" Binding="{Binding Group.IncomingLength, Mode=OneWay, StringFormat=N0}"/>
+                        <DataGridTextColumn Header="Qualità" Width="75" Binding="{Binding Group.Quality, Mode=OneWay}"/>
+                        <DataGridTextColumn Header="Pacchi" Width="70" Binding="{Binding Group.PackageCount, Mode=OneWay}"/>
+                        <DataGridTextColumn Header="Pezzi" Width="80" Binding="{Binding Group.InitialPieces, Mode=OneWay}"/>
+                        <DataGridTextColumn Header="MC utili teorici" Width="125" Binding="{Binding Group.TheoreticalUsefulCubicMeters, Mode=OneWay, StringFormat=N3}"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="18">
+            <Grid>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <Grid Margin="0,0,0,16">
+                    <StackPanel><TextBlock FontSize="19" FontWeight="Bold"><Run Text="Rettifica gruppo · carico "/><Run Text="{Binding SelectedGroup.LoadNumber, Mode=OneWay}"/></TextBlock><TextBlock Foreground="{DynamicResource SecondaryTextBrush}"><Run Text="{Binding SelectedGroup.Group.IncomingThickness, Mode=OneWay, StringFormat={}{0:N0}}"/><Run Text=" × "/><Run Text="{Binding SelectedGroup.Group.WidthAfterPlaning, Mode=OneWay, StringFormat={}{0:N0}}"/><Run Text=" × "/><Run Text="{Binding SelectedGroup.Group.IncomingLength, Mode=OneWay, StringFormat={}{0:N0}}"/><Run Text=" · Qualità "/><Run Text="{Binding SelectedGroup.Group.Quality, Mode=OneWay}"/></TextBlock></StackPanel>
+                    <Border HorizontalAlignment="Right" Background="#26351F" BorderBrush="{DynamicResource SuccessBrush}" BorderThickness="1" CornerRadius="9" Padding="12,7"><TextBlock Text="Classificato · scarti da verificare" Foreground="{DynamicResource SuccessBrush}" FontWeight="Bold"/></Border>
+                </Grid>
+
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="28"/><ColumnDefinition/><ColumnDefinition Width="28"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                    <Border Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="11" Padding="17">
+                        <StackPanel>
+                            <TextBlock Text="DATI INIZIALI" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold" Margin="0,0,0,15"/>
+                            <TextBlock Text="PEZZI INIZIALI" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedGroup.Group.InitialPieces}" FontSize="25" FontWeight="ExtraBold" Margin="0,0,0,17"/>
+                            <TextBlock Text="MC UTILI TEORICI" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedGroup.Group.TheoreticalUsefulCubicMeters, StringFormat=N3}" FontSize="25" FontWeight="ExtraBold"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="2" Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="11" Padding="17">
+                        <StackPanel>
+                            <TextBlock Text="SCARTO TAVOLE INTERE" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold" Margin="0,0,0,15"/>
+                            <TextBlock Text="TAVOLE INTERE SCARTATE" Style="{StaticResource FieldLabelStyle}"/><TextBox Text="{Binding SelectedGroup.DiscardedWholeBoards, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"/>
+                            <UniformGrid Columns="2"><StackPanel><TextBlock Text="PEZZI BUONI" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedGroup.GoodPieces}" FontSize="20" FontWeight="Bold"/></StackPanel><StackPanel><TextBlock Text="SCARTO TAVOLE %" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedGroup.WholeBoardWastePercentage, StringFormat={}{0:N2}%}" FontSize="20" FontWeight="Bold"/></StackPanel></UniformGrid>
+                            <TextBlock Text="MC DOPO SCARTO TAVOLE" Style="{StaticResource FieldLabelStyle}" Margin="0,14,0,6"/><TextBlock Text="{Binding SelectedGroup.CubicMetersAfterWholeBoardWaste, StringFormat=N3}" FontSize="23" FontWeight="ExtraBold"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="4" Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="11" Padding="17">
+                        <StackPanel>
+                            <TextBlock Text="SCARTO PARZIALE E RISULTATO" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold" Margin="0,0,0,15"/>
+                            <TextBlock Text="SCARTO PARZIALE %" Style="{StaticResource FieldLabelStyle}"/><TextBox Text="{Binding SelectedGroup.PartialWastePercentage, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"/>
+                            <TextBlock Text="MC SCARTO PARZIALE" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedGroup.PartialWasteCubicMeters, StringFormat=N3}" FontSize="20" FontWeight="Bold" Margin="0,0,0,13"/>
+                            <TextBlock Text="MC REALI DISPONIBILI" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedGroup.RealAvailableCubicMeters, StringFormat=N3}" FontSize="29" FontWeight="ExtraBold" Foreground="{DynamicResource AccentBrush}"/>
+                            <TextBlock Text="{Binding SelectedGroup.TotalClassificationWastePercentage, StringFormat=Scarto totale classificazione: {0:N2}%}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11" Margin="0,7,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Grid Grid.Row="2" Margin="0,16,0,0">
+                    <TextBlock Text="Il risultato viene salvato come snapshot storico del gruppo. I singoli pacchi non vengono modificati." Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center"/>
+                    <Button Content="Conferma rettifica e rendi disponibile" Style="{StaticResource PrimaryButtonStyle}" HorizontalAlignment="Right" Click="Confirm_Click"/>
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
 </UserControl>
