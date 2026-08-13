@@ -33,7 +33,8 @@ public partial class GoodsReceiptView : UserControl
         var physicalPackages = _packageExpansionService.Expand(ViewModel.LoadDraft,
             ViewModel.EntryDate ?? DateTime.Today, ViewModel.Lines);
         var preview = new QrPackagePreviewWindow(physicalPackages, ViewModel.SelectedSupplier.Name,
-            ViewModel.LoadDraft.LoadNumber) { Owner = Window.GetWindow(this) };
+            ViewModel.LoadDraft.LoadNumber, ViewModel.LoadDraft.DeliveryNoteNumber,
+            ViewModel.LoadDraft.CertificationApplied) { Owner = Window.GetWindow(this) };
         preview.ShowDialog();
         var action = includeLabels ? "Registrazione e stampa etichette" : "Registrazione entrata";
         MessageBox.Show(

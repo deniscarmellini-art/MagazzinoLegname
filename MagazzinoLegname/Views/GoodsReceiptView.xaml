@@ -1,6 +1,7 @@
 <UserControl x:Class="MagazzinoLegname.Views.GoodsReceiptView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:models="clr-namespace:MagazzinoLegname.Models"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignHeight="900" d:DesignWidth="1300">
@@ -13,19 +14,46 @@
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
         <Style x:Key="GridInputStyle" TargetType="TextBox">
-            <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}"/>
+            <Setter Property="Background" Value="#172432"/>
             <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
             <Setter Property="CaretBrush" Value="{DynamicResource PrimaryTextBrush}"/>
             <Setter Property="SelectionBrush" Value="{DynamicResource AccentBrush}"/>
-            <Setter Property="SelectionOpacity" Value="0.6"/>
-            <Setter Property="Padding" Value="7,3"/>
+            <Setter Property="SelectionOpacity" Value="0.45"/>
+            <Setter Property="Padding" Value="8,3"/>
+            <Setter Property="Margin" Value="5,4"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="TextAlignment" Value="Center"/>
             <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="FontSize" Value="15"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="EditorBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Margin="{TemplateBinding Padding}"
+                                          HorizontalAlignment="Stretch"
+                                          VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="EditorBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                <Setter TargetName="EditorBorder" Property="Background" Value="#1A2A3A"/>
+                            </Trigger>
+                            <Trigger Property="Validation.HasError" Value="True">
+                                <Setter TargetName="EditorBorder" Property="BorderBrush" Value="{DynamicResource DangerBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </UserControl.Resources>
 
@@ -151,6 +179,24 @@
                             <DataGridTextColumn Header="Larghezza (mm)" Width="120" Binding="{Binding IncomingWidth, UpdateSourceTrigger=PropertyChanged, StringFormat=N1, ValidatesOnDataErrors=True}" ElementStyle="{StaticResource GridDisplayTextStyle}" EditingElementStyle="{StaticResource GridInputStyle}"/>
                             <DataGridTextColumn Header="Dopo prepiall. (mm)" Width="135" IsReadOnly="True" Binding="{Binding WidthAfterPlaning, StringFormat=N1}" ElementStyle="{StaticResource GridDisplayTextStyle}"/>
                             <DataGridTextColumn Header="Lunghezza (mm)" Width="120" Binding="{Binding IncomingLength, UpdateSourceTrigger=PropertyChanged, StringFormat=N0, ValidatesOnDataErrors=True}" ElementStyle="{StaticResource GridDisplayTextStyle}" EditingElementStyle="{StaticResource GridInputStyle}"/>
+                            <DataGridComboBoxColumn Header="Qualità" Width="95"
+                                                    ItemsSource="{x:Static models:GoodsReceiptLine.AllowedQualities}"
+                                                    SelectedItemBinding="{Binding Quality, UpdateSourceTrigger=PropertyChanged}">
+                                <DataGridComboBoxColumn.ElementStyle>
+                                    <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                                        <Setter Property="FontSize" Value="15"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridComboBoxColumn.ElementStyle>
+                                <DataGridComboBoxColumn.EditingElementStyle>
+                                    <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                                        <Setter Property="FontSize" Value="15"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridComboBoxColumn.EditingElementStyle>
+                            </DataGridComboBoxColumn>
                             <DataGridTextColumn Header="MC fisici" Width="115" IsReadOnly="True" Binding="{Binding PhysicalIncomingCubicMeters, StringFormat=N3}" ElementStyle="{StaticResource GridDisplayTextStyle}"/>
                             <DataGridTextColumn Header="MC utili teorici" Width="125" IsReadOnly="True" Binding="{Binding TheoreticalUsefulCubicMeters, StringFormat=N3}" ElementStyle="{StaticResource GridDisplayTextStyle}"/>
                             <DataGridTextColumn Header="Valore €" Width="120" IsReadOnly="True" Binding="{Binding LineValue, StringFormat=N2}" ElementStyle="{StaticResource GridDisplayTextStyle}"/>

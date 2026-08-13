@@ -8,7 +8,9 @@ public sealed record PhysicalPackageDraft(
     int PieceCount,
     decimal IncomingThickness,
     decimal IncomingWidth,
-    decimal IncomingLength)
+    decimal WidthAfterPlaning,
+    decimal IncomingLength,
+    string Quality)
 {
     public required int TotalPackages { get; init; }
     public required DateTime ArrivalDate { get; init; }

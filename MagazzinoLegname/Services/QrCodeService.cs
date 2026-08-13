@@ -9,7 +9,7 @@ namespace MagazzinoLegname.Services;
 public sealed class QrCodeService
 {
     public string BuildPayload(PhysicalPackageDraft package) => string.Create(CultureInfo.InvariantCulture,
-        $"ID={package.PackageCode}|SP={package.IncomingThickness:0.##}|LA={package.IncomingWidth:0.##}|LU={package.IncomingLength:0.##}|PZ={package.PieceCount}|DATA={package.ArrivalDate:yyyy-MM-dd}");
+        $"ID={package.PackageCode}|SP={package.IncomingThickness:0.##}|LA={package.IncomingWidth:0.##}|LU={package.IncomingLength:0.##}|PZ={package.PieceCount}|Q={package.Quality}|DATA={package.ArrivalDate:yyyy-MM-dd}");
 
     public byte[] GenerateQrPng(string payload, int pixelsPerModule = 8)
     {

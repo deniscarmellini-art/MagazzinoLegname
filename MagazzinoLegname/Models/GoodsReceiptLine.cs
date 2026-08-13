@@ -26,10 +26,22 @@ public sealed class GoodsReceiptLine : ObservableObject, IDataErrorInfo
     private decimal _appliedPrice;
     private decimal _lineValue;
     private bool _isClassified;
+    private string _quality = "C";
+
+    public static IReadOnlyList<string> AllowedQualities { get; } = ["C", "VISTA"];
 
     public Guid GroupId { get; init; } = Guid.NewGuid();
 
     public int PackageCount { get => _packageCount; set => SetProperty(ref _packageCount, Math.Max(0, value)); }
+    public string Quality
+    {
+        get => _quality;
+        set
+        {
+            if (!AllowedQualities.Contains(value)) return;
+            SetProperty(ref _quality, value);
+        }
+    }
     public int PiecesPerPackage { get => _piecesPerPackage; set => SetProperty(ref _piecesPerPackage, Math.Max(0, value)); }
     public int EnteredPieces => PackageCount * PiecesPerPackage;
     public int DiscardedPieces { get => _discardedPieces; set => SetProperty(ref _discardedPieces, Math.Clamp(value, 0, EnteredPieces)); }
@@ -74,14 +86,16 @@ public sealed class GoodsReceiptLine : ObservableObject, IDataErrorInfo
         PiecesPerPackage = PiecesPerPackage,
         IncomingThickness = IncomingThickness,
         IncomingWidth = IncomingWidth,
-        IncomingLength = IncomingLength
+        IncomingLength = IncomingLength,
+        Quality = Quality
     };
 
     public IEnumerable<PhysicalPackageDraft> ExpandToPhysicalPackages(Guid loadId, int firstSequenceNumber)
     {
         for (var index = 0; index < PackageCount; index++)
             yield return new PhysicalPackageDraft(Guid.NewGuid(), loadId, GroupId,
-                firstSequenceNumber + index, PiecesPerPackage, IncomingThickness, IncomingWidth, IncomingLength)
+                firstSequenceNumber + index, PiecesPerPackage, IncomingThickness, IncomingWidth,
+                WidthAfterPlaning, IncomingLength, Quality)
                 { PackageCode = string.Empty, TotalPackages = 0, ArrivalDate = default,
                     QrPayload = string.Empty };
     }

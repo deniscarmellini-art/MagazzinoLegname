@@ -1,6 +1,93 @@
 <UserControl x:Class="MagazzinoLegname.Views.ClassificationView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:shared="clr-namespace:MagazzinoLegname.Views.Shared">
-    <shared:PageScaffold PageTitle="Classificazione" PageSubtitle="Classificazione qualitativa del legname ricevuto."/>
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <Style x:Key="CenteredGridText" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+        </Style>
+    </UserControl.Resources>
+    <Grid Margin="24,20,24,24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="390"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Grid Margin="0,0,0,18">
+            <StackPanel>
+                <TextBlock Text="Classificazione" Style="{StaticResource PageTitleStyle}"/>
+                <TextBlock Text="Completa i gruppi omogenei ricevuti; gli scarti saranno verificati in un passaggio separato." Style="{StaticResource PageSubtitleStyle}"/>
+            </StackPanel>
+            <Border HorizontalAlignment="Right" VerticalAlignment="Center" Background="#172839" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="14,9">
+                <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8EC;" FontFamily="Segoe MDL2 Assets" Foreground="{DynamicResource AccentBrush}" FontSize="16" Margin="0,0,9,0"/><TextBlock Text="{Binding LoadCountText}" FontWeight="Bold"/></StackPanel>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="0" Margin="0,0,0,14" ClipToBounds="True">
+            <Grid>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <Grid Margin="16,12">
+                    <StackPanel><TextBlock Text="CARICHI DA COMPLETARE" FontWeight="Bold"/><TextBlock Text="Seleziona il carico e assegna l’operatore che eseguirà la classificazione" Style="{StaticResource PageSubtitleStyle}"/></StackPanel>
+                </Grid>
+                <DataGrid Grid.Row="1" ItemsSource="{Binding VisibleLoads}" SelectedItem="{Binding SelectedLoad}"
+                          AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
+                          SelectionUnit="FullRow" RowHeight="32">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Numero carico" Width="125" Binding="{Binding LoadNumber}" ElementStyle="{StaticResource CenteredGridText}"/>
+                        <DataGridTextColumn Header="Fornitore" Width="*" Binding="{Binding SupplierName}" ElementStyle="{StaticResource CenteredGridText}"/>
+                        <DataGridTextColumn Header="Data arrivo" Width="125" Binding="{Binding ArrivalDate, StringFormat=dd/MM/yyyy}" ElementStyle="{StaticResource CenteredGridText}"/>
+                        <DataGridTextColumn Header="Totale pacchi" Width="115" Binding="{Binding TotalPackages}" ElementStyle="{StaticResource CenteredGridText}"/>
+                        <DataGridTextColumn Header="Da classificare" Width="130" Binding="{Binding GroupsToClassify}" ElementStyle="{StaticResource CenteredGridText}"/>
+                        <DataGridTextColumn Header="Classificati" Width="110" Binding="{Binding ClassifiedGroups}" ElementStyle="{StaticResource CenteredGridText}"/>
+                        <DataGridTextColumn Header="Stato carico" Width="195" Binding="{Binding Status}" ElementStyle="{StaticResource CenteredGridText}"/>
+                        <DataGridTemplateColumn Header="Operatore" Width="210">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <ComboBox ItemsSource="{Binding DataContext.Operators, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                              SelectedItem="{Binding SelectedOperator, UpdateSourceTrigger=PropertyChanged}"
+                                              Height="28" Margin="5,2" Padding="8,2"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="0" ClipToBounds="True" MinHeight="250">
+            <Grid>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <Grid Margin="16,13">
+                    <StackPanel><TextBlock FontSize="18" FontWeight="Bold"><Run Text="Gruppi materiale · carico "/><Run Text="{Binding SelectedLoad.LoadNumber}"/></TextBlock><TextBlock Text="Ogni gruppo può essere completato indipendentemente dagli altri." Style="{StaticResource PageSubtitleStyle}"/></StackPanel>
+                    <Border HorizontalAlignment="Right" VerticalAlignment="Center" Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="8" Padding="12,7"><TextBlock Text="{Binding SelectedLoad.Status}" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/></Border>
+                </Grid>
+                <DataGrid Grid.Row="1" ItemsSource="{Binding SelectedLoad.Groups}" AutoGenerateColumns="False"
+                          IsReadOnly="True" CanUserAddRows="False" SelectionUnit="FullRow" RowHeight="46">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Spessore ingresso" Width="125" Binding="{Binding IncomingThickness, StringFormat=N0}" ElementStyle="{StaticResource CenteredGridText}"/>
+                        <DataGridTextColumn Header="Convenzionale" Width="115" Binding="{Binding ConventionalThickness, StringFormat=N0}" ElementStyle="{StaticResource CenteredGridText}"/>
+                        <DataGridTextColumn Header="Larghezza ingresso" Width="135" Binding="{Binding IncomingWidth, StringFormat=N0}" ElementStyle="{StaticResource CenteredGridText}"/>
+                        <DataGridTextColumn Header="Dopo prepiall." Width="125" Binding="{Binding WidthAfterPlaning, StringFormat=N0}" ElementStyle="{StaticResource CenteredGridText}"/>
+                        <DataGridTextColumn Header="Lunghezza" Width="110" Binding="{Binding IncomingLength, StringFormat=N0}" ElementStyle="{StaticResource CenteredGridText}"/>
+                        <DataGridTextColumn Header="Qualità" Width="80" Binding="{Binding Quality}" ElementStyle="{StaticResource CenteredGridText}"/>
+                        <DataGridTextColumn Header="Pacchi" Width="80" Binding="{Binding PackageCount}" ElementStyle="{StaticResource CenteredGridText}"/>
+                        <DataGridTextColumn Header="Pezzi iniziali" Width="110" Binding="{Binding InitialPieces}" ElementStyle="{StaticResource CenteredGridText}"/>
+                        <DataGridTextColumn Header="Stato classificazione" Width="220" Binding="{Binding ClassificationStatus}" ElementStyle="{StaticResource CenteredGridText}"/>
+                        <DataGridTemplateColumn Header="Azione" Width="190">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Content="Segna come classificato" Tag="{Binding}" Click="MarkClassified_Click" Padding="12,6">
+                                        <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}"><Style.Triggers><DataTrigger Binding="{Binding IsClassified}" Value="True"><Setter Property="IsEnabled" Value="False"/><Setter Property="Content" Value="Classificato ✓"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                                    </Button>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <Border Grid.Row="2" Background="#101A24" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="15,10"><TextBlock Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11" Text="La classificazione registra l’operatore selezionato sul carico e la data/ora. Non modifica pezzi o metri cubi e non richiede dati di scarto."/></Border>
+            </Grid>
+        </Border>
+    </Grid>
 </UserControl>
