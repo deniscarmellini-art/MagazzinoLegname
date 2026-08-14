@@ -43,6 +43,12 @@ public sealed class ClassificationViewModel : ObservableObject
         ClassificationWorkflowService.Shared.NotifyClassificationChanged();
     }
 
+    public void UndoGroupClassification(MaterialGroupClassification group)
+    {
+        if (!group.UndoClassification()) return;
+        ClassificationWorkflowService.Shared.NotifyClassificationChanged();
+    }
+
     private void ApplyFilters()
     {
         var previousSelection = SelectedLoad;

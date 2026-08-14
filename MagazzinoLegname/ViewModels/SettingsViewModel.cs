@@ -26,10 +26,12 @@ public sealed class SettingsViewModel : ObservableObject
     public ObservableCollection<SupplierPrice> PriceHistory { get; } = [];
     public MaterialParameters MaterialParameters { get; } = MaterialParametersService.Shared.Parameters;
     public GeneralSettings GeneralSettings { get; } = GeneralSettingsService.Shared.Settings;
-    public string SelectedSection { get => _selectedSection; set { if (SetProperty(ref _selectedSection, value)) { OnPropertyChanged(nameof(IsSuppliersSection)); OnPropertyChanged(nameof(IsMaterialParametersSection)); OnPropertyChanged(nameof(IsGeneralSection)); } } }
+    public PlanningSettings PlanningSettings { get; } = PlanningSettingsService.Shared.Settings;
+    public string SelectedSection { get => _selectedSection; set { if (SetProperty(ref _selectedSection, value)) { OnPropertyChanged(nameof(IsSuppliersSection)); OnPropertyChanged(nameof(IsMaterialParametersSection)); OnPropertyChanged(nameof(IsGeneralSection)); OnPropertyChanged(nameof(IsPlanningParametersSection)); } } }
     public bool IsSuppliersSection => SelectedSection == "Suppliers";
     public bool IsMaterialParametersSection => SelectedSection == "MaterialParameters";
     public bool IsGeneralSection => SelectedSection == "General";
+    public bool IsPlanningParametersSection => SelectedSection == "PlanningParameters";
     public SupplierContact? SelectedContact { get => _selectedContact; set => SetProperty(ref _selectedContact, value); }
     public Supplier? SelectedSupplier
     {
@@ -50,8 +52,10 @@ public sealed class SettingsViewModel : ObservableObject
     public void ShowSuppliers() => SelectedSection = "Suppliers";
     public void ShowMaterialParameters() { IsHistoryVisible = false; SelectedSection = "MaterialParameters"; }
     public void ShowGeneral() { IsHistoryVisible = false; SelectedSection = "General"; }
+    public void ShowPlanningParameters() { IsHistoryVisible = false; SelectedSection = "PlanningParameters"; }
     public void SaveGeneralSettings() => GeneralSettingsService.Shared.NotifyChanged();
     public void SaveMaterialParameters() => MaterialParametersService.Shared.NotifyChanged();
+    public void SavePlanningSettings() => PlanningSettingsService.Shared.NotifyChanged();
     public void AddContact()
     {
         if (SelectedSupplier is null) return;

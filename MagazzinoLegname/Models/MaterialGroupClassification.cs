@@ -30,6 +30,7 @@ public sealed class MaterialGroupClassification : ObservableObject
     public string? ClassificationOperator { get => _classificationOperator; private set => SetProperty(ref _classificationOperator, value); }
     public bool WasteVerified { get; private set; }
     public bool IsClassified => ClassificationDate.HasValue;
+    public bool CanUndoClassification => IsClassified && !WasteVerified;
     public string ClassificationStatus => IsClassified
         ? WasteVerified ? "Disponibile" : "Classificato · scarti da verificare"
         : "Da classificare";
@@ -41,8 +42,20 @@ public sealed class MaterialGroupClassification : ObservableObject
         ClassificationDate = classifiedAt;
         WasteVerified = false;
         OnPropertyChanged(nameof(IsClassified));
+        OnPropertyChanged(nameof(CanUndoClassification));
         OnPropertyChanged(nameof(ClassificationStatus));
         OnPropertyChanged(nameof(WasteVerified));
+    }
+
+    public bool UndoClassification()
+    {
+        if (!CanUndoClassification) return false;
+        ClassificationOperator = null;
+        ClassificationDate = null;
+        OnPropertyChanged(nameof(IsClassified));
+        OnPropertyChanged(nameof(CanUndoClassification));
+        OnPropertyChanged(nameof(ClassificationStatus));
+        return true;
     }
 
     public decimal Volume(int pieces) => pieces * UsefulThickness * FinalWidth * FinalLength / 1_000_000_000m;
@@ -52,6 +65,7 @@ public sealed class MaterialGroupClassification : ObservableObject
         if (!IsClassified || WasteVerified) return;
         WasteVerified = true;
         OnPropertyChanged(nameof(WasteVerified));
+        OnPropertyChanged(nameof(CanUndoClassification));
         OnPropertyChanged(nameof(ClassificationStatus));
     }
 }

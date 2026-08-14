@@ -12,4 +12,9 @@
     <PackageReference Include="QRCoder" Version="1.8.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Remove="Assets\logo-essepi-finestre-xlam.jpg" />
+    <Resource Include="Assets\logo-essepi-finestre-xlam.jpg" />
+  </ItemGroup>
+
 </Project>

@@ -1,5 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:behaviors="clr-namespace:MagazzinoLegname.Behaviors">
     <Style TargetType="TextBlock">
         <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
     </Style>
@@ -111,6 +112,11 @@
                 <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
             </Trigger>
         </Style.Triggers>
+    </Style>
+
+    <Style x:Key="NumericTextBoxStyle" TargetType="TextBox"
+           BasedOn="{StaticResource {x:Type TextBox}}">
+        <Setter Property="behaviors:NumericTextBoxBehavior.SelectAllOnFocus" Value="True"/>
     </Style>
 
     <Style TargetType="ComboBox">
@@ -313,6 +319,11 @@
         <Setter Property="Padding" Value="12,7"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="FontSize" Value="13"/>
+    </Style>
+
+    <Style x:Key="NumericHeaderFieldTextBoxStyle" TargetType="TextBox"
+           BasedOn="{StaticResource HeaderFieldTextBoxStyle}">
+        <Setter Property="behaviors:NumericTextBoxBehavior.SelectAllOnFocus" Value="True"/>
     </Style>
 
     <Style x:Key="SummaryValueStyle" TargetType="TextBlock">

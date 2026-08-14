@@ -37,8 +37,8 @@ public sealed class InventoryViewModel : ObservableObject
     public string SelectedClassificationStatus { get => _selectedClassificationStatus; set { if (SetProperty(ref _selectedClassificationStatus, value)) ApplyFilters(); } }
     public string SelectedWasteStatus { get => _selectedWasteStatus; set { if (SetProperty(ref _selectedWasteStatus, value)) ApplyFilters(); } }
     public int PresentPackages => VisiblePackages.Count;
-    public decimal TotalInventoryCubicMeters => VisiblePackages.Sum(package => package.InventoryCubicMeters);
-    public decimal TheoreticalCubicMeters => VisiblePackages.Where(package => !package.UsesRealCubicMeters).Sum(package => package.InventoryCubicMeters);
+    public decimal InventoryCubicMeters => VisiblePackages.Sum(package => package.InventoryCubicMeters);
+    public decimal CubicMetersToConsolidate => VisiblePackages.Where(package => !package.UsesRealCubicMeters).Sum(package => package.InventoryCubicMeters);
     public decimal RealCubicMeters => VisiblePackages.Where(package => package.UsesRealCubicMeters).Sum(package => package.InventoryCubicMeters);
 
     public void RemovePackage(InventoryPackage package)
@@ -49,11 +49,27 @@ public sealed class InventoryViewModel : ObservableObject
 
     private void Reload()
     {
+        var previousSupplier = _selectedSupplier;
+        var previousThickness = _selectedThickness;
+        var previousWidth = _selectedWidth;
+        var previousQuality = _selectedQuality;
+        var previousClassificationStatus = _selectedClassificationStatus;
+        var previousWasteStatus = _selectedWasteStatus;
+
         _allPackages = _projection.BuildInventory();
         ReplaceOptions(Suppliers, "Tutti", _allPackages.Select(package => package.SupplierName));
         ReplaceOptions(Thicknesses, "Tutti", _allPackages.Select(package => package.ConventionalThickness.ToString("0")));
         ReplaceOptions(Widths, "Tutte", _allPackages.Select(package => package.WidthAfterPlaning.ToString("0")));
         ReplaceOptions(Qualities, "Tutte", _allPackages.Select(package => package.Quality));
+
+        RestoreSelection(ref _selectedSupplier, nameof(SelectedSupplier), Suppliers, previousSupplier, "Tutti");
+        RestoreSelection(ref _selectedThickness, nameof(SelectedThickness), Thicknesses, previousThickness, "Tutti");
+        RestoreSelection(ref _selectedWidth, nameof(SelectedWidth), Widths, previousWidth, "Tutte");
+        RestoreSelection(ref _selectedQuality, nameof(SelectedQuality), Qualities, previousQuality, "Tutte");
+        RestoreSelection(ref _selectedClassificationStatus, nameof(SelectedClassificationStatus),
+            ClassificationStatuses, previousClassificationStatus, "Tutti");
+        RestoreSelection(ref _selectedWasteStatus, nameof(SelectedWasteStatus),
+            WasteStatuses, previousWasteStatus, "Tutti");
         ApplyFilters();
     }
 
@@ -71,13 +87,22 @@ public sealed class InventoryViewModel : ObservableObject
             .ToList();
         VisiblePackages.Clear();
         foreach (var package in matches) VisiblePackages.Add(package);
-        OnPropertyChanged(nameof(PresentPackages)); OnPropertyChanged(nameof(TotalInventoryCubicMeters));
-        OnPropertyChanged(nameof(TheoreticalCubicMeters)); OnPropertyChanged(nameof(RealCubicMeters));
+        OnPropertyChanged(nameof(PresentPackages)); OnPropertyChanged(nameof(InventoryCubicMeters));
+        OnPropertyChanged(nameof(CubicMetersToConsolidate)); OnPropertyChanged(nameof(RealCubicMeters));
     }
 
     private static void ReplaceOptions(ObservableCollection<string> target, string allLabel, IEnumerable<string> values)
     {
         target.Clear(); target.Add(allLabel);
         foreach (var value in values.Distinct().OrderBy(value => value)) target.Add(value);
+    }
+
+    private void RestoreSelection(ref string field, string propertyName,
+        IEnumerable<string> availableOptions, string? previousValue, string fallback)
+    {
+        field = previousValue is not null && availableOptions.Contains(previousValue)
+            ? previousValue
+            : fallback;
+        OnPropertyChanged(propertyName);
     }
 }

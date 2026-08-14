@@ -30,6 +30,8 @@ public sealed class ClassificationLoad : ObservableObject
     public int TotalPackages => Groups.Sum(group => group.PackageCount);
     public int GroupsToClassify => Groups.Count(group => !group.IsClassified);
     public int ClassifiedGroups => Groups.Count(group => group.IsClassified);
+    public int PackagesToClassify => Groups.Where(group => !group.IsClassified).Sum(group => group.PackageCount);
+    public int ClassifiedPackages => Groups.Where(group => group.IsClassified).Sum(group => group.PackageCount);
     public bool IsFullyClassified => Groups.Count > 0 && Groups.All(group => group.IsClassified);
     public string Status => ClassifiedGroups switch
     {
@@ -44,6 +46,8 @@ public sealed class ClassificationLoad : ObservableObject
             or nameof(MaterialGroupClassification.ClassificationStatus))) return;
         OnPropertyChanged(nameof(GroupsToClassify));
         OnPropertyChanged(nameof(ClassifiedGroups));
+        OnPropertyChanged(nameof(PackagesToClassify));
+        OnPropertyChanged(nameof(ClassifiedPackages));
         OnPropertyChanged(nameof(IsFullyClassified));
         OnPropertyChanged(nameof(Status));
     }

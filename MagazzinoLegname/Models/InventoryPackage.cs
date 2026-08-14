@@ -33,7 +33,7 @@ public sealed class InventoryPackage
     public string PackagePosition => $"{PackageNumber} / {TotalPackages}";
     public string QualityWasteDisplay => QualityWastePercentage.HasValue
         ? $"{QualityWastePercentage.Value:N2}%" : "—";
-    public string OperationalMeasure => $"{ConventionalThickness:0} × {WidthAfterPlaning:0} × {IncomingLength:0}";
+    public string OperationalMeasure => $"{ConventionalThickness:N2} × {WidthAfterPlaning:N2} × {IncomingLength:N2}";
     public string InventoryStatus => ClassificationStatus switch
     {
         "Da classificare" => "Da classificare",

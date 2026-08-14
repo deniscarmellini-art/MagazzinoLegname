@@ -19,4 +19,10 @@ public partial class ClassificationView : UserControl
         if (sender is Button { Tag: MaterialGroupClassification group })
             ViewModel.MarkGroupAsClassified(group);
     }
+
+    private void UndoClassification_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: MaterialGroupClassification group })
+            ViewModel.UndoGroupClassification(group);
+    }
 }

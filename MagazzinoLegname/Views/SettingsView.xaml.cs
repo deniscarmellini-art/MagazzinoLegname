@@ -29,6 +29,7 @@ public partial class SettingsView : UserControl
     private void SuppliersSection_Click(object sender, RoutedEventArgs e) => ViewModel.ShowSuppliers();
     private void GeneralSection_Click(object sender, RoutedEventArgs e) => ViewModel.ShowGeneral();
     private void MaterialParametersSection_Click(object sender, RoutedEventArgs e) => ViewModel.ShowMaterialParameters();
+    private void PlanningParametersSection_Click(object sender, RoutedEventArgs e) => ViewModel.ShowPlanningParameters();
     private void AddContact_Click(object sender, RoutedEventArgs e) => ViewModel.AddContact();
     private void DeleteContact_Click(object sender, RoutedEventArgs e) => ViewModel.DeleteContact();
     private void SaveMaterialParameters_Click(object sender, RoutedEventArgs e)
@@ -40,6 +41,11 @@ public partial class SettingsView : UserControl
     {
         ViewModel.SaveGeneralSettings();
         MessageBox.Show("Impostazioni generali aggiornate in memoria.", "Impostazioni generali", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+    private void SavePlanningSettings_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.SavePlanningSettings();
+        MessageBox.Show("Parametri di pianificazione aggiornati in memoria.", "Parametri pianificazione", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void AddPrice_Click(object sender, RoutedEventArgs e)
     {

@@ -2,6 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:models="clr-namespace:MagazzinoLegname.Models"
+             xmlns:behaviors="clr-namespace:MagazzinoLegname.Behaviors"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignHeight="900" d:DesignWidth="1300">
@@ -14,6 +15,7 @@
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
         <Style x:Key="GridInputStyle" TargetType="TextBox">
+            <Setter Property="behaviors:NumericTextBoxBehavior.SelectAllOnFocus" Value="True"/>
             <Setter Property="Background" Value="#172432"/>
             <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
             <Setter Property="CaretBrush" Value="{DynamicResource PrimaryTextBrush}"/>
@@ -67,11 +69,7 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <Grid Margin="2,0,2,16">
-                <StackPanel>
-                    <TextBlock Text="Entrata merce" Style="{StaticResource PageTitleStyle}"/>
-                    <TextBlock Text="Registra la testata del carico e tutte le tipologie di materiale ricevute." Style="{StaticResource PageSubtitleStyle}"/>
-                </StackPanel>
+            <Grid Margin="2,0,2,8">
                 <Border HorizontalAlignment="Right" VerticalAlignment="Center" Background="#253B2B"
                         BorderBrush="#3F6A48" BorderThickness="1" CornerRadius="12" Padding="12,7">
                     <StackPanel Orientation="Horizontal">
@@ -129,7 +127,7 @@
                         <StackPanel Grid.Column="5">
                             <TextBlock Text="PACCHI PREVISTI" Style="{StaticResource FieldLabelStyle}"/>
                             <Border Style="{StaticResource HeaderFieldBorderStyle}">
-                                <TextBox Style="{StaticResource HeaderFieldTextBoxStyle}" Text="{Binding ExpectedPackages, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBox Style="{StaticResource NumericHeaderFieldTextBoxStyle}" Text="{Binding ExpectedPackages, UpdateSourceTrigger=PropertyChanged}"/>
                             </Border>
                         </StackPanel>
                     </Grid>
@@ -175,10 +173,10 @@
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="N° pacchi" Width="90" Binding="{Binding PackageCount, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" ElementStyle="{StaticResource GridDisplayTextStyle}" EditingElementStyle="{StaticResource GridInputStyle}"/>
                             <DataGridTextColumn Header="Pezzi / pacco" Width="105" Binding="{Binding PiecesPerPackage, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" ElementStyle="{StaticResource GridDisplayTextStyle}" EditingElementStyle="{StaticResource GridInputStyle}"/>
-                            <DataGridTextColumn Header="Spessore (mm)" Width="115" Binding="{Binding IncomingThickness, UpdateSourceTrigger=PropertyChanged, StringFormat=N1, ValidatesOnDataErrors=True}" ElementStyle="{StaticResource GridDisplayTextStyle}" EditingElementStyle="{StaticResource GridInputStyle}"/>
-                            <DataGridTextColumn Header="Larghezza (mm)" Width="120" Binding="{Binding IncomingWidth, UpdateSourceTrigger=PropertyChanged, StringFormat=N1, ValidatesOnDataErrors=True}" ElementStyle="{StaticResource GridDisplayTextStyle}" EditingElementStyle="{StaticResource GridInputStyle}"/>
-                            <DataGridTextColumn Header="Dopo prepiall. (mm)" Width="135" IsReadOnly="True" Binding="{Binding WidthAfterPlaning, StringFormat=N1}" ElementStyle="{StaticResource GridDisplayTextStyle}"/>
-                            <DataGridTextColumn Header="Lunghezza (mm)" Width="120" Binding="{Binding IncomingLength, UpdateSourceTrigger=PropertyChanged, StringFormat=N0, ValidatesOnDataErrors=True}" ElementStyle="{StaticResource GridDisplayTextStyle}" EditingElementStyle="{StaticResource GridInputStyle}"/>
+                            <DataGridTextColumn Header="Spessore (mm)" Width="115" Binding="{Binding IncomingThickness, UpdateSourceTrigger=PropertyChanged, StringFormat=N2, ValidatesOnDataErrors=True}" ElementStyle="{StaticResource GridDisplayTextStyle}" EditingElementStyle="{StaticResource GridInputStyle}"/>
+                            <DataGridTextColumn Header="Larghezza (mm)" Width="120" Binding="{Binding IncomingWidth, UpdateSourceTrigger=PropertyChanged, StringFormat=N2, ValidatesOnDataErrors=True}" ElementStyle="{StaticResource GridDisplayTextStyle}" EditingElementStyle="{StaticResource GridInputStyle}"/>
+                            <DataGridTextColumn Header="Dopo prepiall. (mm)" Width="135" IsReadOnly="True" Binding="{Binding WidthAfterPlaning, StringFormat=N2}" ElementStyle="{StaticResource GridDisplayTextStyle}"/>
+                            <DataGridTextColumn Header="Lunghezza (mm)" Width="120" Binding="{Binding IncomingLength, UpdateSourceTrigger=PropertyChanged, StringFormat=N2, ValidatesOnDataErrors=True}" ElementStyle="{StaticResource GridDisplayTextStyle}" EditingElementStyle="{StaticResource GridInputStyle}"/>
                             <DataGridComboBoxColumn Header="Qualità" Width="95"
                                                     ItemsSource="{x:Static models:GoodsReceiptLine.AllowedQualities}"
                                                     SelectedItemBinding="{Binding Quality, UpdateSourceTrigger=PropertyChanged}">
@@ -197,18 +195,18 @@
                                     </Style>
                                 </DataGridComboBoxColumn.EditingElementStyle>
                             </DataGridComboBoxColumn>
-                            <DataGridTextColumn Header="MC fisici" Width="115" IsReadOnly="True" Binding="{Binding PhysicalIncomingCubicMeters, StringFormat=N3}" ElementStyle="{StaticResource GridDisplayTextStyle}"/>
-                            <DataGridTextColumn Header="MC utili teorici" Width="125" IsReadOnly="True" Binding="{Binding TheoreticalUsefulCubicMeters, StringFormat=N3}" ElementStyle="{StaticResource GridDisplayTextStyle}"/>
+                            <DataGridTextColumn Header="MC fisici" Width="115" IsReadOnly="True" Binding="{Binding PhysicalIncomingCubicMeters, StringFormat=N2}" ElementStyle="{StaticResource GridDisplayTextStyle}"/>
+                            <DataGridTextColumn Header="MC utili teorici" Width="125" IsReadOnly="True" Binding="{Binding TheoreticalUsefulCubicMeters, StringFormat=N2}" ElementStyle="{StaticResource GridDisplayTextStyle}"/>
                             <DataGridTextColumn Header="Valore €" Width="120" IsReadOnly="True" Binding="{Binding LineValue, StringFormat=N2}" ElementStyle="{StaticResource GridDisplayTextStyle}"/>
                         </DataGrid.Columns>
                     </DataGrid>
                     <Expander Grid.Row="2" Margin="14,8" Foreground="{DynamicResource PrimaryTextBrush}">
                         <Expander.Header><TextBlock Text="Dettagli calcolo della riga selezionata" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/></Expander.Header>
                         <Border Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="10" Padding="14" Margin="0,8,0,0"><UniformGrid Columns="4">
-                            <StackPanel Margin="5"><TextBlock Text="Spessore ingresso" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.IncomingThickness, StringFormat={}{0:N1} mm}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Spessore convenzionale" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.ConventionalThickness, StringFormat={}{0:N0} mm}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Spessore utile finale" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.UsefulProductionThickness, StringFormat={}{0:N0} mm}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Larghezza ingresso" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.IncomingWidth, StringFormat={}{0:N1} mm}"/></StackPanel>
-                            <StackPanel Margin="5"><TextBlock Text="Prepiallatura applicata" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.PlaningReduction, StringFormat={}{0:N1} mm}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Riduzione standard" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.StandardWidthReduction, StringFormat={}{0:N1} mm}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Larghezza finale" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.FinalWidth, StringFormat={}{0:N1} mm}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Lunghezza ingresso" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.IncomingLength, StringFormat={}{0:N0} mm}"/></StackPanel>
-                            <StackPanel Margin="5"><TextBlock Text="Riduzione Finger Joint" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.FingerJointLengthReduction, StringFormat={}{0:N1} mm}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Lunghezza finale" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.FinalLength, StringFormat={}{0:N1} mm}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="MC fisici" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.PhysicalIncomingCubicMeters, StringFormat=N3}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="MC utili teorici" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.TheoreticalUsefulCubicMeters, StringFormat=N3}"/></StackPanel>
-                            <StackPanel Margin="5"><TextBlock Text="Perdita lavorazione" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.ProcessingLossCubicMeters, StringFormat=N3}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Perdita lavorazione %" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.ProcessingLossPercentage, StringFormat={}{0:N2}%}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Prezzo applicato" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.PrezzoApplicato, StringFormat={}{0:N2} €/m³}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Valore" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.LineValue, StringFormat={}{0:N2} €}"/></StackPanel>
+                            <StackPanel Margin="5"><TextBlock Text="Spessore ingresso" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.IncomingThickness, StringFormat={}{0:N2} mm}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Spessore convenzionale" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.ConventionalThickness, StringFormat={}{0:N2} mm}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Spessore utile finale" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.UsefulProductionThickness, StringFormat={}{0:N2} mm}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Larghezza ingresso" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.IncomingWidth, StringFormat={}{0:N2} mm}"/></StackPanel>
+                            <StackPanel Margin="5"><TextBlock Text="Prepiallatura applicata" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.PlaningReduction, StringFormat={}{0:N2} mm}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Riduzione standard" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.StandardWidthReduction, StringFormat={}{0:N2} mm}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Larghezza finale" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.FinalWidth, StringFormat={}{0:N2} mm}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Lunghezza ingresso" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.IncomingLength, StringFormat={}{0:N2} mm}"/></StackPanel>
+                            <StackPanel Margin="5"><TextBlock Text="Riduzione Finger Joint" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.FingerJointLengthReduction, StringFormat={}{0:N2} mm}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Lunghezza finale" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.FinalLength, StringFormat={}{0:N2} mm}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="MC fisici" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.PhysicalIncomingCubicMeters, StringFormat=N2}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="MC utili teorici" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.TheoreticalUsefulCubicMeters, StringFormat=N2}"/></StackPanel>
+                            <StackPanel Margin="5"><TextBlock Text="Perdita lavorazione" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.ProcessingLossCubicMeters, StringFormat=N2}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Perdita lavorazione %" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.ProcessingLossPercentage, StringFormat={}{0:N2}%}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Prezzo applicato" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.PrezzoApplicato, StringFormat={}{0:N2} €/m³}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Valore" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.LineValue, StringFormat={}{0:N2} €}"/></StackPanel>
                         </UniformGrid></Border>
                     </Expander>
                     <Border Grid.Row="3" Background="#101820" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="18,10">
@@ -234,9 +232,9 @@
                         </UniformGrid.Resources>
                         <StackPanel><TextBlock Text="Totale pacchi" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding TotalPackages}" Style="{StaticResource SummaryValueStyle}" Foreground="{DynamicResource PrimaryTextBrush}"/></StackPanel>
                         <StackPanel><TextBlock Text="Totale pezzi" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding TotalPieces}" Style="{StaticResource SummaryValueStyle}" Foreground="{DynamicResource PrimaryTextBrush}"/></StackPanel>
-                        <StackPanel><TextBlock Text="MC fisici entrati" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding TotalArrivedCubicMeters, StringFormat=N3}" Style="{StaticResource SummaryValueStyle}" Foreground="{DynamicResource PrimaryTextBrush}"/></StackPanel>
-                        <StackPanel><TextBlock Text="MC utili teorici" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding TotalTheoreticalCubicMeters, StringFormat=N3}" Style="{StaticResource SummaryValueStyle}" Foreground="{DynamicResource PrimaryTextBrush}"/></StackPanel>
-                        <StackPanel><TextBlock Text="Perdita lavorazione MC" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding TotalProcessingLossCubicMeters, StringFormat=N3}" Style="{StaticResource SummaryValueStyle}" Foreground="{DynamicResource PrimaryTextBrush}"/></StackPanel>
+                        <StackPanel><TextBlock Text="MC fisici entrati" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding TotalArrivedCubicMeters, StringFormat=N2}" Style="{StaticResource SummaryValueStyle}" Foreground="{DynamicResource PrimaryTextBrush}"/></StackPanel>
+                        <StackPanel><TextBlock Text="MC utili teorici" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding TotalTheoreticalCubicMeters, StringFormat=N2}" Style="{StaticResource SummaryValueStyle}" Foreground="{DynamicResource PrimaryTextBrush}"/></StackPanel>
+                        <StackPanel><TextBlock Text="Perdita lavorazione MC" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding TotalProcessingLossCubicMeters, StringFormat=N2}" Style="{StaticResource SummaryValueStyle}" Foreground="{DynamicResource PrimaryTextBrush}"/></StackPanel>
                         <StackPanel><TextBlock Text="Perdita lavorazione %" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding TotalProcessingLossPercentage, StringFormat={}{0:N2}%}" Style="{StaticResource SummaryValueStyle}" Foreground="{DynamicResource PrimaryTextBrush}"/></StackPanel>
                         <StackPanel><TextBlock Text="Valore totale €" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding TotalValue, StringFormat=N2}" Style="{StaticResource SummaryValueStyle}" Foreground="{DynamicResource AccentBrush}"/></StackPanel>
                     </UniformGrid>

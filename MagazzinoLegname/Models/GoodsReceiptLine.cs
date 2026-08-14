@@ -51,8 +51,24 @@ public sealed class GoodsReceiptLine : ObservableObject, IDataErrorInfo
     public decimal IncomingThickness { get => _incomingThickness; set => SetProperty(ref _incomingThickness, Math.Max(0m, value)); }
     public decimal ConventionalThickness { get => _conventionalThickness; internal set => SetProperty(ref _conventionalThickness, value); }
     public decimal UsefulProductionThickness { get => _usefulProductionThickness; internal set => SetProperty(ref _usefulProductionThickness, value); }
-    public decimal IncomingWidth { get => _incomingWidth; set => SetProperty(ref _incomingWidth, Math.Max(0m, value)); }
-    public decimal PlaningReduction { get => _planingReduction; internal set => SetProperty(ref _planingReduction, value); }
+    public decimal IncomingWidth
+    {
+        get => _incomingWidth;
+        set
+        {
+            if (SetProperty(ref _incomingWidth, Math.Max(0m, value)))
+                OnPropertyChanged(nameof(WidthAfterPlaning));
+        }
+    }
+    public decimal PlaningReduction
+    {
+        get => _planingReduction;
+        internal set
+        {
+            if (SetProperty(ref _planingReduction, value))
+                OnPropertyChanged(nameof(WidthAfterPlaning));
+        }
+    }
     public decimal StandardWidthReduction { get => _standardWidthReduction; internal set => SetProperty(ref _standardWidthReduction, value); }
     public decimal FinalWidth { get => _finalWidth; internal set => SetProperty(ref _finalWidth, value); }
     public decimal IncomingLength { get => _incomingLength; set => SetProperty(ref _incomingLength, Math.Max(0m, value)); }

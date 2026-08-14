@@ -1,6 +1,136 @@
-<UserControl x:Class="MagazzinoLegname.Views.PlanningView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
- <ScrollViewer VerticalScrollBarVisibility="Auto"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-  <StackPanel Margin="2,0,0,16"><TextBlock Text="Pianificazione" Style="{StaticResource PageTitleStyle}"/><TextBlock Text="Organizzazione delle attività e dei fabbisogni futuri." Style="{StaticResource PageSubtitleStyle}"/></StackPanel>
-  <Border Grid.Row="1" Style="{StaticResource CardStyle}"><StackPanel><TextBlock Text="Valori settimanali per spessore" FontSize="20" FontWeight="Bold"/><TextBlock Text="Prima predisposizione dei volumi attesi e dei consumi; la progettazione dettagliata verrà completata successivamente." Style="{StaticResource PageSubtitleStyle}" Margin="0,5,0,18"/><ItemsControl ItemsSource="{Binding WeeklyValues}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1"/></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate><Border Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="12" Padding="18" Margin="7,0"><StackPanel><TextBlock Text="{Binding ConventionalThickness, StringFormat=SPESSORE {0:N0}}" Foreground="{DynamicResource AccentBrush}" FontWeight="ExtraBold" FontSize="20" Margin="0,0,0,15"/><TextBlock Text="M³ TEORICI PER ARRIVO PREVISTO" Style="{StaticResource FieldLabelStyle}"/><TextBox Text="{Binding TheoreticalCubicMetersPerExpectedArrival, UpdateSourceTrigger=LostFocus}" Margin="0,0,0,13"/><TextBlock Text="CONSUMO SETTIMANALE PREVISTO (M³)" Style="{StaticResource FieldLabelStyle}"/><TextBox Text="{Binding ExpectedWeeklyConsumption, UpdateSourceTrigger=LostFocus}"/></StackPanel></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel></Border>
- </Grid></ScrollViewer>
+<UserControl x:Class="MagazzinoLegname.Views.PlanningView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <Style x:Key="PlanningValueStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,2,0,0"/>
+        </Style>
+        <Style x:Key="PlanningCaptionStyle" TargetType="TextBlock" BasedOn="{StaticResource FieldLabelStyle}">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid Margin="0,0,0,8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Grid Margin="2,0,0,8">
+                <Border HorizontalAlignment="Right" VerticalAlignment="Center" Background="{DynamicResource SurfaceRaisedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="9" Padding="13,8">
+                    <StackPanel Orientation="Horizontal"><TextBlock Text="PERIODO  " Style="{StaticResource FieldLabelStyle}" VerticalAlignment="Center"/><TextBlock Text="{Binding PeriodText}" FontWeight="Bold" VerticalAlignment="Center"/></StackPanel>
+                </Border>
+            </Grid>
+
+            <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="0" Margin="0,0,0,15" ClipToBounds="True">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <Grid Margin="18,14">
+                        <StackPanel><TextBlock Text="ARRIVI PREVISTI PER FORNITORE" FontSize="18" FontWeight="Bold"/><TextBlock Text="Un carico per cella · lunedì-venerdì · seleziona materiale e qualità" Style="{StaticResource PageSubtitleStyle}"/></StackPanel>
+                        <Border HorizontalAlignment="Right" VerticalAlignment="Center" Background="#142536" CornerRadius="8" Padding="11,7">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="MC standard/carico  "/>
+                                <TextBlock Text="23: " Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                <TextBlock Text="{Binding Settings.StandardCubicMetersPerExpectedLoad23, StringFormat={}{0:N2}}" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/>
+                                <TextBlock Text="  · 34: " Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                <TextBlock Text="{Binding Settings.StandardCubicMetersPerExpectedLoad34, StringFormat={}{0:N2}}" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/>
+                                <TextBlock Text="  · 44: " Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                <TextBlock Text="{Binding Settings.StandardCubicMetersPerExpectedLoad44, StringFormat={}{0:N2}}" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/>
+                                <TextBlock Text=" m³"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" CanContentScroll="False">
+                        <StackPanel Orientation="Horizontal">
+                            <Grid Width="180">
+                                <Grid.RowDefinitions><RowDefinition Height="70"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <Border Background="{DynamicResource SurfaceHeaderBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,1,1" Padding="14"><TextBlock Text="FORNITORE" FontWeight="Bold" VerticalAlignment="Center"/></Border>
+                                <ItemsControl Grid.Row="1" ItemsSource="{Binding ActiveSupplierNames}">
+                                    <ItemsControl.ItemTemplate><DataTemplate><Border Height="38" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,1" Padding="10,0"><TextBlock Text="{Binding}" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/></Border></DataTemplate></ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Grid>
+
+                            <ItemsControl ItemsSource="{Binding CalendarWeeks}">
+                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Width="545">
+                                            <Grid.RowDefinitions><RowDefinition Height="30"/><RowDefinition Height="40"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                            <Border Background="{DynamicResource AccentSoftBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,1,1"><TextBlock Text="{Binding Label}" Foreground="{DynamicResource AccentBrush}" FontWeight="ExtraBold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                            <ItemsControl Grid.Row="1" ItemsSource="{Binding Days}">
+                                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate><DataTemplate><Border Background="{DynamicResource SurfaceHeaderBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,1"><TextBlock Text="{Binding Header}" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></DataTemplate></ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                            <ItemsControl Grid.Row="2" ItemsSource="{Binding SupplierRows}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <ItemsControl ItemsSource="{Binding Cells}" Height="38">
+                                                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                                            <ItemsControl.ItemTemplate><DataTemplate><Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,1" Padding="2"><ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding Selection, UpdateSourceTrigger=PropertyChanged}" Height="32" Padding="5,3" FontSize="11"/></Border></DataTemplate></ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="0" ClipToBounds="True">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <StackPanel Margin="18,14"><TextBlock Text="PREVISIONE GIACENZE SETTIMANALI" FontSize="18" FontWeight="Bold"/><TextBlock Text="Aggregazione per spessore convenzionale e qualità; la larghezza non influenza la previsione." Style="{StaticResource PageSubtitleStyle}"/></StackPanel>
+
+                    <Grid Grid.Row="1" Background="{DynamicResource SurfaceHeaderBrush}">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="125"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <TextBlock Text="MATERIALE" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <ItemsControl Grid.Column="1" ItemsSource="{Binding CalendarWeeks}" Height="44">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate><DataTemplate><Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1,0,0,0"><TextBlock Text="{Binding Label}" Foreground="{DynamicResource AccentBrush}" FontWeight="ExtraBold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></DataTemplate></ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+
+                    <ItemsControl Grid.Row="2" ItemsSource="{Binding ForecastRows}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid MinHeight="60">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="125"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,1"><TextBlock Text="{Binding MaterialLabel}" FontSize="17" FontWeight="ExtraBold" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                    <ItemsControl Grid.Column="1" ItemsSource="{Binding Weeks}">
+                                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,1" Padding="6,4">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                                        <StackPanel><TextBlock Text="INIZIALE" Style="{StaticResource PlanningCaptionStyle}"/><TextBlock Text="{Binding OpeningBalance, StringFormat=N2}" Style="{StaticResource PlanningValueStyle}"/></StackPanel>
+                                                        <StackPanel Grid.Column="1"><TextBlock Text="ARRIVI" Style="{StaticResource PlanningCaptionStyle}"/><TextBlock Text="{Binding ExpectedArrivals, StringFormat=N2}" Style="{StaticResource PlanningValueStyle}" ToolTip="{Binding ExpectedLoadCount, StringFormat={}{0} carichi previsti}"/></StackPanel>
+                                                        <StackPanel Grid.Column="2" Margin="4,0"><TextBlock Text="CONSUMO" Style="{StaticResource PlanningCaptionStyle}"/><TextBox Style="{StaticResource NumericTextBoxStyle}" Text="{Binding Consumption.CubicMeters, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}" Height="28" Padding="5,2" FontSize="12" TextAlignment="Center" Margin="0,2,0,0"/></StackPanel>
+                                                        <StackPanel Grid.Column="3"><TextBlock Text="FINALE" Style="{StaticResource PlanningCaptionStyle}"/><TextBlock Text="{Binding ClosingBalance, StringFormat=N2}"><TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource PlanningValueStyle}"><Style.Triggers><DataTrigger Binding="{Binding IsNegative}" Value="True"><Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock></StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
+            </Border>
+        </Grid>
+    </ScrollViewer>
 </UserControl>

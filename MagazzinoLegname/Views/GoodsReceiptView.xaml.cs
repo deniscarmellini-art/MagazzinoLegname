@@ -46,16 +46,8 @@ public partial class GoodsReceiptView : UserControl
                 ViewModel.MarkRegistered(packages);
             }
 
-            while (ViewModel.IsRegistered)
-            {
-                ShowLabelPreview(ViewModel.RegisteredPackages);
-                var confirmation = new PrintConfirmationWindow { Owner = Window.GetWindow(this) };
-                var confirmationResult = confirmation.ShowDialog();
-                if (confirmationResult is null) return;
-                if (!confirmation.PrintSucceeded) continue;
+            if (ViewModel.IsRegistered && ShowLabelPreview(ViewModel.RegisteredPackages) == true)
                 ViewModel.CompleteAndReset();
-                return;
-            }
         }
         catch (Exception exception)
         {
@@ -67,11 +59,11 @@ public partial class GoodsReceiptView : UserControl
         }
     }
 
-    private void ShowLabelPreview(IReadOnlyList<PhysicalPackageDraft> packages)
+    private bool? ShowLabelPreview(IReadOnlyList<PhysicalPackageDraft> packages)
     {
         var preview = new QrPackagePreviewWindow(packages, ViewModel.SelectedSupplier!.Name,
             ViewModel.LoadDraft.LoadNumber, ViewModel.LoadDraft.DeliveryNoteNumber,
             ViewModel.LoadDraft.CertificationApplied) { Owner = Window.GetWindow(this) };
-        preview.ShowDialog();
+        return preview.ShowDialog();
     }
 }

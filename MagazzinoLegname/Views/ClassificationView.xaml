@@ -6,20 +6,22 @@
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style x:Key="ClassificationHeaderStyle" TargetType="DataGridColumnHeader"
+               BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+            <Setter Property="FontSize" Value="13"/>
         </Style>
     </UserControl.Resources>
-    <Grid Margin="24,20,24,24">
+    <Grid Margin="24,8,24,24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="390"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <Grid Margin="0,0,0,18">
-            <StackPanel>
-                <TextBlock Text="Classificazione" Style="{StaticResource PageTitleStyle}"/>
-                <TextBlock Text="Completa i gruppi omogenei ricevuti; gli scarti saranno verificati in un passaggio separato." Style="{StaticResource PageSubtitleStyle}"/>
-            </StackPanel>
+        <Grid Margin="0,0,0,8">
             <Border HorizontalAlignment="Right" VerticalAlignment="Center" Background="#172839" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="14,9">
                 <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8EC;" FontFamily="Segoe MDL2 Assets" Foreground="{DynamicResource AccentBrush}" FontSize="16" Margin="0,0,9,0"/><TextBlock Text="{Binding LoadCountText}" FontWeight="Bold"/></StackPanel>
             </Border>
@@ -33,21 +35,21 @@
                 </Grid>
                 <DataGrid Grid.Row="1" ItemsSource="{Binding VisibleLoads}" SelectedItem="{Binding SelectedLoad}"
                           AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
-                          SelectionUnit="FullRow" RowHeight="32">
+                          SelectionUnit="FullRow" RowHeight="38" ColumnHeaderStyle="{StaticResource ClassificationHeaderStyle}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Numero carico" Width="125" Binding="{Binding LoadNumber, Mode=OneWay}" ElementStyle="{StaticResource CenteredGridText}"/>
-                        <DataGridTextColumn Header="Fornitore" Width="*" Binding="{Binding SupplierName, Mode=OneWay}" ElementStyle="{StaticResource CenteredGridText}"/>
+                        <DataGridTextColumn Header="Fornitore" Width="260" Binding="{Binding SupplierName, Mode=OneWay}" ElementStyle="{StaticResource CenteredGridText}"/>
                         <DataGridTextColumn Header="Data arrivo" Width="125" Binding="{Binding ArrivalDate, Mode=OneWay, StringFormat=dd/MM/yyyy}" ElementStyle="{StaticResource CenteredGridText}"/>
                         <DataGridTextColumn Header="Totale pacchi" Width="115" Binding="{Binding TotalPackages, Mode=OneWay}" ElementStyle="{StaticResource CenteredGridText}"/>
-                        <DataGridTextColumn Header="Da classificare" Width="130" Binding="{Binding GroupsToClassify, Mode=OneWay}" ElementStyle="{StaticResource CenteredGridText}"/>
-                        <DataGridTextColumn Header="Classificati" Width="110" Binding="{Binding ClassifiedGroups, Mode=OneWay}" ElementStyle="{StaticResource CenteredGridText}"/>
+                        <DataGridTextColumn Header="Da classificare" Width="130" Binding="{Binding PackagesToClassify, Mode=OneWay}" ElementStyle="{StaticResource CenteredGridText}"/>
+                        <DataGridTextColumn Header="Classificati" Width="110" Binding="{Binding ClassifiedPackages, Mode=OneWay}" ElementStyle="{StaticResource CenteredGridText}"/>
                         <DataGridTextColumn Header="Stato carico" Width="195" Binding="{Binding Status, Mode=OneWay}" ElementStyle="{StaticResource CenteredGridText}"/>
                         <DataGridTemplateColumn Header="Operatore" Width="210">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <ComboBox ItemsSource="{Binding DataContext.Operators, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                               SelectedItem="{Binding SelectedOperator, UpdateSourceTrigger=PropertyChanged}"
-                                              Height="28" Margin="5,2" Padding="8,2"/>
+                                              Height="30" Margin="5,2" Padding="8,2" FontSize="14"/>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
@@ -64,23 +66,29 @@
                     <Border HorizontalAlignment="Right" VerticalAlignment="Center" Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="8" Padding="12,7"><TextBlock Text="{Binding SelectedLoad.Status}" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/></Border>
                 </Grid>
                 <DataGrid Grid.Row="1" ItemsSource="{Binding SelectedLoad.Groups}" AutoGenerateColumns="False"
-                          IsReadOnly="True" CanUserAddRows="False" SelectionUnit="FullRow" RowHeight="46">
+                          IsReadOnly="True" CanUserAddRows="False" SelectionUnit="FullRow" RowHeight="46"
+                          ColumnHeaderStyle="{StaticResource ClassificationHeaderStyle}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="Spessore ingresso" Width="125" Binding="{Binding IncomingThickness, Mode=OneWay, StringFormat=N0}" ElementStyle="{StaticResource CenteredGridText}"/>
-                        <DataGridTextColumn Header="Convenzionale" Width="115" Binding="{Binding ConventionalThickness, Mode=OneWay, StringFormat=N0}" ElementStyle="{StaticResource CenteredGridText}"/>
-                        <DataGridTextColumn Header="Larghezza ingresso" Width="135" Binding="{Binding IncomingWidth, Mode=OneWay, StringFormat=N0}" ElementStyle="{StaticResource CenteredGridText}"/>
-                        <DataGridTextColumn Header="Dopo prepiall." Width="125" Binding="{Binding WidthAfterPlaning, Mode=OneWay, StringFormat=N0}" ElementStyle="{StaticResource CenteredGridText}"/>
-                        <DataGridTextColumn Header="Lunghezza" Width="110" Binding="{Binding IncomingLength, Mode=OneWay, StringFormat=N0}" ElementStyle="{StaticResource CenteredGridText}"/>
+                        <DataGridTextColumn Header="Spessore ingresso" Width="125" Binding="{Binding IncomingThickness, Mode=OneWay, StringFormat=N2}" ElementStyle="{StaticResource CenteredGridText}"/>
+                        <DataGridTextColumn Header="Convenzionale" Width="115" Binding="{Binding ConventionalThickness, Mode=OneWay, StringFormat=N2}" ElementStyle="{StaticResource CenteredGridText}"/>
+                        <DataGridTextColumn Header="Larghezza ingresso" Width="135" Binding="{Binding IncomingWidth, Mode=OneWay, StringFormat=N2}" ElementStyle="{StaticResource CenteredGridText}"/>
+                        <DataGridTextColumn Header="Dopo prepiall." Width="125" Binding="{Binding WidthAfterPlaning, Mode=OneWay, StringFormat=N2}" ElementStyle="{StaticResource CenteredGridText}"/>
+                        <DataGridTextColumn Header="Lunghezza" Width="110" Binding="{Binding IncomingLength, Mode=OneWay, StringFormat=N2}" ElementStyle="{StaticResource CenteredGridText}"/>
                         <DataGridTextColumn Header="Qualità" Width="80" Binding="{Binding Quality, Mode=OneWay}" ElementStyle="{StaticResource CenteredGridText}"/>
                         <DataGridTextColumn Header="Pacchi" Width="80" Binding="{Binding PackageCount, Mode=OneWay}" ElementStyle="{StaticResource CenteredGridText}"/>
                         <DataGridTextColumn Header="Pezzi iniziali" Width="110" Binding="{Binding InitialPieces, Mode=OneWay}" ElementStyle="{StaticResource CenteredGridText}"/>
                         <DataGridTextColumn Header="Stato classificazione" Width="220" Binding="{Binding ClassificationStatus, Mode=OneWay}" ElementStyle="{StaticResource CenteredGridText}"/>
-                        <DataGridTemplateColumn Header="Azione" Width="190">
+                        <DataGridTemplateColumn Header="Azione" Width="205">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <Button Content="Segna come classificato" Tag="{Binding}" Click="MarkClassified_Click" Padding="12,6">
-                                        <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}"><Style.Triggers><DataTrigger Binding="{Binding IsClassified}" Value="True"><Setter Property="IsEnabled" Value="False"/><Setter Property="Content" Value="Classificato ✓"/></DataTrigger></Style.Triggers></Style></Button.Style>
-                                    </Button>
+                                    <Grid Margin="5,2">
+                                        <Button Content="Segna come classificato" Tag="{Binding}" Click="MarkClassified_Click" Padding="12,6">
+                                            <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}"><Style.Triggers><DataTrigger Binding="{Binding IsClassified}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                                        </Button>
+                                        <Button Content="↶  Annulla classificazione" Tag="{Binding}" Click="UndoClassification_Click" Padding="12,6" ToolTip="Riporta il gruppo allo stato Da classificare">
+                                            <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding CanUndoClassification}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                                        </Button>
+                                    </Grid>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>

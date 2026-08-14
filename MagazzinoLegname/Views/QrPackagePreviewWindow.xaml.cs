@@ -18,9 +18,22 @@ public partial class QrPackagePreviewWindow : Window
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
     private void PrintCurrent_Click(object sender, RoutedEventArgs e)
     {
-        if (ViewModel.CurrentLabel is not null)
-            _printService.Print([ViewModel.CurrentLabel], $"Etichetta {ViewModel.CurrentLabel.Package.PackageCode}");
+        if (ViewModel.CurrentLabel is null) return;
+        _printService.Print([ViewModel.CurrentLabel], $"Etichetta {ViewModel.CurrentLabel.Package.PackageCode}");
+        ConfirmPrintResult();
     }
-    private void PrintAll_Click(object sender, RoutedEventArgs e) =>
+    private void PrintAll_Click(object sender, RoutedEventArgs e)
+    {
         _printService.Print(ViewModel.Labels, $"Etichette carico {ViewModel.CurrentLabel?.LoadNumber}");
+        ConfirmPrintResult();
+    }
+
+    private void ConfirmPrintResult()
+    {
+        var confirmation = new PrintConfirmationWindow { Owner = this };
+        confirmation.ShowDialog();
+        if (!confirmation.PrintSucceeded) return;
+
+        DialogResult = true;
+    }
 }

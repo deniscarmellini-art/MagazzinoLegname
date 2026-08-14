@@ -3,10 +3,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Loaded="View_Loaded">
     <UserControl.Resources><BooleanToVisibilityConverter x:Key="BoolToVisibility"/></UserControl.Resources>
-    <Grid Margin="24,20,24,24">
+    <Grid Margin="24,8,24,24">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-        <Grid Margin="0,0,0,17">
-            <StackPanel><TextBlock Text="Scarico materiale" Style="{StaticResource PageTitleStyle}"/><TextBlock Text="Scansiona il QR del pacco completo da rimuovere dalla disponibilità di magazzino." Style="{StaticResource PageSubtitleStyle}"/></StackPanel>
+        <Grid Margin="0,0,0,8">
             <StackPanel HorizontalAlignment="Right" Width="230"><TextBlock Text="OPERATORE SCARICO" Style="{StaticResource FieldLabelStyle}"/><ComboBox ItemsSource="{Binding Operators, Mode=OneWay}" SelectedItem="{Binding SelectedOperator}"/></StackPanel>
         </Grid>
 
@@ -41,7 +40,7 @@
                     <StackPanel Margin="0,0,12,0"><TextBlock Text="CERTIFICAZIONE" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding CurrentPackage.Certification, Mode=OneWay}" FontWeight="Bold"/></StackPanel>
                     <StackPanel Margin="0,0,12,0"><TextBlock Text="CLASSIFICAZIONE" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding CurrentPackage.ClassificationStatus, Mode=OneWay}" FontWeight="Bold"/></StackPanel>
                     <StackPanel Margin="0,0,12,0"><TextBlock Text="RETTIFICA SCARTI" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding CurrentPackage.WasteAdjustmentStatus, Mode=OneWay}" FontSize="18" FontWeight="Bold"/></StackPanel>
-                    <StackPanel><TextBlock Text="MC GIACENZA" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding CurrentPackage.InventoryCubicMeters, Mode=OneWay, StringFormat=N6}" FontSize="22" FontWeight="ExtraBold" Foreground="{DynamicResource AccentBrush}"/></StackPanel>
+                    <StackPanel><TextBlock Text="MC GIACENZA" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding CurrentPackage.InventoryCubicMeters, Mode=OneWay, StringFormat=N2}" FontSize="22" FontWeight="ExtraBold" Foreground="{DynamicResource AccentBrush}"/></StackPanel>
                 </UniformGrid>
                 <Grid Grid.Row="2" Margin="0,17,0,0">
                     <StackPanel VerticalAlignment="Center"><TextBlock Text="{Binding DischargeAmountText, Mode=OneWay}" FontSize="17" FontWeight="Bold"/><TextBlock Text="{Binding PreviousDischargeDetail, Mode=OneWay}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,4,0,0"/></StackPanel>
@@ -59,7 +58,7 @@
                         <DataGridTextColumn Header="Codice pacco" Width="180" Binding="{Binding PackageCode, Mode=OneWay}"/>
                         <DataGridTextColumn Header="Fornitore" Width="*" Binding="{Binding SupplierName, Mode=OneWay}"/>
                         <DataGridTextColumn Header="Carico" Width="110" Binding="{Binding LoadNumber, Mode=OneWay}"/>
-                        <DataGridTextColumn Header="MC scaricati" Width="140" Binding="{Binding DischargedCubicMeters, Mode=OneWay, StringFormat=N6}"/>
+                        <DataGridTextColumn Header="MC scaricati" Width="140" Binding="{Binding DischargedCubicMeters, Mode=OneWay, StringFormat=N2}"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </Grid>

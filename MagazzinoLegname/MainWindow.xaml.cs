@@ -12,6 +12,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         _navigationService.PageChanged += (_, page) => PageContent.Content = page;
+        ApplyHeader(PageKey.Dashboard);
         _navigationService.NavigateTo(PageKey.Dashboard);
     }
 
@@ -20,8 +21,26 @@ public partial class MainWindow : Window
         if (sender is RadioButton { Content: string pageLabel }
             && TryGetPageKey(pageLabel, out var pageKey))
         {
+            ApplyHeader(pageKey);
             _navigationService.NavigateTo(pageKey);
         }
+    }
+
+    private void ApplyHeader(PageKey pageKey)
+    {
+        (HeaderTitle.Text, HeaderDescription.Text) = pageKey switch
+        {
+            PageKey.Dashboard => ("Magazzino Legname", "Gestione materiali, giacenze e movimentazioni"),
+            PageKey.GoodsReceipt => ("Entrata merce", "Registrazione dei carichi in ingresso e preparazione delle etichette pacco."),
+            PageKey.Classification => ("Classificazione", "Classificazione dei gruppi omogenei ricevuti e assegnazione dell'operatore."),
+            PageKey.WasteCorrection => ("Rettifica scarti", "Consuntivo per gruppo materiale classificato; verifica degli scarti e aggiornamento della giacenza reale."),
+            PageKey.MaterialDispatch => ("Scarico materiale", "Lettura e verifica dei pacchi da rimuovere dalla disponibilità di magazzino."),
+            PageKey.Inventory => ("Disponibilità Magazzino", "Pacchi fisicamente presenti, quantità consolidate e giacenza disponibile."),
+            PageKey.Planning => ("Pianificazione", "Arrivi previsti e proiezione settimanale delle giacenze."),
+            PageKey.History => ("Storico", "Consultazione delle operazioni eseguite nel tempo."),
+            PageKey.Settings => ("Impostazioni", "Anagrafiche e configurazioni operative dell'applicazione."),
+            _ => ("Magazzino Legname", "Gestione materiali, giacenze e movimentazioni")
+        };
     }
 
     private static bool TryGetPageKey(string label, out PageKey pageKey)
