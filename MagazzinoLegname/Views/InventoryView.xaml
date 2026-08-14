@@ -32,11 +32,12 @@
     <Grid Margin="24,8,24,24">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
         <Grid Margin="0,0,0,9">
-            <UniformGrid Columns="4" HorizontalAlignment="Center" VerticalAlignment="Center" Width="660">
+            <UniformGrid Columns="5" HorizontalAlignment="Center" VerticalAlignment="Center" Width="840">
                 <Border Style="{StaticResource InventoryKpiCardStyle}"><StackPanel VerticalAlignment="Center"><TextBlock Text="PACCHI PRESENTI" Style="{StaticResource InventoryKpiLabelStyle}"/><TextBlock Text="{Binding PresentPackages, Mode=OneWay}" Style="{StaticResource InventoryKpiValueStyle}"/></StackPanel></Border>
                 <Border Style="{StaticResource InventoryKpiCardStyle}"><StackPanel VerticalAlignment="Center"><TextBlock Text="MC GIACENZA" Style="{StaticResource InventoryKpiLabelStyle}"/><TextBlock Text="{Binding InventoryCubicMeters, Mode=OneWay, StringFormat=N2}" Style="{StaticResource InventoryKpiValueStyle}" Foreground="{DynamicResource AccentBrush}"/></StackPanel></Border>
                 <Border Style="{StaticResource InventoryKpiCardStyle}"><StackPanel VerticalAlignment="Center"><TextBlock Text="MC DA CONSOLIDARE" Style="{StaticResource InventoryKpiLabelStyle}"/><TextBlock Text="{Binding CubicMetersToConsolidate, Mode=OneWay, StringFormat=N2}" Style="{StaticResource InventoryKpiValueStyle}"/></StackPanel></Border>
-                <Border Style="{StaticResource InventoryKpiCardStyle}" Margin="0"><StackPanel VerticalAlignment="Center"><TextBlock Text="MC REALI" Style="{StaticResource InventoryKpiLabelStyle}"/><TextBlock Text="{Binding RealCubicMeters, Mode=OneWay, StringFormat=N2}" Style="{StaticResource InventoryKpiValueStyle}"/></StackPanel></Border>
+                <Border Style="{StaticResource InventoryKpiCardStyle}"><StackPanel VerticalAlignment="Center"><TextBlock Text="MC REALI" Style="{StaticResource InventoryKpiLabelStyle}"/><TextBlock Text="{Binding RealCubicMeters, Mode=OneWay, StringFormat=N2}" Style="{StaticResource InventoryKpiValueStyle}"/></StackPanel></Border>
+                <Border Style="{StaticResource InventoryKpiCardStyle}" Margin="0"><StackPanel VerticalAlignment="Center"><TextBlock Text="VALORE MAGAZZINO" Style="{StaticResource InventoryKpiLabelStyle}"/><TextBlock Text="{Binding InventoryValue, Mode=OneWay, StringFormat={}{0:N2} €}" Style="{StaticResource InventoryKpiValueStyle}"/></StackPanel></Border>
             </UniformGrid>
         </Grid>
 
@@ -72,10 +73,11 @@
                     <DataGridTextColumn Header="Sfrido lavorazioni %" Width="130" Binding="{Binding ProcessingWastePercentage, Mode=OneWay, StringFormat={}{0:N2}%}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
                     <DataGridTextColumn Header="Scarto qualità %" Width="115" Binding="{Binding QualityWasteDisplay, Mode=OneWay}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
                     <DataGridTextColumn Header="MC Giacenza" Width="95" Binding="{Binding InventoryCubicMeters, Mode=OneWay, StringFormat=N2}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
+                    <DataGridTextColumn Header="Valore €" Width="110" Binding="{Binding PackageValue, Mode=OneWay, StringFormat={}{0:N2} €}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
                     <DataGridTemplateColumn Header="Azioni" Width="115">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <Button Content="Elimina pacco" Tag="{Binding}" Click="DeletePackage_Click"
+                                <Button Content="Rimuovi pacco" Tag="{Binding}" Click="DeletePackage_Click"
                                         Style="{StaticResource SecondaryButtonStyle}" Padding="11,6" Margin="5,3"/>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>

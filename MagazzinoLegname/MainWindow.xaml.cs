@@ -37,7 +37,7 @@ public partial class MainWindow : Window
             PageKey.MaterialDispatch => ("Scarico materiale", "Lettura e verifica dei pacchi da rimuovere dalla disponibilità di magazzino."),
             PageKey.Inventory => ("Disponibilità Magazzino", "Pacchi fisicamente presenti, quantità consolidate e giacenza disponibile."),
             PageKey.Planning => ("Pianificazione", "Arrivi previsti e proiezione settimanale delle giacenze."),
-            PageKey.History => ("Storico", "Consultazione delle operazioni eseguite nel tempo."),
+            PageKey.History => ("Storico", "Registro permanente di entrate, classificazioni, rettifiche, scarichi e rimozioni manuali."),
             PageKey.Settings => ("Impostazioni", "Anagrafiche e configurazioni operative dell'applicazione."),
             _ => ("Magazzino Legname", "Gestione materiali, giacenze e movimentazioni")
         };

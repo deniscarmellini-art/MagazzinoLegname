@@ -17,9 +17,11 @@ public partial class InventoryView : UserControl
     private void DeletePackage_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: InventoryPackage package }) return;
-        var result = MessageBox.Show(
-            $"Eliminare il pacco {package.PackageCode} dalla disponibilità locale?\n\nL'operazione non viene salvata su database.",
-            "Elimina pacco", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-        if (result == MessageBoxResult.Yes) ViewModel.RemovePackage(package);
+        var dialog = new ManualPackageRemovalWindow(package.PackageCode)
+        {
+            Owner = Window.GetWindow(this)
+        };
+        if (dialog.ShowDialog() == true)
+            ViewModel.RemovePackage(package, dialog.OperatorName, dialog.Reason, dialog.Note);
     }
 }

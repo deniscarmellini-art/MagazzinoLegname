@@ -1,6 +1,102 @@
 <UserControl x:Class="MagazzinoLegname.Views.HistoryView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:shared="clr-namespace:MagazzinoLegname.Views.Shared">
-    <shared:PageScaffold PageTitle="Storico" PageSubtitle="Consultazione delle operazioni eseguite nel tempo."/>
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+        <Style x:Key="HistoryCellStyle" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            <Setter Property="Margin" Value="4,0"/>
+        </Style>
+    </UserControl.Resources>
+    <Grid Margin="20,6,20,18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="250"/>
+        </Grid.RowDefinitions>
+
+        <Border Style="{StaticResource CardStyle}" Padding="13" Margin="0,0,0,9">
+            <Grid>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <Grid>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="FILTRI RAPIDI" Style="{StaticResource FieldLabelStyle}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <Button Content="Tutti" Tag="Tutti" Click="QuickFilter_Click" Style="{StaticResource SecondaryButtonStyle}" Padding="13,6" Margin="0,0,6,0"/>
+                        <Button Content="Entrate" Tag="Entrate" Click="QuickFilter_Click" Style="{StaticResource SecondaryButtonStyle}" Padding="13,6" Margin="0,0,6,0"/>
+                        <Button Content="Rettifiche" Tag="Rettifiche" Click="QuickFilter_Click" Style="{StaticResource SecondaryButtonStyle}" Padding="13,6" Margin="0,0,6,0"/>
+                        <Button Content="Scarichi" Tag="Scarichi" Click="QuickFilter_Click" Style="{StaticResource SecondaryButtonStyle}" Padding="13,6" Margin="0,0,6,0"/>
+                        <Button Content="Rimozioni manuali" Tag="Rimozioni manuali" Click="QuickFilter_Click" Style="{StaticResource SecondaryButtonStyle}" Padding="13,6"/>
+                    </StackPanel>
+                    <TextBlock Text="{Binding QuickFilter, StringFormat=Vista: {0}}" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold"/>
+                </Grid>
+                <Grid Grid.Row="1" Margin="0,10,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="0.8*"/><ColumnDefinition Width="0.8*"/><ColumnDefinition Width="1.25*"/>
+                        <ColumnDefinition Width="1.15*"/><ColumnDefinition Width="0.75*"/><ColumnDefinition Width="0.75*"/>
+                        <ColumnDefinition Width="1.05*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,8,0"><TextBlock Text="DA DATA" Style="{StaticResource FieldLabelStyle}"/><DatePicker SelectedDate="{Binding FromDate}"/></StackPanel>
+                    <StackPanel Grid.Column="1" Margin="0,0,8,0"><TextBlock Text="A DATA" Style="{StaticResource FieldLabelStyle}"/><DatePicker SelectedDate="{Binding ToDate}"/></StackPanel>
+                    <StackPanel Grid.Column="2" Margin="0,0,8,0"><TextBlock Text="FORNITORE" Style="{StaticResource FieldLabelStyle}"/><ComboBox ItemsSource="{Binding Suppliers}" SelectedItem="{Binding SelectedSupplier}"/></StackPanel>
+                    <StackPanel Grid.Column="3" Margin="0,0,8,0"><TextBlock Text="TIPO MOVIMENTO" Style="{StaticResource FieldLabelStyle}"/><ComboBox ItemsSource="{Binding MovementTypes}" SelectedItem="{Binding SelectedMovementType}"/></StackPanel>
+                    <StackPanel Grid.Column="4" Margin="0,0,8,0"><TextBlock Text="SPESSORE" Style="{StaticResource FieldLabelStyle}"/><ComboBox ItemsSource="{Binding Thicknesses}" SelectedItem="{Binding SelectedThickness}"/></StackPanel>
+                    <StackPanel Grid.Column="5" Margin="0,0,8,0"><TextBlock Text="QUALITÀ" Style="{StaticResource FieldLabelStyle}"/><ComboBox ItemsSource="{Binding Qualities}" SelectedItem="{Binding SelectedQuality}"/></StackPanel>
+                    <StackPanel Grid.Column="6"><TextBlock Text="OPERATORE" Style="{StaticResource FieldLabelStyle}"/><ComboBox ItemsSource="{Binding Operators}" SelectedItem="{Binding SelectedOperator}"/></StackPanel>
+                </Grid>
+                <StackPanel Grid.Row="2" Margin="0,9,0,0">
+                    <TextBlock Text="RICERCA NUMERO CARICO / DDT / CODICE PACCO" Style="{StaticResource FieldLabelStyle}"/>
+                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="0" ClipToBounds="True" Margin="0,0,0,9">
+            <DataGrid ItemsSource="{Binding VisibleMovements}" SelectedItem="{Binding SelectedMovement}"
+                      AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" RowHeight="39">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Data/Ora" Width="125" Binding="{Binding DateTime, StringFormat=dd/MM/yyyy HH:mm}" ElementStyle="{StaticResource HistoryCellStyle}"/>
+                    <DataGridTextColumn Header="Tipo movimento" Width="145" Binding="{Binding MovementType}" ElementStyle="{StaticResource HistoryCellStyle}"/>
+                    <DataGridTemplateColumn Header="Carico" Width="78">
+                        <DataGridTemplateColumn.CellTemplate><DataTemplate><Button Content="{Binding LoadNumber}" Tag="{Binding LoadId}" Click="LoadHistory_Click" Style="{StaticResource SecondaryButtonStyle}" Padding="8,4" Margin="4" Foreground="{DynamicResource AccentBrush}"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Fornitore" Width="1.35*" Binding="{Binding SupplierName}" ElementStyle="{StaticResource HistoryCellStyle}"/>
+                    <DataGridTextColumn Header="Materiale" Width="1.15*" Binding="{Binding Material}" ElementStyle="{StaticResource HistoryCellStyle}"/>
+                    <DataGridTextColumn Header="Qualità" Width="70" Binding="{Binding Quality, TargetNullValue=—}" ElementStyle="{StaticResource HistoryCellStyle}"/>
+                    <DataGridTextColumn Header="Pacco/Pacchi" Width="115" Binding="{Binding PackageDisplay}" ElementStyle="{StaticResource HistoryCellStyle}"/>
+                    <DataGridTextColumn Header="MC movimento" Width="105" Binding="{Binding CubicMetersDisplay}" ElementStyle="{StaticResource HistoryCellStyle}"/>
+                    <DataGridTextColumn Header="Operatore" Width="125" Binding="{Binding Operator, TargetNullValue=—}" ElementStyle="{StaticResource HistoryCellStyle}"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="0.82*"/><ColumnDefinition Width="1.18*"/></Grid.ColumnDefinitions>
+            <Border Style="{StaticResource CardStyle}" Margin="0,0,9,0" Padding="15">
+                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <TextBlock Text="DETTAGLIO MOVIMENTO" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,9,0,0"><TextBlock Text="{Binding SelectedMovement.DetailText, TargetNullValue=Seleziona un movimento per visualizzarne lo snapshot.}" TextWrapping="Wrap" LineHeight="19"/></ScrollViewer>
+                </Grid>
+            </Border>
+            <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="15">
+                <Grid>
+                    <TextBlock Text="Seleziona il numero di un carico per aprirne la storia completa." Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <Grid Visibility="{Binding IsLoadHistoryVisible, Converter={StaticResource BoolToVisibility}}" Background="{DynamicResource SurfaceBrush}">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                        <Grid><StackPanel><TextBlock Text="{Binding SelectedLoadSummary.LoadNumber, StringFormat=STORIA CARICO {0}}" FontSize="17" FontWeight="ExtraBold"/><TextBlock Text="{Binding SelectedLoadSummary.SupplierName}" Foreground="{DynamicResource SecondaryTextBrush}"/></StackPanel><Button Content="Chiudi" Click="CloseLoadHistory_Click" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Right" Padding="10,5"/></Grid>
+                        <UniformGrid Grid.Row="1" Columns="5" Margin="0,8">
+                            <StackPanel><TextBlock Text="INIZIALI" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLoadSummary.InitialPackages}" FontWeight="Bold"/></StackPanel>
+                            <StackPanel><TextBlock Text="PRESENTI" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLoadSummary.PresentPackages}" FontWeight="Bold"/></StackPanel>
+                            <StackPanel><TextBlock Text="SCARICATI" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLoadSummary.DischargedPackages}" FontWeight="Bold"/></StackPanel>
+                            <StackPanel><TextBlock Text="RIMOSSI" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLoadSummary.ManuallyRemovedPackages}" FontWeight="Bold"/></StackPanel>
+                            <StackPanel><TextBlock Text="MC PRESENTI" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLoadSummary.PresentCubicMeters, StringFormat=N2}" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/></StackPanel>
+                        </UniformGrid>
+                        <TabControl Grid.Row="2">
+                            <TabItem Header="Cronologia"><DataGrid ItemsSource="{Binding LoadTimeline}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"><DataGrid.Columns><DataGridTextColumn Header="Data/Ora" Width="125" Binding="{Binding DateTime, StringFormat=dd/MM/yyyy HH:mm}"/><DataGridTextColumn Header="Movimento" Width="150" Binding="{Binding MovementType}"/><DataGridTextColumn Header="MC" Width="85" Binding="{Binding CubicMetersDisplay}"/><DataGridTextColumn Header="Operatore" Width="*" Binding="{Binding Operator}"/></DataGrid.Columns></DataGrid></TabItem>
+                            <TabItem Header="Pacchi"><DataGrid ItemsSource="{Binding LoadPackages}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"><DataGrid.Columns><DataGridTextColumn Header="Codice pacco" Width="135" Binding="{Binding PackageCode}"/><DataGridTextColumn Header="Pacco" Width="65" Binding="{Binding Position}"/><DataGridTextColumn Header="Qualità" Width="65" Binding="{Binding Quality}"/><DataGridTextColumn Header="Misura" Width="*" Binding="{Binding Measure}"/><DataGridTextColumn Header="Stato" Width="145" Binding="{Binding Status}"/><DataGridTextColumn Header="Data evento" Width="115" Binding="{Binding EventDate, StringFormat=dd/MM/yyyy HH:mm, TargetNullValue=—}"/><DataGridTextColumn Header="MC" Width="75" Binding="{Binding EventCubicMeters, StringFormat=N2, TargetNullValue=—}"/><DataGridTextColumn Header="Motivo" Width="130" Binding="{Binding Reason, TargetNullValue=—}"/></DataGrid.Columns></DataGrid></TabItem>
+                            <TabItem Header="Totali"><UniformGrid Columns="3" Margin="12"><StackPanel Margin="6"><TextBlock Text="MC FISICI ENTRATI" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLoadSummary.IncomingCubicMeters, StringFormat=N2}" FontSize="16" FontWeight="Bold"/></StackPanel><StackPanel Margin="6"><TextBlock Text="MC UTILI TEORICI" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLoadSummary.TheoreticalCubicMeters, StringFormat=N2}" FontSize="16" FontWeight="Bold"/></StackPanel><StackPanel Margin="6"><TextBlock Text="MC REALI RETTIFICATI" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLoadSummary.RealCubicMeters, StringFormat=N2}" FontSize="16" FontWeight="Bold"/></StackPanel><StackPanel Margin="6"><TextBlock Text="MC SCARICATI" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLoadSummary.DischargedCubicMeters, StringFormat=N2}" FontSize="16" FontWeight="Bold"/></StackPanel><StackPanel Margin="6"><TextBlock Text="MC RIMOSSI" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLoadSummary.ManuallyRemovedCubicMeters, StringFormat=N2}" FontSize="16" FontWeight="Bold"/></StackPanel><StackPanel Margin="6"><TextBlock Text="MC PRESENTI" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLoadSummary.PresentCubicMeters, StringFormat=N2}" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/></StackPanel></UniformGrid></TabItem>
+                        </TabControl>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
 </UserControl>

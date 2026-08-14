@@ -8,12 +8,12 @@ public sealed class InventoryProjectionService
     private readonly object _sync = new();
     private readonly ClassificationWorkflowService _workflow = ClassificationWorkflowService.Shared;
     private readonly Dictionary<string, Guid> _packageIds = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, decimal> _administrativelyRemoved = new(StringComparer.OrdinalIgnoreCase);
 
     public static InventoryProjectionService Shared { get; } = new();
     private InventoryProjectionService() { }
 
     public ObservableCollection<MaterialDischargeMovement> DischargeMovements { get; } = [];
+    public ObservableCollection<ManualPackageRemovalMovement> ManualRemovalMovements { get; } = [];
     public event EventHandler? InventoryChanged;
 
     public IReadOnlyList<InventoryPackage> BuildInventory(bool includeDischarged = false)
@@ -63,15 +63,31 @@ public sealed class InventoryProjectionService
         }
     }
 
-    public void RemovePackage(string packageCode)
+    public ManualPackageRemovalMovement RemovePackage(string packageCode, string operatorName,
+        string reason, string? note)
     {
         lock (_sync)
         {
             var package = BuildInventoryCore(false).FirstOrDefault(item =>
                 item.PackageCode.Equals(packageCode, StringComparison.OrdinalIgnoreCase));
-            if (package is null) return;
-            _administrativelyRemoved[package.PackageCode] = package.InventoryCubicMeters;
+            if (package is null) throw new InvalidOperationException("Pacco non trovato o non più presente.");
+            if (string.IsNullOrWhiteSpace(operatorName)) throw new InvalidOperationException("Indicare l'operatore.");
+            if (string.IsNullOrWhiteSpace(reason)) throw new InvalidOperationException("Indicare il motivo della rimozione.");
+            if (reason == "Altro" && string.IsNullOrWhiteSpace(note))
+                throw new InvalidOperationException("Per il motivo Altro è richiesta una breve nota.");
+
+            var movement = new ManualPackageRemovalMovement
+            {
+                PackageId = package.Id, PackageCode = package.PackageCode,
+                LoadId = package.LoadId, MaterialGroupId = package.MaterialGroupId,
+                LoadNumber = package.LoadNumber, SupplierName = package.SupplierName,
+                RemovalDate = DateTime.Now, RemovalOperator = operatorName,
+                RemovedCubicMeters = package.InventoryCubicMeters,
+                Reason = reason, Note = note?.Trim() ?? string.Empty
+            };
+            ManualRemovalMovements.Add(movement);
             InventoryChanged?.Invoke(this, EventArgs.Empty);
+            return movement;
         }
     }
 
@@ -87,12 +103,14 @@ public sealed class InventoryProjectionService
                     .Select(sequence => $"{load.SupplierCode}-{load.LoadNumber}-P{sequence:00}").ToList();
                 var movements = DischargeMovements.Where(item => item.MaterialGroupId == group.GroupId).ToList();
                 var movementByCode = movements.ToDictionary(item => item.PackageCode, StringComparer.OrdinalIgnoreCase);
+                var removals = ManualRemovalMovements.Where(item => item.MaterialGroupId == group.GroupId).ToList();
+                var removalByCode = removals.ToDictionary(item => item.PackageCode, StringComparer.OrdinalIgnoreCase);
                 var presentCodes = groupCodes.Where(code => !movementByCode.ContainsKey(code)
-                    && !_administrativelyRemoved.ContainsKey(code)).ToList();
+                    && !removalByCode.ContainsKey(code)).ToList();
                 var adjustment = _workflow.WasteAdjustmentHistory.LastOrDefault(item => item.MaterialGroupId == group.GroupId);
                 var originalGroupBalance = adjustment?.RealAvailableCubicMeters ?? group.TheoreticalUsefulCubicMeters;
                 var residual = originalGroupBalance - movements.Sum(item => item.DischargedCubicMeters)
-                    - groupCodes.Where(code => _administrativelyRemoved.ContainsKey(code)).Sum(code => _administrativelyRemoved[code]);
+                    - removals.Sum(item => item.RemovedCubicMeters);
                 if (presentCodes.Count == 0) residual = 0m;
                 residual = Math.Max(0m, residual);
                 var currentShares = DistributeExactly(residual, presentCodes.Count);
@@ -104,8 +122,8 @@ public sealed class InventoryProjectionService
                 {
                     var code = groupCodes[index];
                     movementByCode.TryGetValue(code, out var movement);
-                    var administrativelyRemoved = _administrativelyRemoved.ContainsKey(code);
-                    var isPresent = movement is null && !administrativelyRemoved;
+                    removalByCode.TryGetValue(code, out var removal);
+                    var isPresent = movement is null && removal is null;
                     if (!includeDischarged && !isPresent) continue;
                     if (!_packageIds.TryGetValue(code, out var packageId))
                         _packageIds[code] = packageId = Guid.NewGuid();
@@ -121,10 +139,16 @@ public sealed class InventoryProjectionService
                         IncomingCubicMeters = incomingShares[index], ProcessingWastePercentage = group.ProcessingWastePercentage,
                         QualityWastePercentage = adjustment?.TotalClassificationWastePercentage,
                         InventoryCubicMeters = isPresent ? shareByCode[code] : 0m,
+                        AppliedPrice = group.AppliedPrice,
                         UsesRealCubicMeters = adjustment is not null, IsPresent = isPresent,
-                        PackageStatus = movement is not null ? "Scaricato" : administrativelyRemoved ? "Eliminato" : "Presente",
+                        PackageStatus = movement is not null ? "Scaricato" : removal is not null ? "Rimosso manualmente" : "Presente",
                         DischargeDate = movement?.DischargeDate, DischargeOperator = movement?.DischargeOperator,
                         DischargedCubicMeters = movement?.DischargedCubicMeters,
+                        ManualRemovalDate = removal?.RemovalDate,
+                        ManualRemovalOperator = removal?.RemovalOperator,
+                        ManuallyRemovedCubicMeters = removal?.RemovedCubicMeters,
+                        ManualRemovalReason = removal?.Reason,
+                        ManualRemovalNote = removal?.Note,
                         WasteAdjustmentDate = adjustment?.AdjustmentDate,
                         WasteAdjustmentOperator = adjustment?.AdjustmentOperator
                     });

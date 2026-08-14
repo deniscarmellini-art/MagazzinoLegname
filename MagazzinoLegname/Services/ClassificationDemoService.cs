@@ -36,12 +36,18 @@ public sealed class ClassificationDemoService
     private static MaterialGroupClassification Group(Guid loadId, decimal incomingThickness,
         decimal conventionalThickness, decimal usefulThickness, decimal incomingWidth,
         decimal widthAfterPlaning, decimal finalWidth, decimal length, decimal finalLength,
-        string quality, int packages, int pieces) => new()
+        string quality, int packages, int pieces)
+    {
+        var appliedPrice = conventionalThickness switch { 23m => 445m, 34m => 478m, 44m => 512m, _ => 0m };
+        var incomingCubicMeters = pieces * incomingThickness * incomingWidth * length / 1_000_000_000m;
+        return new()
         {
             LoadId = loadId, IncomingThickness = incomingThickness,
             ConventionalThickness = conventionalThickness, UsefulThickness = usefulThickness,
             IncomingWidth = incomingWidth, WidthAfterPlaning = widthAfterPlaning,
             FinalWidth = finalWidth, IncomingLength = length, FinalLength = finalLength,
-            Quality = quality, PackageCount = packages, InitialPieces = pieces
+            Quality = quality, PackageCount = packages, InitialPieces = pieces,
+            AppliedPrice = appliedPrice, LineValue = incomingCubicMeters * appliedPrice
         };
+    }
 }

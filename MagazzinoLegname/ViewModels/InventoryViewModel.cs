@@ -40,10 +40,11 @@ public sealed class InventoryViewModel : ObservableObject
     public decimal InventoryCubicMeters => VisiblePackages.Sum(package => package.InventoryCubicMeters);
     public decimal CubicMetersToConsolidate => VisiblePackages.Where(package => !package.UsesRealCubicMeters).Sum(package => package.InventoryCubicMeters);
     public decimal RealCubicMeters => VisiblePackages.Where(package => package.UsesRealCubicMeters).Sum(package => package.InventoryCubicMeters);
+    public decimal InventoryValue => VisiblePackages.Sum(package => package.PackageValue);
 
-    public void RemovePackage(InventoryPackage package)
+    public void RemovePackage(InventoryPackage package, string operatorName, string reason, string? note)
     {
-        _projection.RemovePackage(package.PackageCode);
+        _projection.RemovePackage(package.PackageCode, operatorName, reason, note);
         Reload();
     }
 
@@ -89,6 +90,7 @@ public sealed class InventoryViewModel : ObservableObject
         foreach (var package in matches) VisiblePackages.Add(package);
         OnPropertyChanged(nameof(PresentPackages)); OnPropertyChanged(nameof(InventoryCubicMeters));
         OnPropertyChanged(nameof(CubicMetersToConsolidate)); OnPropertyChanged(nameof(RealCubicMeters));
+        OnPropertyChanged(nameof(InventoryValue));
     }
 
     private static void ReplaceOptions(ObservableCollection<string> target, string allLabel, IEnumerable<string> values)

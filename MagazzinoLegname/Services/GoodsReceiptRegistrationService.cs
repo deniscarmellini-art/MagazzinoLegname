@@ -26,7 +26,9 @@ public sealed class GoodsReceiptRegistrationService
                 FinalLength = line.FinalLength,
                 Quality = line.Quality,
                 PackageCount = line.PackageCount,
-                InitialPieces = line.EnteredPieces
+                InitialPieces = line.EnteredPieces,
+                AppliedPrice = line.PrezzoApplicato,
+                LineValue = line.LineValue
             }).ToList();
             var load = new ClassificationLoad(groups)
             {

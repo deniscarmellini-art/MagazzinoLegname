@@ -30,6 +30,7 @@ public sealed class ClassificationWorkflowService
 
     public ObservableCollection<ClassificationLoad> Loads { get; }
     public ObservableCollection<PhysicalPackageDraft> RegisteredPhysicalPackages { get; } = [];
+    public ObservableCollection<ClassificationMovement> ClassificationHistory { get; } = [];
     public ObservableCollection<WasteAdjustment> WasteAdjustmentHistory { get; } = [];
     public event EventHandler? WorkflowChanged;
 
@@ -42,6 +43,19 @@ public sealed class ClassificationWorkflowService
     }
 
     public void NotifyClassificationChanged() => WorkflowChanged?.Invoke(this, EventArgs.Empty);
+
+    public void RecordClassification(MaterialGroupClassification group)
+    {
+        if (!group.ClassificationDate.HasValue || string.IsNullOrWhiteSpace(group.ClassificationOperator)) return;
+        ClassificationHistory.Add(new ClassificationMovement
+        {
+            LoadId = group.LoadId,
+            MaterialGroupId = group.GroupId,
+            ClassificationDate = group.ClassificationDate.Value,
+            ClassificationOperator = group.ClassificationOperator
+        });
+        WorkflowChanged?.Invoke(this, EventArgs.Empty);
+    }
 
     public void RegisterLoad(ClassificationLoad load, IReadOnlyList<PhysicalPackageDraft> packages)
     {

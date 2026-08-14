@@ -40,7 +40,7 @@ public sealed class ClassificationViewModel : ObservableObject
         var load = _allLoads.FirstOrDefault(item => item.Id == group.LoadId);
         if (group.IsClassified || load is null || string.IsNullOrWhiteSpace(load.SelectedOperator)) return;
         group.MarkAsClassified(load.SelectedOperator, DateTime.Now);
-        ClassificationWorkflowService.Shared.NotifyClassificationChanged();
+        ClassificationWorkflowService.Shared.RecordClassification(group);
     }
 
     public void UndoGroupClassification(MaterialGroupClassification group)

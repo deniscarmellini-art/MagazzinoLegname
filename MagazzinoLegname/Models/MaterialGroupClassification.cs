@@ -20,6 +20,8 @@ public sealed class MaterialGroupClassification : ObservableObject
     public required string Quality { get; init; }
     public int PackageCount { get; init; }
     public int InitialPieces { get; init; }
+    public decimal AppliedPrice { get; init; }
+    public decimal LineValue { get; init; }
     public decimal IncomingPhysicalCubicMeters =>
         InitialPieces * IncomingThickness * IncomingWidth * IncomingLength / 1_000_000_000m;
     public decimal TheoreticalUsefulCubicMeters => Volume(InitialPieces);
