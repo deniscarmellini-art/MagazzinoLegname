@@ -19,6 +19,8 @@ public sealed class ClassificationLoad : ObservableObject
     public required string SupplierCode { get; init; }
     public string Certification { get; init; } = "PEFC";
     public DateTime ArrivalDate { get; init; }
+    public string DeliveryNoteNumber { get; init; } = string.Empty;
+    public string ReceiptOperator { get; init; } = string.Empty;
     public ObservableCollection<MaterialGroupClassification> Groups { get; }
     public string SelectedOperator
     {

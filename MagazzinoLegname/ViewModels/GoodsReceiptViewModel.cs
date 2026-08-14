@@ -15,19 +15,22 @@ public sealed class GoodsReceiptViewModel : ObservableObject
     private readonly GeneralSettingsService _generalSettings = GeneralSettingsService.Shared;
     private readonly LoadNumberSequenceService _loadNumberSequence = LoadNumberSequenceService.Shared;
     private DateTime? _entryDate = DateTime.Today;
-    private Supplier _selectedSupplier;
+    private Supplier? _selectedSupplier;
     private string _deliveryNoteNumber = string.Empty;
     private string _selectedOperator;
     private GoodsReceiptLine? _selectedLine;
     private bool _pricesCaptured;
     private int _expectedPackages = 12;
     private GoodsReceiptLoadDraft _loadDraft = new();
+    private GoodsReceiptRegistrationState _registrationState = GoodsReceiptRegistrationState.New;
+    private bool _isBusy;
+    private string _validationMessage = string.Empty;
 
     public GoodsReceiptViewModel()
     {
         Suppliers = _supplierCatalog.Suppliers;
         Operators = ["Andrea Rossi", "Elena Bianchi", "Marco Conti"];
-        _selectedSupplier = Suppliers.First(supplier => supplier.IsActive);
+        _selectedSupplier = null;
         _selectedOperator = Operators[0];
         _supplierCatalog.CatalogChanged += SupplierCatalog_CatalogChanged;
         _materialParameters.ParametersChanged += (_, _) =>
@@ -53,12 +56,12 @@ public sealed class GoodsReceiptViewModel : ObservableObject
         get => _entryDate;
         set { if (SetProperty(ref _entryDate, value)) { OnPropertyChanged(nameof(DisplayLoadNumber)); RecalculateAll(); } }
     }
-    public Supplier SelectedSupplier
+    public Supplier? SelectedSupplier
     {
         get => _selectedSupplier;
         set
         {
-            if (value is not null && SetProperty(ref _selectedSupplier, value))
+            if (SetProperty(ref _selectedSupplier, value))
             {
                 OnPropertyChanged(nameof(SupplierProcessingLabel));
                 OnPropertyChanged(nameof(DisplayLoadNumber));
@@ -69,6 +72,7 @@ public sealed class GoodsReceiptViewModel : ObservableObject
     public string SupplierProcessingLabel => "Prepiallatura e riduzioni dimensionali applicate per fornitore e famiglia";
     public string DeliveryNoteNumber { get => _deliveryNoteNumber; set => SetProperty(ref _deliveryNoteNumber, value); }
     public string DisplayLoadNumber => _loadDraft.IsNumberAssigned ? _loadDraft.LoadNumber
+        : SelectedSupplier is null ? "—"
         : _loadNumberSequence.PreviewNext(SelectedSupplier.Id, (EntryDate ?? DateTime.Today).Year).LoadNumber;
     public string SelectedOperator { get => _selectedOperator; set => SetProperty(ref _selectedOperator, value); }
     public GoodsReceiptLine? SelectedLine
@@ -113,9 +117,48 @@ public sealed class GoodsReceiptViewModel : ObservableObject
         _ => $"{PackageDifference} {(PackageDifference == 1 ? "pacco in eccesso" : "pacchi in eccesso")}"
     };
     public bool IsReceiptValid => Lines.Count > 0 && Lines.All(line => line.IsValid);
+    public GoodsReceiptRegistrationState RegistrationState
+    {
+        get => _registrationState;
+        private set { if (SetProperty(ref _registrationState, value)) OnPropertyChanged(nameof(IsRegistered)); }
+    }
+    public bool IsRegistered => RegistrationState == GoodsReceiptRegistrationState.RegisteredAwaitingPrint;
+    public bool IsBusy
+    {
+        get => _isBusy;
+        set { if (SetProperty(ref _isBusy, value)) OnPropertyChanged(nameof(IsPrimaryActionEnabled)); }
+    }
+    public bool IsPrimaryActionEnabled => !IsBusy;
+    public string ValidationMessage { get => _validationMessage; private set => SetProperty(ref _validationMessage, value); }
+    public IReadOnlyList<PhysicalPackageDraft> RegisteredPackages { get; private set; } = [];
+
+    public bool ValidateForRegistration()
+    {
+        var errors = new List<string>();
+        if (!EntryDate.HasValue) errors.Add("Selezionare una Data entrata valida.");
+        if (SelectedSupplier is null) errors.Add("Selezionare il Fornitore.");
+        if (DisplayLoadNumber == "—") errors.Add("Il Numero carico non è stato generato.");
+        if (string.IsNullOrWhiteSpace(DeliveryNoteNumber)) errors.Add("Inserire il Numero DDT.");
+        if (string.IsNullOrWhiteSpace(SelectedOperator)) errors.Add("Selezionare l'Operatore.");
+        if (TotalPackages <= 0) errors.Add("Inserire almeno un pacco.");
+        if (TotalPackages != ExpectedPackages) errors.Add($"I pacchi inseriti ({TotalPackages}) devono coincidere con i pacchi previsti ({ExpectedPackages}).");
+        foreach (var (line, index) in Lines.Select((line, index) => (line, index)))
+        {
+            if (line.PackageCount <= 0) errors.Add($"Riga {index + 1}: N° pacchi deve essere maggiore di zero.");
+            if (line.PiecesPerPackage <= 0) errors.Add($"Riga {index + 1}: Pezzi/pacco deve essere maggiore di zero.");
+            if (line.IncomingThickness <= 0m) errors.Add($"Riga {index + 1}: Spessore non valido.");
+            if (line.IncomingWidth <= 0m) errors.Add($"Riga {index + 1}: Larghezza non valida.");
+            if (line.IncomingLength <= 0m) errors.Add($"Riga {index + 1}: Lunghezza non valida.");
+            if (!GoodsReceiptLine.AllowedQualities.Contains(line.Quality)) errors.Add($"Riga {index + 1}: Qualità non valida.");
+        }
+        ValidationMessage = errors.Count == 0 ? string.Empty : string.Join(Environment.NewLine, errors);
+        return errors.Count == 0;
+    }
+    public void SetOperationError(string message) => ValidationMessage = message;
 
     public void CaptureRegistrationSnapshot()
     {
+        if (RegistrationState != GoodsReceiptRegistrationState.New || SelectedSupplier is null) return;
         _pricesCaptured = true;
         if (!_loadDraft.IsNumberAssigned)
             _loadDraft.AssignNumber(_loadNumberSequence.ReserveNext(SelectedSupplier.Id,
@@ -125,24 +168,41 @@ public sealed class GoodsReceiptViewModel : ObservableObject
         OnPropertyChanged(nameof(CertificationIndicator)); OnPropertyChanged(nameof(DisplayLoadNumber));
     }
 
-    public void Reset()
+    public void MarkRegistered(IReadOnlyList<PhysicalPackageDraft> packages)
     {
+        RegisteredPackages = packages;
+        RegistrationState = GoodsReceiptRegistrationState.RegisteredAwaitingPrint;
+        ValidationMessage = string.Empty;
+    }
+
+    public void CompleteAndReset(bool keepOperator = true)
+    {
+        RegistrationState = GoodsReceiptRegistrationState.Completed;
+        Reset(keepOperator);
+    }
+
+    public void Reset(bool keepOperator = true)
+    {
+        var previousOperator = SelectedOperator;
         _pricesCaptured = false;
         _loadDraft = new GoodsReceiptLoadDraft();
         OnPropertyChanged(nameof(LoadDraft)); OnPropertyChanged(nameof(CertificationIndicator)); OnPropertyChanged(nameof(DisplayLoadNumber));
         EntryDate = DateTime.Today;
         ExpectedPackages = 12;
-        SelectedSupplier = Suppliers.First(supplier => supplier.IsActive);
+        SelectedSupplier = null;
         DeliveryNoteNumber = string.Empty;
-        SelectedOperator = Operators[0];
+        SelectedOperator = keepOperator ? previousOperator : Operators[0];
         foreach (var line in Lines) line.PropertyChanged -= Line_PropertyChanged;
         Lines.Clear();
+        RegisteredPackages = [];
+        RegistrationState = GoodsReceiptRegistrationState.New;
+        ValidationMessage = string.Empty;
         AddLine();
     }
 
     private void AddLine()
     {
-        var line = new GoodsReceiptLine();
+        var line = new GoodsReceiptLine { PackageCount = 0 };
         line.PropertyChanged += Line_PropertyChanged;
         Lines.Add(line);
         Recalculate(line);
@@ -180,8 +240,9 @@ public sealed class GoodsReceiptViewModel : ObservableObject
     private void Recalculate(GoodsReceiptLine line)
     {
         var thickness = GoodsReceiptCalculationService.GetConventionalThickness(line.IncomingThickness, _materialParameters.Parameters);
-        var configuration = _supplierCatalog.GetConfiguration(SelectedSupplier.Id, thickness);
+        var configuration = SelectedSupplier is null ? null : _supplierCatalog.GetConfiguration(SelectedSupplier.Id, thickness);
         var price = _pricesCaptured ? line.PrezzoApplicato : EntryDate.HasValue
+            && SelectedSupplier is not null
             ? _supplierCatalog.GetValidPrice(SelectedSupplier.Id, thickness, EntryDate.Value) ?? 0m
             : 0m;
         _calculationService.Recalculate(line, configuration, _materialParameters.Parameters, price);

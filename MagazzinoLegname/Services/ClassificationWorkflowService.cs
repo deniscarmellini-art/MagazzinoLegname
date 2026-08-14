@@ -12,24 +12,24 @@ public sealed class ClassificationWorkflowService
         var demoGroup = Loads.SelectMany(load => load.Groups).First(group => group.IsClassified);
         const int discardedBoards = 18;
         const decimal partialPercentage = 3.5m;
-        var goodPieces = demoGroup.InitialPieces - discardedBoards;
-        var afterWholeBoards = demoGroup.Volume(goodPieces);
-        var partialWaste = afterWholeBoards * partialPercentage / 100m;
+        var result = new WasteAdjustmentCalculationService().Calculate(
+            demoGroup, discardedBoards, partialPercentage);
         AddAdjustment(demoGroup, new WasteAdjustment
         {
             LoadId = demoGroup.LoadId, MaterialGroupId = demoGroup.GroupId,
             AdjustmentDate = DateTime.Today.AddHours(10), AdjustmentOperator = "Elena Bianchi",
-            InitialPieces = demoGroup.InitialPieces, DiscardedWholeBoards = discardedBoards,
-            GoodPieces = goodPieces, TheoreticalUsefulCubicMeters = demoGroup.TheoreticalUsefulCubicMeters,
-            CubicMetersAfterWholeBoardWaste = afterWholeBoards,
-            PartialWastePercentage = partialPercentage, PartialWasteCubicMeters = partialWaste,
-            RealAvailableCubicMeters = afterWholeBoards - partialWaste,
-            WholeBoardWastePercentage = (decimal)discardedBoards / demoGroup.InitialPieces * 100m,
-            TotalClassificationWastePercentage = (demoGroup.TheoreticalUsefulCubicMeters - (afterWholeBoards - partialWaste)) / demoGroup.TheoreticalUsefulCubicMeters * 100m
+            InitialPieces = result.InitialGroupPieces, DiscardedWholeBoards = result.DiscardedWholeBoards,
+            GoodPieces = result.GoodGroupPieces, TheoreticalUsefulCubicMeters = result.TheoreticalUsefulCubicMeters,
+            CubicMetersAfterWholeBoardWaste = result.CubicMetersAfterWholeBoardWaste,
+            PartialWastePercentage = result.PartialWastePercentage, PartialWasteCubicMeters = result.PartialWasteCubicMeters,
+            RealAvailableCubicMeters = result.RealAvailableCubicMeters,
+            WholeBoardWastePercentage = result.WholeBoardWastePercentage,
+            TotalClassificationWastePercentage = result.TotalQualityWastePercentage
         });
     }
 
     public ObservableCollection<ClassificationLoad> Loads { get; }
+    public ObservableCollection<PhysicalPackageDraft> RegisteredPhysicalPackages { get; } = [];
     public ObservableCollection<WasteAdjustment> WasteAdjustmentHistory { get; } = [];
     public event EventHandler? WorkflowChanged;
 
@@ -42,4 +42,18 @@ public sealed class ClassificationWorkflowService
     }
 
     public void NotifyClassificationChanged() => WorkflowChanged?.Invoke(this, EventArgs.Empty);
+
+    public void RegisterLoad(ClassificationLoad load, IReadOnlyList<PhysicalPackageDraft> packages)
+    {
+        if (Loads.Any(item => item.SupplierCode.Equals(load.SupplierCode, StringComparison.OrdinalIgnoreCase)
+            && item.LoadNumber.Equals(load.LoadNumber, StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException("Il numero carico è già presente per questo fornitore.");
+        var existingCodes = RegisteredPhysicalPackages.Select(item => item.PackageCode)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (packages.Any(package => !existingCodes.Add(package.PackageCode)))
+            throw new InvalidOperationException("È stato rilevato un CodicePacco duplicato.");
+        Loads.Add(load);
+        foreach (var package in packages) RegisteredPhysicalPackages.Add(package);
+        WorkflowChanged?.Invoke(this, EventArgs.Empty);
+    }
 }

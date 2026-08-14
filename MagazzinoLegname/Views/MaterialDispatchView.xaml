@@ -1,6 +1,68 @@
 <UserControl x:Class="MagazzinoLegname.Views.MaterialDispatchView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:shared="clr-namespace:MagazzinoLegname.Views.Shared">
-    <shared:PageScaffold PageTitle="Scarico materiale" PageSubtitle="Gestione delle uscite e dello scarico del materiale."/>
+             Loaded="View_Loaded">
+    <UserControl.Resources><BooleanToVisibilityConverter x:Key="BoolToVisibility"/></UserControl.Resources>
+    <Grid Margin="24,20,24,24">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <Grid Margin="0,0,0,17">
+            <StackPanel><TextBlock Text="Scarico materiale" Style="{StaticResource PageTitleStyle}"/><TextBlock Text="Scansiona il QR del pacco completo da rimuovere dalla disponibilità di magazzino." Style="{StaticResource PageSubtitleStyle}"/></StackPanel>
+            <StackPanel HorizontalAlignment="Right" Width="230"><TextBlock Text="OPERATORE SCARICO" Style="{StaticResource FieldLabelStyle}"/><ComboBox ItemsSource="{Binding Operators, Mode=OneWay}" SelectedItem="{Binding SelectedOperator}"/></StackPanel>
+        </Grid>
+
+        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,0,0,12">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="220"/></Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,18,0">
+                    <TextBlock Text="SCANSIONA QR PACCO" Foreground="{DynamicResource AccentBrush}" FontSize="13" FontWeight="ExtraBold" Margin="0,0,0,8"/>
+                    <TextBox x:Name="QrInputBox" Text="{Binding QrInput, UpdateSourceTrigger=PropertyChanged}" KeyDown="QrInput_KeyDown"
+                             FontSize="20" FontWeight="SemiBold" Height="51" Padding="15,9"/>
+                    <TextBlock Text="Per il test inserisci un CodicePacco o un QrPayload completo e premi ENTER. Il lettore USB utilizzerà lo stesso flusso." Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11" Margin="2,7,0,0"/>
+                </StackPanel>
+                <Border Grid.Column="1" Background="#142536" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="14" VerticalAlignment="Stretch">
+                    <StackPanel VerticalAlignment="Center"><TextBlock Text="ESITO" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding FeedbackMessage, Mode=OneWay}" TextWrapping="Wrap" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}"/></StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Margin="0,0,0,12" Visibility="{Binding HasPackage, Converter={StaticResource BoolToVisibility}}">
+            <Grid>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <Grid Margin="0,0,0,15">
+                    <StackPanel><TextBlock Text="DETTAGLIO PACCO" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding CurrentPackage.PackageCode, Mode=OneWay}" FontSize="24" FontWeight="ExtraBold" Foreground="{DynamicResource AccentBrush}"/></StackPanel>
+                    <Border HorizontalAlignment="Right" Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="8" Padding="12,7"><TextBlock Text="{Binding CurrentPackage.InventoryStatus, Mode=OneWay}" FontWeight="Bold"/></Border>
+                </Grid>
+                <UniformGrid Grid.Row="1" Columns="5">
+                    <StackPanel Margin="0,0,12,12"><TextBlock Text="MISURA" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding CurrentPackage.OperationalMeasure, Mode=OneWay}" FontSize="20" FontWeight="Bold"/></StackPanel>
+                    <StackPanel Margin="0,0,12,12"><TextBlock Text="FORNITORE" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding CurrentPackage.SupplierName, Mode=OneWay}" FontWeight="SemiBold" TextWrapping="Wrap"/></StackPanel>
+                    <StackPanel Margin="0,0,12,12"><TextBlock Text="CARICO" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding CurrentPackage.LoadNumber, Mode=OneWay}" FontWeight="Bold"/></StackPanel>
+                    <StackPanel Margin="0,0,12,12"><TextBlock Text="PACCO" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding CurrentPackage.PackagePosition, Mode=OneWay}" FontWeight="Bold"/></StackPanel>
+                    <StackPanel Margin="0,0,0,12"><TextBlock Text="DATA ARRIVO" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding CurrentPackage.ArrivalDate, Mode=OneWay, StringFormat=dd/MM/yyyy}" FontWeight="Bold"/></StackPanel>
+                    <StackPanel Margin="0,0,12,0"><TextBlock Text="QUALITÀ" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding CurrentPackage.Quality, Mode=OneWay}" FontWeight="Bold"/></StackPanel>
+                    <StackPanel Margin="0,0,12,0"><TextBlock Text="CERTIFICAZIONE" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding CurrentPackage.Certification, Mode=OneWay}" FontWeight="Bold"/></StackPanel>
+                    <StackPanel Margin="0,0,12,0"><TextBlock Text="CLASSIFICAZIONE" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding CurrentPackage.ClassificationStatus, Mode=OneWay}" FontWeight="Bold"/></StackPanel>
+                    <StackPanel Margin="0,0,12,0"><TextBlock Text="RETTIFICA SCARTI" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding CurrentPackage.WasteAdjustmentStatus, Mode=OneWay}" FontSize="18" FontWeight="Bold"/></StackPanel>
+                    <StackPanel><TextBlock Text="MC GIACENZA" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding CurrentPackage.InventoryCubicMeters, Mode=OneWay, StringFormat=N6}" FontSize="22" FontWeight="ExtraBold" Foreground="{DynamicResource AccentBrush}"/></StackPanel>
+                </UniformGrid>
+                <Grid Grid.Row="2" Margin="0,17,0,0">
+                    <StackPanel VerticalAlignment="Center"><TextBlock Text="{Binding DischargeAmountText, Mode=OneWay}" FontSize="17" FontWeight="Bold"/><TextBlock Text="{Binding PreviousDischargeDetail, Mode=OneWay}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,4,0,0"/></StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="Annulla" Style="{StaticResource SecondaryButtonStyle}" Click="Cancel_Click" Margin="0,0,9,0"/><Button Content="CONFERMA SCARICO" Style="{StaticResource PrimaryButtonStyle}" IsEnabled="{Binding CanDischarge}" Click="Confirm_Click"/></StackPanel>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="3" Style="{StaticResource CardStyle}" Padding="0" ClipToBounds="True">
+            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <StackPanel Margin="16,12"><TextBlock Text="ULTIMI SCARICHI" FontWeight="Bold"/><TextBlock Text="Ultime operazioni effettuate durante questa sessione" Style="{StaticResource PageSubtitleStyle}"/></StackPanel>
+                <DataGrid Grid.Row="1" ItemsSource="{Binding RecentDischarges, Mode=OneWay}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" RowHeight="38">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Ora" Width="100" Binding="{Binding DischargeDate, Mode=OneWay, StringFormat=HH:mm:ss}"/>
+                        <DataGridTextColumn Header="Codice pacco" Width="180" Binding="{Binding PackageCode, Mode=OneWay}"/>
+                        <DataGridTextColumn Header="Fornitore" Width="*" Binding="{Binding SupplierName, Mode=OneWay}"/>
+                        <DataGridTextColumn Header="Carico" Width="110" Binding="{Binding LoadNumber, Mode=OneWay}"/>
+                        <DataGridTextColumn Header="MC scaricati" Width="140" Binding="{Binding DischargedCubicMeters, Mode=OneWay, StringFormat=N6}"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+    </Grid>
 </UserControl>

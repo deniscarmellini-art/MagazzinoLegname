@@ -7,7 +7,7 @@ namespace MagazzinoLegname.ViewModels;
 
 public sealed class InventoryViewModel : ObservableObject
 {
-    private readonly InventoryProjectionService _projection = new();
+    private readonly InventoryProjectionService _projection = InventoryProjectionService.Shared;
     private IReadOnlyList<InventoryPackage> _allPackages = [];
     private string _selectedSupplier = "Tutti";
     private string _selectedThickness = "Tutti";
@@ -19,6 +19,7 @@ public sealed class InventoryViewModel : ObservableObject
     public InventoryViewModel()
     {
         ClassificationWorkflowService.Shared.WorkflowChanged += (_, _) => Reload();
+        _projection.InventoryChanged += (_, _) => Reload();
         Reload();
     }
 

@@ -1,5 +1,6 @@
 using MagazzinoLegname.Infrastructure;
 using MagazzinoLegname.Models;
+using MagazzinoLegname.Services;
 
 namespace MagazzinoLegname.ViewModels;
 
@@ -7,6 +8,7 @@ public sealed class WasteCorrectionRowViewModel : ObservableObject
 {
     private int _discardedWholeBoards;
     private decimal _partialWastePercentage;
+    private readonly WasteAdjustmentCalculationService _calculationService = new();
 
     public WasteCorrectionRowViewModel(ClassificationLoad load, MaterialGroupClassification group)
     {
@@ -36,29 +38,32 @@ public sealed class WasteCorrectionRowViewModel : ObservableObject
             NotifyCalculations();
         }
     }
-    public int GoodPieces => Group.InitialPieces - DiscardedWholeBoards;
-    public decimal CubicMetersAfterWholeBoardWaste => Group.Volume(GoodPieces);
-    public decimal PartialWasteCubicMeters => CubicMetersAfterWholeBoardWaste * PartialWastePercentage / 100m;
-    public decimal RealAvailableCubicMeters => CubicMetersAfterWholeBoardWaste - PartialWasteCubicMeters;
-    public decimal WholeBoardWastePercentage => Group.InitialPieces == 0 ? 0m
-        : (decimal)DiscardedWholeBoards / Group.InitialPieces * 100m;
-    public decimal TotalClassificationWastePercentage => Group.TheoreticalUsefulCubicMeters == 0m ? 0m
-        : (Group.TheoreticalUsefulCubicMeters - RealAvailableCubicMeters)
-          / Group.TheoreticalUsefulCubicMeters * 100m;
+    private WasteAdjustmentCalculation Calculation =>
+        _calculationService.Calculate(Group, DiscardedWholeBoards, PartialWastePercentage);
+    public int GoodPieces => Calculation.GoodGroupPieces;
+    public decimal CubicMetersAfterWholeBoardWaste => Calculation.CubicMetersAfterWholeBoardWaste;
+    public decimal PartialWasteCubicMeters => Calculation.PartialWasteCubicMeters;
+    public decimal RealAvailableCubicMeters => Calculation.RealAvailableCubicMeters;
+    public decimal WholeBoardWastePercentage => Calculation.WholeBoardWastePercentage;
+    public decimal TotalClassificationWastePercentage => Calculation.TotalQualityWastePercentage;
 
-    public WasteAdjustment CreateSnapshot(string operatorName, DateTime date) => new()
+    public WasteAdjustment CreateSnapshot(string operatorName, DateTime date)
     {
-        LoadId = Load.Id, MaterialGroupId = Group.GroupId, AdjustmentDate = date,
-        AdjustmentOperator = operatorName, InitialPieces = Group.InitialPieces,
-        DiscardedWholeBoards = DiscardedWholeBoards, GoodPieces = GoodPieces,
-        TheoreticalUsefulCubicMeters = Group.TheoreticalUsefulCubicMeters,
-        CubicMetersAfterWholeBoardWaste = CubicMetersAfterWholeBoardWaste,
-        PartialWastePercentage = PartialWastePercentage,
-        PartialWasteCubicMeters = PartialWasteCubicMeters,
-        RealAvailableCubicMeters = RealAvailableCubicMeters,
-        WholeBoardWastePercentage = WholeBoardWastePercentage,
-        TotalClassificationWastePercentage = TotalClassificationWastePercentage
-    };
+        var result = Calculation;
+        return new()
+        {
+            LoadId = Load.Id, MaterialGroupId = Group.GroupId, AdjustmentDate = date,
+            AdjustmentOperator = operatorName, InitialPieces = result.InitialGroupPieces,
+            DiscardedWholeBoards = result.DiscardedWholeBoards, GoodPieces = result.GoodGroupPieces,
+            TheoreticalUsefulCubicMeters = result.TheoreticalUsefulCubicMeters,
+            CubicMetersAfterWholeBoardWaste = result.CubicMetersAfterWholeBoardWaste,
+            PartialWastePercentage = result.PartialWastePercentage,
+            PartialWasteCubicMeters = result.PartialWasteCubicMeters,
+            RealAvailableCubicMeters = result.RealAvailableCubicMeters,
+            WholeBoardWastePercentage = result.WholeBoardWastePercentage,
+            TotalClassificationWastePercentage = result.TotalQualityWastePercentage
+        };
+    }
 
     private void NotifyCalculations()
     {

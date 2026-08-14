@@ -9,13 +9,19 @@ namespace MagazzinoLegname.ViewModels;
 public sealed class ClassificationViewModel : ObservableObject
 {
     private readonly IReadOnlyList<ClassificationLoad> _allLoads;
+    private readonly HashSet<Guid> _subscribedLoadIds = [];
     private ClassificationLoad? _selectedLoad;
 
     public ClassificationViewModel()
     {
         _allLoads = ClassificationWorkflowService.Shared.Loads;
         Operators = ["Andrea Rossi", "Elena Bianchi", "Marco Conti"];
-        foreach (var load in _allLoads) load.PropertyChanged += Load_PropertyChanged;
+        SubscribeToNewLoads();
+        ClassificationWorkflowService.Shared.WorkflowChanged += (_, _) =>
+        {
+            SubscribeToNewLoads();
+            ApplyFilters();
+        };
         ApplyFilters();
     }
 
@@ -53,5 +59,11 @@ public sealed class ClassificationViewModel : ObservableObject
     {
         if (e.PropertyName is nameof(ClassificationLoad.Status) or nameof(ClassificationLoad.IsFullyClassified))
             ApplyFilters();
+    }
+
+    private void SubscribeToNewLoads()
+    {
+        foreach (var load in _allLoads.Where(load => _subscribedLoadIds.Add(load.Id)))
+            load.PropertyChanged += Load_PropertyChanged;
     }
 }

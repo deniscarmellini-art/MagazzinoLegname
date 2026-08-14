@@ -24,6 +24,10 @@ public sealed class InventoryPackage
     public decimal InventoryCubicMeters { get; init; }
     public bool UsesRealCubicMeters { get; init; }
     public bool IsPresent { get; set; } = true;
+    public string PackageStatus { get; init; } = "Presente";
+    public DateTime? DischargeDate { get; init; }
+    public string? DischargeOperator { get; init; }
+    public decimal? DischargedCubicMeters { get; init; }
     public DateTime? WasteAdjustmentDate { get; init; }
     public string? WasteAdjustmentOperator { get; init; }
     public string PackagePosition => $"{PackageNumber} / {TotalPackages}";
