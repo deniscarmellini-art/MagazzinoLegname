@@ -12,12 +12,9 @@
         </UniformGrid>
 
         <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-            <Border Style="{StaticResource CardStyle}" Padding="0" Margin="0,0,14,0">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <Border Style="{StaticResource CardStyle}" Padding="0" Margin="0">
                 <Grid><Grid.RowDefinitions><RowDefinition Height="48"/><RowDefinition Height="*"/></Grid.RowDefinitions><Border Background="{DynamicResource SurfaceHeaderBrush}" CornerRadius="14,14,0,0"><TextBlock Text="ULTIME MOVIMENTAZIONI" Margin="18,0" VerticalAlignment="Center" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource SecondaryTextBrush}"/></Border><StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets" FontSize="28" Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center"/><TextBlock Text="Nessun movimento registrato" FontWeight="Bold" Margin="0,12,0,0"/></StackPanel></Grid>
-            </Border>
-            <Border Grid.Column="1" Style="{StaticResource CardStyle}">
-                <StackPanel><TextBlock Text="AZIONI RAPIDE" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,14"/><Button Content="Registra entrata merce" Style="{StaticResource PrimaryButtonStyle}" Margin="0,0,0,9"/><Button Content="Apri classificazione" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,0,9"/><Button Content="Consulta giacenze" Style="{StaticResource SecondaryButtonStyle}"/></StackPanel>
             </Border>
         </Grid>
     </Grid>
