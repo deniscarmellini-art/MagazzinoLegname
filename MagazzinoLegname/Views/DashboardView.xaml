@@ -5,16 +5,118 @@
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
 
         <UniformGrid Rows="1" Margin="-7,0,-7,12">
-            <Border Style="{StaticResource CardStyle}" Margin="7,0"><Grid><StackPanel><TextBlock Text="Materiale in ingresso" FontWeight="Bold"/><TextBlock Text="—" FontSize="42" FontWeight="ExtraBold" Margin="0,14,0,0"/><TextBlock Text="in attesa di registrazione" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11"/></StackPanel><Border Width="48" Height="48" CornerRadius="24" Background="#3B2830" HorizontalAlignment="Right" VerticalAlignment="Top"><TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" Foreground="{DynamicResource DangerBrush}" FontSize="23" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></Grid></Border>
-            <Border Style="{StaticResource CardStyle}" Margin="7,0"><Grid><StackPanel><TextBlock Text="Da classificare" FontWeight="Bold"/><TextBlock Text="—" FontSize="42" FontWeight="ExtraBold" Margin="0,14,0,0"/><TextBlock Text="unità da verificare" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11"/></StackPanel><Border Width="48" Height="48" CornerRadius="24" Background="#3D3A21" HorizontalAlignment="Right" VerticalAlignment="Top"><TextBlock Text="&#xE8EC;" FontFamily="Segoe MDL2 Assets" Foreground="{DynamicResource WarningBrush}" FontSize="23" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></Grid></Border>
-            <Border Style="{StaticResource CardStyle}" Margin="7,0"><Grid><StackPanel><TextBlock Text="Movimenti odierni" FontWeight="Bold"/><TextBlock Text="—" FontSize="42" FontWeight="ExtraBold" Margin="0,14,0,0"/><TextBlock Text="entrate e scarichi" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11"/></StackPanel><Border Width="48" Height="48" CornerRadius="24" Background="#413224" HorizontalAlignment="Right" VerticalAlignment="Top"><TextBlock Text="&#xE7C1;" FontFamily="Segoe MDL2 Assets" Foreground="{DynamicResource OrangeBrush}" FontSize="23" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></Grid></Border>
-            <Border Style="{StaticResource CardStyle}" Margin="7,0"><Grid><StackPanel><TextBlock Text="Giacenze disponibili" FontWeight="Bold"/><TextBlock Text="—" FontSize="42" FontWeight="ExtraBold" Margin="0,14,0,0"/><TextBlock Text="materiali censiti" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11"/></StackPanel><Border Width="48" Height="48" CornerRadius="24" Background="#253B2B" HorizontalAlignment="Right" VerticalAlignment="Top"><TextBlock Text="&#xE7B8;" FontFamily="Segoe MDL2 Assets" Foreground="{DynamicResource SuccessBrush}" FontSize="23" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></Grid></Border>
+            <Border Style="{StaticResource CardStyle}" Margin="7,0"><Grid><StackPanel><TextBlock Text="PACCHI PRESENTI" FontWeight="Bold"/><TextBlock Text="{Binding PresentPackagesDisplay}" FontSize="42" FontWeight="ExtraBold" Margin="0,14,0,0"/><TextBlock Text="pacchi fisicamente presenti" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11"/></StackPanel><Border Width="48" Height="48" CornerRadius="24" Background="#3B2830" HorizontalAlignment="Right" VerticalAlignment="Top"><TextBlock Text="&#xE8EF;" FontFamily="Segoe MDL2 Assets" Foreground="{DynamicResource PrimaryBrush}" FontSize="23" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></Grid></Border>
+            <Border Style="{StaticResource CardStyle}" Margin="7,0"><Grid><StackPanel><TextBlock Text="MC GIACENZA" FontWeight="Bold"/><TextBlock Text="{Binding InventoryCubicMetersDisplay}" FontSize="42" FontWeight="ExtraBold" Margin="0,14,0,0"/><TextBlock Text="MC attualmente presenti" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11"/></StackPanel><Border Width="48" Height="48" CornerRadius="24" Background="#3D3A21" HorizontalAlignment="Right" VerticalAlignment="Top"><TextBlock Text="&#xE80F;" FontFamily="Segoe MDL2 Assets" Foreground="{DynamicResource PrimaryBrush}" FontSize="23" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></Grid></Border>
+            <Border Style="{StaticResource CardStyle}" Margin="7,0"><Grid><StackPanel><TextBlock Text="MC DA CONSOLIDARE" FontWeight="Bold"/><TextBlock Text="{Binding CubicMetersToConsolidateDisplay}" FontSize="42" FontWeight="ExtraBold" Margin="0,14,0,0"/><TextBlock Text="MC con rettifica scarti da completare" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11"/></StackPanel><Border Width="48" Height="48" CornerRadius="24" Background="#413224" HorizontalAlignment="Right" VerticalAlignment="Top"><TextBlock Text="&#xE7BA;" FontFamily="Segoe MDL2 Assets" Foreground="{DynamicResource WarningBrush}" FontSize="23" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></Grid></Border>
+            <Border Style="{StaticResource CardStyle}" Margin="7,0"><Grid><StackPanel><TextBlock Text="MC REALI" FontWeight="Bold"/><TextBlock Text="{Binding RealCubicMetersDisplay}" FontSize="42" FontWeight="ExtraBold" Margin="0,14,0,0"/><TextBlock Text="MC con rettifica scarti completata" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11"/></StackPanel><Border Width="48" Height="48" CornerRadius="24" Background="#253B2B" HorizontalAlignment="Right" VerticalAlignment="Top"><TextBlock Text="&#xE7B8;" FontFamily="Segoe MDL2 Assets" Foreground="{DynamicResource SuccessBrush}" FontSize="23" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></Grid></Border>
+            <Border Style="{StaticResource CardStyle}" Margin="7,0"><Grid><StackPanel><TextBlock Text="VALORE MAGAZZINO" FontWeight="Bold"/><TextBlock Text="{Binding InventoryValueDisplay}" FontSize="42" FontWeight="ExtraBold" Margin="0,14,0,0"/><TextBlock Text="valore complessivo dei pacchi presenti" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11"/></StackPanel><Border Width="48" Height="48" CornerRadius="24" Background="#253B2B" HorizontalAlignment="Right" VerticalAlignment="Top"><TextBlock Text="&#xEAF3;" FontFamily="Segoe MDL2 Assets" Foreground="{DynamicResource PrimaryBrush}" FontSize="23" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></Grid></Border>
         </UniformGrid>
 
         <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-            <Border Style="{StaticResource CardStyle}" Padding="0" Margin="0">
-                <Grid><Grid.RowDefinitions><RowDefinition Height="48"/><RowDefinition Height="*"/></Grid.RowDefinitions><Border Background="{DynamicResource SurfaceHeaderBrush}" CornerRadius="14,14,0,0"><TextBlock Text="ULTIME MOVIMENTAZIONI" Margin="18,0" VerticalAlignment="Center" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource SecondaryTextBrush}"/></Border><StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets" FontSize="28" Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center"/><TextBlock Text="Nessun movimento registrato" FontWeight="Bold" Margin="0,12,0,0"/></StackPanel></Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <!-- RIGA 2: Giacenza per spessore | Attenzioni operative -->
+            <Grid Grid.Row="0" Margin="0,10,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="65*"/>
+                    <ColumnDefinition Width="35*"/>
+                </Grid.ColumnDefinitions>
+                <Border Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,14,0">
+                    <StackPanel>
+                        <Border Background="{DynamicResource SurfaceHeaderBrush}" CornerRadius="10"><TextBlock Text="GIACENZA PER SPESSORE" Margin="18,6" VerticalAlignment="Center" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource SecondaryTextBrush}"/></Border>
+                        <Grid Margin="0,14,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1.2*"/>
+                                <ColumnDefinition Width="4*"/>
+                                <ColumnDefinition Width="4*"/>
+                                <ColumnDefinition Width="1.4*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Spessore" FontWeight="Bold" Grid.Column="0" VerticalAlignment="Center"/>
+                            <Grid Grid.Column="1">
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <TextBlock Text="Qualità C" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                <Grid Grid.Row="1" Margin="0,5,0,0">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="Classificati" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Da classificare" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Grid.Column="1" HorizontalAlignment="Center"/>
+                                </Grid>
+                            </Grid>
+                            <Grid Grid.Column="2">
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <TextBlock Text="Qualità VISTA" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                <Grid Grid.Row="1" Margin="0,5,0,0">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="Classificati" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Da classificare" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Grid.Column="1" HorizontalAlignment="Center"/>
+                                </Grid>
+                            </Grid>
+                            <TextBlock Text="Totale" FontWeight="Bold" Grid.Column="3" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
+                        <ItemsControl ItemsSource="{Binding ThicknessRows}" Margin="0,12,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,7,0,7">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="1.2*" />
+                                            <ColumnDefinition Width="4*" />
+                                            <ColumnDefinition Width="4*" />
+                                            <ColumnDefinition Width="1.4*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding ThicknessDisplay}" Grid.Column="0" VerticalAlignment="Center" FontSize="14" FontWeight="Bold"/>
+                                        <Grid Grid.Column="1" HorizontalAlignment="Stretch">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding ClassifiedCDisplay}" FontWeight="Bold" FontSize="14" Grid.Column="0" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="{Binding ToClassifyCDisplay}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="14" FontWeight="Bold" Grid.Column="1" HorizontalAlignment="Center"/>
+                                        </Grid>
+                                        <Grid Grid.Column="2" HorizontalAlignment="Stretch">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding ClassifiedVistaDisplay}" FontWeight="Bold" FontSize="14" Grid.Column="0" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="{Binding ToClassifyVistaDisplay}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="14" FontWeight="Bold" Grid.Column="1" HorizontalAlignment="Center"/>
+                                        </Grid>
+                                        <TextBlock Text="{Binding TotalAllDisplay}" Grid.Column="3" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="12">
+                    <StackPanel>
+                        <Border Background="{DynamicResource SurfaceHeaderBrush}" CornerRadius="10"><TextBlock Text="ATTENZIONI OPERATIVE" Margin="18,6" VerticalAlignment="Center" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource SecondaryTextBrush}"/></Border>
+                        <StackPanel Margin="0,12,0,0">
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Carichi da classificare" FontWeight="Bold"/>
+                                    <TextBlock Text="Gruppi da classificare" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" HorizontalAlignment="Right">
+                                    <TextBlock Text="{Binding LoadsToClassify}" FontSize="18" FontWeight="Bold" HorizontalAlignment="Right"/>
+                                    <TextBlock Text="{Binding GroupsToClassify}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11" HorizontalAlignment="Right"/>
+                                </StackPanel>
+                            </Grid>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <TextBlock Text="Rettifiche scarti da completare" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding GroupsToConsolidate}" Grid.Column="1" FontSize="18" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- RIGA 3: Ultimi movimenti -->
+            <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="48"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Border Background="{DynamicResource SurfaceHeaderBrush}" CornerRadius="14,14,0,0"><TextBlock Text="ULTIME MOVIMENTAZIONI" Margin="18,0" VerticalAlignment="Center" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource SecondaryTextBrush}"/></Border>
+                    <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets" FontSize="28" Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center"/>
+                        <TextBlock Text="Nessun movimento registrato" FontWeight="Bold" Margin="0,12,0,0"/>
+                    </StackPanel>
+                </Grid>
             </Border>
         </Grid>
     </Grid>
