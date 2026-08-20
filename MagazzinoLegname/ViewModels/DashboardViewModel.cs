@@ -10,12 +10,18 @@ namespace MagazzinoLegname.ViewModels;
 public sealed class DashboardViewModel : ObservableObject
 {
     private readonly InventoryProjectionService _projection = InventoryProjectionService.Shared;
+    private readonly PlanningDataService _planning = PlanningDataService.Shared;
+    private readonly PlanningSettingsService _planningSettings = PlanningSettingsService.Shared;
+    private readonly SupplierCatalogService _suppliers = SupplierCatalogService.Shared;
     private IReadOnlyList<InventoryPackage> _allPackages = [];
 
     public DashboardViewModel()
     {
         ClassificationWorkflowService.Shared.WorkflowChanged += (_, _) => Reload();
         _projection.InventoryChanged += (_, _) => Reload();
+        _planning.PlanningChanged += (_, _) => Reload();
+        _planningSettings.SettingsChanged += (_, _) => Reload();
+        _suppliers.CatalogChanged += (_, _) => Reload();
         Reload();
     }
 
@@ -29,6 +35,13 @@ public sealed class DashboardViewModel : ObservableObject
     public int GroupsToConsolidate { get; private set; }
 
     public ObservableCollection<ThicknessRow> ThicknessRows { get; } = new ObservableCollection<ThicknessRow>();
+    public ObservableCollection<HistoryMovementRow> RecentMovements { get; } = [];
+    public ObservableCollection<WeeklyPlannedArrivalRow> WeeklyPlannedArrivals { get; } = [];
+    public int WeeklyPlannedLoadCount { get; private set; }
+    public decimal WeeklyPlannedCubicMeters { get; private set; }
+    public bool IsWeeklyPlanningEmpty => WeeklyPlannedArrivals.Count == 0;
+    public string WeeklyPlannedLoadCountDisplay => $"{WeeklyPlannedLoadCount} {(WeeklyPlannedLoadCount == 1 ? "carico previsto" : "carichi previsti")}";
+    public string WeeklyPlannedCubicMetersDisplay => $"{WeeklyPlannedCubicMeters:N2} m³ teorici";
 
     public sealed class ThicknessRow
     {
@@ -69,7 +82,7 @@ public sealed class DashboardViewModel : ObservableObject
     public string InventoryCubicMetersDisplay => InventoryCubicMeters.ToString("N2");
     public string CubicMetersToConsolidateDisplay => CubicMetersToConsolidate.ToString("N2");
     public string RealCubicMetersDisplay => RealCubicMeters.ToString("N2");
-    public string InventoryValueDisplay => InventoryValue.ToString("N2") + " €";
+    public string InventoryValueDisplay => InventoryValue.ToString("N0") + " €";
 
     private void Reload()
     {
@@ -121,6 +134,35 @@ public sealed class DashboardViewModel : ObservableObject
             ThicknessRows.Add(row);
         }
 
+        RecentMovements.Clear();
+        foreach (var movement in HistoryViewModel.BuildMovementRows()
+                     .OrderByDescending(item => item.DateTime)
+                     .Take(6))
+            RecentMovements.Add(movement);
+
+        var today = DateTime.Today;
+        var monday = today.AddDays(-(((int)today.DayOfWeek + 6) % 7)).Date;
+        var friday = monday.AddDays(4);
+        var arrivals = _planning.Arrivals
+            .Where(item => item.Date.Date >= monday && item.Date.Date <= friday
+                && item.LoadQuantity > 0 && item.ConventionalThickness.HasValue
+                && !string.IsNullOrWhiteSpace(item.Quality))
+            .OrderBy(item => item.Date)
+            .ThenBy(item => _suppliers.Suppliers.FirstOrDefault(supplier => supplier.Id == item.SupplierId)?.Name)
+            .ToList();
+
+        WeeklyPlannedArrivals.Clear();
+        foreach (var arrival in arrivals)
+        {
+            var supplierName = _suppliers.Suppliers
+                .FirstOrDefault(item => item.Id == arrival.SupplierId)?.Name ?? "—";
+            WeeklyPlannedArrivals.Add(new WeeklyPlannedArrivalRow(arrival.Date, supplierName,
+                arrival.ConventionalThickness!.Value, arrival.Quality!, arrival.LoadQuantity));
+        }
+        WeeklyPlannedLoadCount = arrivals.Sum(item => item.LoadQuantity);
+        WeeklyPlannedCubicMeters = arrivals.Sum(item => item.LoadQuantity
+            * _planningSettings.Settings.GetStandardCubicMetersPerExpectedLoad(item.ConventionalThickness!.Value));
+
         OnPropertyChanged(nameof(PresentPackages)); OnPropertyChanged(nameof(InventoryCubicMeters));
         OnPropertyChanged(nameof(CubicMetersToConsolidate)); OnPropertyChanged(nameof(RealCubicMeters));
         OnPropertyChanged(nameof(InventoryValue));
@@ -130,5 +172,25 @@ public sealed class DashboardViewModel : ObservableObject
         OnPropertyChanged(nameof(PresentPackagesDisplay)); OnPropertyChanged(nameof(InventoryCubicMetersDisplay));
         OnPropertyChanged(nameof(CubicMetersToConsolidateDisplay)); OnPropertyChanged(nameof(RealCubicMetersDisplay));
         OnPropertyChanged(nameof(InventoryValueDisplay));
+        OnPropertyChanged(nameof(WeeklyPlannedLoadCount));
+        OnPropertyChanged(nameof(WeeklyPlannedCubicMeters));
+        OnPropertyChanged(nameof(IsWeeklyPlanningEmpty));
+        OnPropertyChanged(nameof(WeeklyPlannedLoadCountDisplay));
+        OnPropertyChanged(nameof(WeeklyPlannedCubicMetersDisplay));
     }
+}
+
+public sealed record WeeklyPlannedArrivalRow(DateTime Date, string SupplierName,
+    decimal ConventionalThickness, string Quality, int LoadQuantity)
+{
+    public string DateDisplay
+    {
+        get
+        {
+            var value = Date.ToString("ddd dd/MM");
+            return char.ToUpper(value[0]) + value[1..];
+        }
+    }
+
+    public string MaterialDisplay => $"{ConventionalThickness:0} {Quality}";
 }

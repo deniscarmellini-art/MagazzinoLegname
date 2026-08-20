@@ -85,7 +85,7 @@ public sealed class HistoryViewModel : ObservableObject
 
     private void Reload()
     {
-        _allMovements = BuildMovements().OrderByDescending(item => item.DateTime).ToList();
+        _allMovements = BuildMovementRows().OrderByDescending(item => item.DateTime).ToList();
         ReplaceOptions(Suppliers, "Tutti", _allMovements.Select(item => item.SupplierName));
         ReplaceOptions(Thicknesses, "Tutti", _allMovements.Where(item => item.ConventionalThickness.HasValue)
             .Select(item => item.ConventionalThickness!.Value.ToString("0")));
@@ -102,9 +102,12 @@ public sealed class HistoryViewModel : ObservableObject
         }
     }
 
-    private IEnumerable<HistoryMovementRow> BuildMovements()
+    internal static IEnumerable<HistoryMovementRow> BuildMovementRows()
     {
-        foreach (var load in _workflow.Loads)
+        var workflow = ClassificationWorkflowService.Shared;
+        var inventory = InventoryProjectionService.Shared;
+
+        foreach (var load in workflow.Loads)
         {
             var material = string.Join(" · ", load.Groups.Select(group => $"{group.ConventionalThickness:0} {group.Quality}").Distinct());
             yield return new HistoryMovementRow(load.ArrivalDate, "Entrata", load.Id, null, load.LoadNumber,
@@ -116,7 +119,7 @@ public sealed class HistoryViewModel : ObservableObject
 
             foreach (var group in load.Groups)
             {
-                var recorded = _workflow.ClassificationHistory.Where(item => item.MaterialGroupId == group.GroupId).ToList();
+                var recorded = workflow.ClassificationHistory.Where(item => item.MaterialGroupId == group.GroupId).ToList();
                 if (recorded.Count == 0 && group.ClassificationDate.HasValue)
                     recorded.Add(new ClassificationMovement { LoadId = load.Id, MaterialGroupId = group.GroupId,
                         ClassificationDate = group.ClassificationDate.Value,
@@ -129,9 +132,9 @@ public sealed class HistoryViewModel : ObservableObject
             }
         }
 
-        foreach (var adjustment in _workflow.WasteAdjustmentHistory)
+        foreach (var adjustment in workflow.WasteAdjustmentHistory)
         {
-            var (load, group) = FindGroup(adjustment.LoadId, adjustment.MaterialGroupId);
+            var (load, group) = FindGroup(workflow, adjustment.LoadId, adjustment.MaterialGroupId);
             if (load is null || group is null) continue;
             yield return new HistoryMovementRow(adjustment.AdjustmentDate, "Rettifica scarti", load.Id,
                 group.GroupId, load.LoadNumber, load.SupplierName, Material(group), group.ConventionalThickness,
@@ -140,11 +143,11 @@ public sealed class HistoryViewModel : ObservableObject
                 adjustment.AdjustmentOperator, load.DeliveryNoteNumber, BuildAdjustmentDetail(load, group, adjustment));
         }
 
-        foreach (var discharge in _inventory.DischargeMovements)
+        foreach (var discharge in inventory.DischargeMovements)
         {
-            var (load, group) = FindGroup(discharge.LoadId, discharge.MaterialGroupId);
+            var (load, group) = FindGroup(workflow, discharge.LoadId, discharge.MaterialGroupId);
             if (load is null || group is null) continue;
-            var package = _inventory.FindPackage(discharge.PackageCode);
+            var package = inventory.FindPackage(discharge.PackageCode);
             yield return new HistoryMovementRow(discharge.DischargeDate, "Scarico", load.Id, group.GroupId,
                 load.LoadNumber, load.SupplierName, Material(group), group.ConventionalThickness, group.Quality,
                 package?.PackagePosition ?? discharge.PackageCode, -discharge.DischargedCubicMeters,
@@ -152,9 +155,9 @@ public sealed class HistoryViewModel : ObservableObject
                 $"Codice pacco: {discharge.PackageCode}\nCarico: {load.LoadNumber}\nFornitore: {load.SupplierName}\nPacco: {package?.PackagePosition ?? "—"}\nMateriale: {Material(group)}\nQualità: {group.Quality}\nMC scaricati: {discharge.DischargedCubicMeters:N2}\nData/ora: {discharge.DischargeDate:dd/MM/yyyy HH:mm}\nOperatore: {discharge.DischargeOperator}");
         }
 
-        foreach (var removal in _inventory.ManualRemovalMovements)
+        foreach (var removal in inventory.ManualRemovalMovements)
         {
-            var (load, group) = FindGroup(removal.LoadId, removal.MaterialGroupId);
+            var (load, group) = FindGroup(workflow, removal.LoadId, removal.MaterialGroupId);
             if (load is null || group is null) continue;
             yield return new HistoryMovementRow(removal.RemovalDate, "Rimozione manuale", load.Id, group.GroupId,
                 load.LoadNumber, load.SupplierName, Material(group), group.ConventionalThickness, group.Quality,
@@ -188,9 +191,10 @@ public sealed class HistoryViewModel : ObservableObject
         SelectedMovement = VisibleMovements.FirstOrDefault();
     }
 
-    private (ClassificationLoad? Load, MaterialGroupClassification? Group) FindGroup(Guid loadId, Guid groupId)
+    private static (ClassificationLoad? Load, MaterialGroupClassification? Group) FindGroup(
+        ClassificationWorkflowService workflow, Guid loadId, Guid groupId)
     {
-        var load = _workflow.Loads.FirstOrDefault(item => item.Id == loadId);
+        var load = workflow.Loads.FirstOrDefault(item => item.Id == loadId);
         return (load, load?.Groups.FirstOrDefault(item => item.GroupId == groupId));
     }
 
