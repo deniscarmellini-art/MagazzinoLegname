@@ -16,11 +16,12 @@ public sealed class MaterialDispatchViewModel : ObservableObject
 
     public MaterialDispatchViewModel()
     {
-        Operators = ["Andrea Rossi", "Elena Bianchi", "Marco Conti"];
-        _selectedOperator = Operators[0];
+        Operators = OperatorCatalogService.Shared.ActiveOperatorNames;
+        _selectedOperator = Operators.FirstOrDefault() ?? string.Empty;
+        OperatorCatalogService.Shared.CatalogChanged += (_, _) => EnsureActiveSelection();
     }
 
-    public ObservableCollection<string> Operators { get; }
+    public ReadOnlyObservableCollection<string> Operators { get; }
     public ObservableCollection<MaterialDischargeMovement> RecentDischarges { get; } = [];
     public string QrInput { get => _qrInput; set => SetProperty(ref _qrInput, value); }
     public string SelectedOperator { get => _selectedOperator; set => SetProperty(ref _selectedOperator, value); }
@@ -83,5 +84,10 @@ public sealed class MaterialDispatchViewModel : ObservableObject
         QrInput = string.Empty;
         FeedbackMessage = "Operazione annullata. Pronto per la scansione successiva.";
         IsSuccessFeedback = false;
+    }
+
+    private void EnsureActiveSelection()
+    {
+        if (!Operators.Contains(SelectedOperator)) SelectedOperator = Operators.FirstOrDefault() ?? string.Empty;
     }
 }

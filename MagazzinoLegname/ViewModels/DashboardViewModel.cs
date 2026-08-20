@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Collections.ObjectModel;
 using System;
+using System.Windows.Input;
 using MagazzinoLegname.Infrastructure;
 using MagazzinoLegname.Models;
 using MagazzinoLegname.Services;
@@ -145,6 +146,7 @@ public sealed class DashboardViewModel : ObservableObject
         var friday = monday.AddDays(4);
         var arrivals = _planning.Arrivals
             .Where(item => item.Date.Date >= monday && item.Date.Date <= friday
+                && item.Status == PlannedArrivalStatus.Expected
                 && item.LoadQuantity > 0 && item.ConventionalThickness.HasValue
                 && !string.IsNullOrWhiteSpace(item.Quality))
             .OrderBy(item => item.Date)
@@ -157,7 +159,8 @@ public sealed class DashboardViewModel : ObservableObject
             var supplierName = _suppliers.Suppliers
                 .FirstOrDefault(item => item.Id == arrival.SupplierId)?.Name ?? "—";
             WeeklyPlannedArrivals.Add(new WeeklyPlannedArrivalRow(arrival.Date, supplierName,
-                arrival.ConventionalThickness!.Value, arrival.Quality!, arrival.LoadQuantity));
+                arrival.ConventionalThickness!.Value, arrival.Quality!, arrival.LoadQuantity,
+                new RelayCommand(() => _planning.ConfirmArrival(arrival.Id))));
         }
         WeeklyPlannedLoadCount = arrivals.Sum(item => item.LoadQuantity);
         WeeklyPlannedCubicMeters = arrivals.Sum(item => item.LoadQuantity
@@ -181,7 +184,7 @@ public sealed class DashboardViewModel : ObservableObject
 }
 
 public sealed record WeeklyPlannedArrivalRow(DateTime Date, string SupplierName,
-    decimal ConventionalThickness, string Quality, int LoadQuantity)
+    decimal ConventionalThickness, string Quality, int LoadQuantity, ICommand ConfirmArrivalCommand)
 {
     public string DateDisplay
     {

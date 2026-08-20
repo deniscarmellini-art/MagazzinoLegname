@@ -11,31 +11,50 @@
         </Style>
         <Style x:Key="ClassificationHeaderStyle" TargetType="DataGridColumnHeader"
                BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+            <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}"/>
             <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridColumnHeader">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                              RecognizesAccessKey="True"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="ClassificationTitleBarStyle" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource SurfaceHeaderBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="CornerRadius" Value="13,13,0,0"/>
+            <Setter Property="Padding" Value="16,12"/>
         </Style>
     </UserControl.Resources>
     <Grid Margin="24,8,24,24">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="390"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <Grid Margin="0,0,0,8">
-            <Border HorizontalAlignment="Right" VerticalAlignment="Center" Background="#172839" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="14,9">
-                <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8EC;" FontFamily="Segoe MDL2 Assets" Foreground="{DynamicResource AccentBrush}" FontSize="16" Margin="0,0,9,0"/><TextBlock Text="{Binding LoadCountText}" FontWeight="Bold"/></StackPanel>
-            </Border>
-        </Grid>
-
-        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="0" Margin="0,0,0,14" ClipToBounds="True">
+        <Border Grid.Row="0" Style="{StaticResource CardStyle}" Padding="0" Margin="0,0,0,14" ClipToBounds="True">
             <Grid>
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                <Grid Margin="16,12">
+                <Border Style="{StaticResource ClassificationTitleBarStyle}">
                     <StackPanel><TextBlock Text="CARICHI DA COMPLETARE" FontWeight="Bold"/><TextBlock Text="Seleziona il carico e assegna l’operatore che eseguirà la classificazione" Style="{StaticResource PageSubtitleStyle}"/></StackPanel>
-                </Grid>
+                </Border>
                 <DataGrid Grid.Row="1" ItemsSource="{Binding VisibleLoads}" SelectedItem="{Binding SelectedLoad}"
                           AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
                           SelectionUnit="FullRow" RowHeight="38" ColumnHeaderStyle="{StaticResource ClassificationHeaderStyle}">
+                    <DataGrid.Resources>
+                        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource ClassificationHeaderStyle}"/>
+                    </DataGrid.Resources>
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Numero carico" Width="125" Binding="{Binding LoadNumber, Mode=OneWay}" ElementStyle="{StaticResource CenteredGridText}"/>
                         <DataGridTextColumn Header="Fornitore" Width="260" Binding="{Binding SupplierName, Mode=OneWay}" ElementStyle="{StaticResource CenteredGridText}"/>
@@ -58,16 +77,18 @@
             </Grid>
         </Border>
 
-        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="0" ClipToBounds="True" MinHeight="250">
+        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="0" ClipToBounds="True" MinHeight="250">
             <Grid>
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                <Grid Margin="16,13">
+                <Border Style="{StaticResource ClassificationTitleBarStyle}">
                     <StackPanel><TextBlock FontSize="18" FontWeight="Bold"><Run Text="Gruppi materiale · carico "/><Run Text="{Binding SelectedLoad.LoadNumber, Mode=OneWay}"/></TextBlock><TextBlock Text="Ogni gruppo può essere completato indipendentemente dagli altri." Style="{StaticResource PageSubtitleStyle}"/></StackPanel>
-                    <Border HorizontalAlignment="Right" VerticalAlignment="Center" Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="8" Padding="12,7"><TextBlock Text="{Binding SelectedLoad.Status}" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/></Border>
-                </Grid>
+                </Border>
                 <DataGrid Grid.Row="1" ItemsSource="{Binding SelectedLoad.Groups}" AutoGenerateColumns="False"
                           IsReadOnly="True" CanUserAddRows="False" SelectionUnit="FullRow" RowHeight="46"
                           ColumnHeaderStyle="{StaticResource ClassificationHeaderStyle}">
+                    <DataGrid.Resources>
+                        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource ClassificationHeaderStyle}"/>
+                    </DataGrid.Resources>
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Spessore ingresso" Width="125" Binding="{Binding IncomingThickness, Mode=OneWay, StringFormat=N2}" ElementStyle="{StaticResource CenteredGridText}"/>
                         <DataGridTextColumn Header="Convenzionale" Width="115" Binding="{Binding ConventionalThickness, Mode=OneWay, StringFormat=N2}" ElementStyle="{StaticResource CenteredGridText}"/>

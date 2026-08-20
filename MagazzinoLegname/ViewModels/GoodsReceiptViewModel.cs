@@ -29,9 +29,10 @@ public sealed class GoodsReceiptViewModel : ObservableObject
     public GoodsReceiptViewModel()
     {
         Suppliers = _supplierCatalog.Suppliers;
-        Operators = ["Andrea Rossi", "Elena Bianchi", "Marco Conti"];
+        Operators = OperatorCatalogService.Shared.ActiveOperatorNames;
         _selectedSupplier = null;
-        _selectedOperator = Operators[0];
+        _selectedOperator = Operators.FirstOrDefault() ?? string.Empty;
+        OperatorCatalogService.Shared.CatalogChanged += (_, _) => EnsureActiveOperator();
         _supplierCatalog.CatalogChanged += SupplierCatalog_CatalogChanged;
         _materialParameters.ParametersChanged += (_, _) =>
         {
@@ -49,7 +50,7 @@ public sealed class GoodsReceiptViewModel : ObservableObject
     }
 
     public ObservableCollection<Supplier> Suppliers { get; }
-    public ObservableCollection<string> Operators { get; }
+    public ReadOnlyObservableCollection<string> Operators { get; }
     public ObservableCollection<GoodsReceiptLine> Lines { get; } = [];
     public DateTime? EntryDate
     {
@@ -191,13 +192,19 @@ public sealed class GoodsReceiptViewModel : ObservableObject
         ExpectedPackages = 12;
         SelectedSupplier = null;
         DeliveryNoteNumber = string.Empty;
-        SelectedOperator = keepOperator ? previousOperator : Operators[0];
+        SelectedOperator = keepOperator && Operators.Contains(previousOperator)
+            ? previousOperator : Operators.FirstOrDefault() ?? string.Empty;
         foreach (var line in Lines) line.PropertyChanged -= Line_PropertyChanged;
         Lines.Clear();
         RegisteredPackages = [];
         RegistrationState = GoodsReceiptRegistrationState.New;
         ValidationMessage = string.Empty;
         AddLine();
+    }
+
+    private void EnsureActiveOperator()
+    {
+        if (!Operators.Contains(SelectedOperator)) SelectedOperator = Operators.FirstOrDefault() ?? string.Empty;
     }
 
     private void AddLine()

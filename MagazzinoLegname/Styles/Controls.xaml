@@ -29,8 +29,8 @@
     <Style x:Key="NavigationButtonStyle" TargetType="RadioButton">
         <Setter Property="GroupName" Value="MainNavigation"/>
         <Setter Property="Height" Value="40"/>
-        <Setter Property="Margin" Value="2"/>
-        <Setter Property="Padding" Value="13,0"/>
+        <Setter Property="Margin" Value="1"/>
+        <Setter Property="Padding" Value="4,0"/>
         <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/>
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
@@ -40,9 +40,9 @@
                 <ControlTemplate TargetType="RadioButton">
                     <Border x:Name="Container" Background="Transparent" CornerRadius="10"
                             Padding="{TemplateBinding Padding}">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock Text="{TemplateBinding Tag}" FontFamily="Segoe MDL2 Assets"
-                                       FontSize="15" Margin="0,0,9,0" Foreground="{TemplateBinding Foreground}"/>
+                                       FontSize="15" Margin="0,0,5,0" Foreground="{TemplateBinding Foreground}"/>
                             <ContentPresenter VerticalAlignment="Center"/>
                         </StackPanel>
                     </Border>

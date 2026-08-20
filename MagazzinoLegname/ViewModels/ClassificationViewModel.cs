@@ -15,7 +15,8 @@ public sealed class ClassificationViewModel : ObservableObject
     public ClassificationViewModel()
     {
         _allLoads = ClassificationWorkflowService.Shared.Loads;
-        Operators = ["Andrea Rossi", "Elena Bianchi", "Marco Conti"];
+        Operators = OperatorCatalogService.Shared.ActiveOperatorNames;
+        OperatorCatalogService.Shared.CatalogChanged += (_, _) => EnsureActiveSelections();
         SubscribeToNewLoads();
         ClassificationWorkflowService.Shared.WorkflowChanged += (_, _) =>
         {
@@ -26,7 +27,7 @@ public sealed class ClassificationViewModel : ObservableObject
     }
 
     public ObservableCollection<ClassificationLoad> VisibleLoads { get; } = [];
-    public ObservableCollection<string> Operators { get; }
+    public ReadOnlyObservableCollection<string> Operators { get; }
     public ClassificationLoad? SelectedLoad
     {
         get => _selectedLoad;
@@ -59,6 +60,14 @@ public sealed class ClassificationViewModel : ObservableObject
         SelectedLoad = previousSelection is not null && matches.Contains(previousSelection)
             ? previousSelection : matches.FirstOrDefault();
         OnPropertyChanged(nameof(LoadCountText));
+        EnsureActiveSelections();
+    }
+
+    private void EnsureActiveSelections()
+    {
+        var fallback = Operators.FirstOrDefault() ?? string.Empty;
+        foreach (var load in VisibleLoads.Where(load => !Operators.Contains(load.SelectedOperator)))
+            load.SelectedOperator = fallback;
     }
 
     private void Load_PropertyChanged(object? sender, PropertyChangedEventArgs e)

@@ -6,7 +6,7 @@ namespace MagazzinoLegname.Models;
 
 public sealed class ClassificationLoad : ObservableObject
 {
-    private string _selectedOperator = "Andrea Rossi";
+    private string _selectedOperator = string.Empty;
     public ClassificationLoad(IEnumerable<MaterialGroupClassification> groups)
     {
         Groups = new(groups);

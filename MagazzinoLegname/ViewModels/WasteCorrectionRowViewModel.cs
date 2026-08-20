@@ -8,6 +8,7 @@ public sealed class WasteCorrectionRowViewModel : ObservableObject
 {
     private int _discardedWholeBoards;
     private decimal _partialWastePercentage;
+    private string _selectedOperator = string.Empty;
     private readonly WasteAdjustmentCalculationService _calculationService = new();
 
     public WasteCorrectionRowViewModel(ClassificationLoad load, MaterialGroupClassification group)
@@ -20,6 +21,11 @@ public sealed class WasteCorrectionRowViewModel : ObservableObject
     public string LoadNumber => Load.LoadNumber;
     public string SupplierName => Load.SupplierName;
     public DateTime ArrivalDate => Load.ArrivalDate;
+    public string SelectedOperator
+    {
+        get => _selectedOperator;
+        set => SetProperty(ref _selectedOperator, value);
+    }
     public int DiscardedWholeBoards
     {
         get => _discardedWholeBoards;

@@ -26,6 +26,13 @@ public partial class MainWindow : Window
         }
     }
 
+    public void NavigateToHistory()
+    {
+        HistoryNavigationButton.IsChecked = true;
+        ApplyHeader(PageKey.History);
+        _navigationService.NavigateTo(PageKey.History);
+    }
+
     private void ApplyHeader(PageKey pageKey)
     {
         (HeaderTitle.Text, HeaderDescription.Text) = pageKey switch
@@ -38,6 +45,7 @@ public partial class MainWindow : Window
             PageKey.Inventory => ("Disponibilità Magazzino", "Pacchi fisicamente presenti, quantità consolidate e giacenza disponibile."),
             PageKey.Planning => ("Pianificazione", "Arrivi previsti e proiezione settimanale delle giacenze."),
             PageKey.History => ("Storico", "Registro permanente di entrate, classificazioni, rettifiche, scarichi e rimozioni manuali."),
+            PageKey.Statistics => ("Statistiche", "Analisi storica di acquisti, scarti, rendimento, consumi e movimentazioni."),
             PageKey.Settings => ("Impostazioni", "Anagrafiche e configurazioni operative dell'applicazione."),
             _ => ("Magazzino Legname", "Gestione materiali, giacenze e movimentazioni")
         };
@@ -55,10 +63,11 @@ public partial class MainWindow : Window
             "Giacenze" => PageKey.Inventory,
             "Pianificazione" => PageKey.Planning,
             "Storico" => PageKey.History,
+            "Statistiche" => PageKey.Statistics,
             "Impostazioni" => PageKey.Settings,
             _ => default
         };
         return label is "Dashboard" or "Entrata merce" or "Classificazione" or "Rettifica scarti"
-            or "Scarico materiale" or "Giacenze" or "Pianificazione" or "Storico" or "Impostazioni";
+            or "Scarico materiale" or "Giacenze" or "Pianificazione" or "Storico" or "Statistiche" or "Impostazioni";
     }
 }

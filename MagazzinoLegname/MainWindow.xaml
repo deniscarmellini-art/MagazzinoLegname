@@ -47,15 +47,16 @@
                         BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="11">
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="0.92*"/>
+                            <ColumnDefinition Width="1.04*"/>
+                            <ColumnDefinition Width="1.18*"/>
+                            <ColumnDefinition Width="1.16*"/>
+                            <ColumnDefinition Width="1.26*"/>
+                            <ColumnDefinition Width="0.84*"/>
                             <ColumnDefinition Width="1.12*"/>
-                            <ColumnDefinition Width="0.88*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="0.77*"/>
+                            <ColumnDefinition Width="0.92*"/>
+                            <ColumnDefinition Width="1.05*"/>
                         </Grid.ColumnDefinitions>
                         <RadioButton Grid.Column="0" Content="Dashboard" Tag="&#xE80F;" IsChecked="True" Style="{StaticResource NavigationButtonStyle}" Click="NavigationButton_Click"/>
                         <RadioButton Grid.Column="1" Content="Entrata merce" Tag="&#xE896;" Style="{StaticResource NavigationButtonStyle}" Click="NavigationButton_Click"/>
@@ -64,8 +65,9 @@
                         <RadioButton Grid.Column="4" Content="Scarico materiale" Tag="&#xE7C1;" Style="{StaticResource NavigationButtonStyle}" Click="NavigationButton_Click"/>
                         <RadioButton Grid.Column="5" Content="Giacenze" Tag="&#xE7B8;" Style="{StaticResource NavigationButtonStyle}" Click="NavigationButton_Click"/>
                         <RadioButton Grid.Column="6" Content="Pianificazione" Tag="&#xE787;" Style="{StaticResource NavigationButtonStyle}" Click="NavigationButton_Click"/>
-                        <RadioButton Grid.Column="7" Content="Storico" Tag="&#xE81C;" Style="{StaticResource NavigationButtonStyle}" Click="NavigationButton_Click"/>
-                        <RadioButton Grid.Column="8" Content="Impostazioni" Tag="&#xE713;" Style="{StaticResource NavigationButtonStyle}" Click="NavigationButton_Click"/>
+                        <RadioButton x:Name="HistoryNavigationButton" Grid.Column="7" Content="Storico" Tag="&#xE81C;" Style="{StaticResource NavigationButtonStyle}" Click="NavigationButton_Click"/>
+                        <RadioButton Grid.Column="8" Content="Statistiche" Tag="&#xE9D2;" Style="{StaticResource NavigationButtonStyle}" Click="NavigationButton_Click"/>
+                        <RadioButton Grid.Column="9" Content="Impostazioni" Tag="&#xE713;" Style="{StaticResource NavigationButtonStyle}" Click="NavigationButton_Click"/>
                     </Grid>
                 </Border>
             </Grid>

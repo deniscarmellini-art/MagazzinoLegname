@@ -17,12 +17,14 @@ public sealed class PlanningViewModel : ObservableObject
     private readonly PlanningDataService _planning = PlanningDataService.Shared;
     private readonly PlanningSettingsService _settings = PlanningSettingsService.Shared;
     private readonly InventoryProjectionService _inventory = InventoryProjectionService.Shared;
-    private readonly DateTime _firstMonday;
+    private DateTime _selectedWeekA;
+    private DateTime _selectedWeekB;
 
     public PlanningViewModel()
     {
         var today = DateTime.Today;
-        _firstMonday = today.AddDays(-(((int)today.DayOfWeek + 6) % 7)).Date;
+        _selectedWeekA = StartOfWeek(today);
+        _selectedWeekB = _selectedWeekA.AddDays(7);
         BuildCalendar();
         BuildForecast();
         _suppliers.CatalogChanged += (_, _) => { BuildCalendar(); RecalculateForecast(); };
@@ -36,7 +38,35 @@ public sealed class PlanningViewModel : ObservableObject
     public ObservableCollection<PlanningCalendarWeekViewModel> CalendarWeeks { get; } = [];
     public ObservableCollection<PlanningForecastRowViewModel> ForecastRows { get; } = [];
     public PlanningSettings Settings => _settings.Settings;
-    public string PeriodText => $"Dal {_firstMonday:dd/MM/yyyy} al {_firstMonday.AddDays(18):dd/MM/yyyy}";
+    public DateTime SelectedWeekA
+    {
+        get => _selectedWeekA;
+        set
+        {
+            var monday = StartOfWeek(value);
+            if (!SetProperty(ref _selectedWeekA, monday)) return;
+            if (_selectedWeekB <= monday)
+            {
+                _selectedWeekB = monday.AddDays(7);
+                OnPropertyChanged(nameof(SelectedWeekB));
+            }
+            RefreshActiveWeeks();
+        }
+    }
+    public DateTime SelectedWeekB
+    {
+        get => _selectedWeekB;
+        set
+        {
+            var monday = StartOfWeek(value);
+            if (monday <= _selectedWeekA) monday = _selectedWeekA.AddDays(7);
+            if (!SetProperty(ref _selectedWeekB, monday)) return;
+            RefreshActiveWeeks();
+        }
+    }
+    public string PeriodText => $"A: {_selectedWeekA:dd/MM}–{_selectedWeekA.AddDays(4):dd/MM}  ·  B: {_selectedWeekB:dd/MM}–{_selectedWeekB.AddDays(4):dd/MM}";
+    private IReadOnlyList<(string Label, DateTime Monday)> ActiveWeeks =>
+        [("SETTIMANA A", _selectedWeekA), ("SETTIMANA B", _selectedWeekB)];
 
     private void BuildCalendar()
     {
@@ -45,9 +75,9 @@ public sealed class PlanningViewModel : ObservableObject
         foreach (var supplier in activeSuppliers) ActiveSupplierNames.Add(supplier.Name);
 
         CalendarWeeks.Clear();
-        for (var weekIndex = 0; weekIndex < 3; weekIndex++)
+        foreach (var activeWeek in ActiveWeeks)
         {
-            var weekStart = _firstMonday.AddDays(weekIndex * 7);
+            var weekStart = activeWeek.Monday;
             var days = Enumerable.Range(0, 5)
                 .Select(offset => new PlanningDayViewModel(weekStart.AddDays(offset))).ToList();
             var supplierRows = activeSuppliers.Select(supplier =>
@@ -55,7 +85,7 @@ public sealed class PlanningViewModel : ObservableObject
                     days.Select(day => new PlanningArrivalCellViewModel(
                         _planning.GetOrCreateArrival(supplier.Id, day.Date))))).ToList();
             CalendarWeeks.Add(new PlanningCalendarWeekViewModel(
-                $"SETTIMANA {weekIndex + 1}", weekStart, days, supplierRows));
+                activeWeek.Label, weekStart, days, supplierRows));
         }
         OnPropertyChanged(nameof(PeriodText));
     }
@@ -65,11 +95,10 @@ public sealed class PlanningViewModel : ObservableObject
         ForecastRows.Clear();
         foreach (var material in Materials)
         {
-            var cells = Enumerable.Range(0, 3).Select(weekIndex =>
+            var cells = ActiveWeeks.Select(activeWeek =>
             {
-                var weekStart = _firstMonday.AddDays(weekIndex * 7);
                 return new PlanningForecastWeekViewModel(
-                    _planning.GetOrCreateConsumption(weekStart, material.Thickness, material.Quality));
+                    _planning.GetOrCreateConsumption(activeWeek.Monday, material.Thickness, material.Quality));
             });
             ForecastRows.Add(new PlanningForecastRowViewModel(
                 material.Thickness, material.Quality, cells));
@@ -89,10 +118,11 @@ public sealed class PlanningViewModel : ObservableObject
 
             for (var weekIndex = 0; weekIndex < row.Weeks.Count; weekIndex++)
             {
-                var weekStart = _firstMonday.AddDays(weekIndex * 7);
+                var weekStart = ActiveWeeks[weekIndex].Monday;
                 var weekEnd = weekStart.AddDays(4);
                 var loadCount = _planning.Arrivals.Where(arrival => arrival.Date.Date >= weekStart
                         && arrival.Date.Date <= weekEnd
+                        && arrival.Status == PlannedArrivalStatus.Expected
                         && arrival.ConventionalThickness == row.ConventionalThickness
                         && arrival.Quality == row.Quality)
                     .Sum(arrival => arrival.LoadQuantity);
@@ -104,6 +134,16 @@ public sealed class PlanningViewModel : ObservableObject
             }
         }
     }
+
+    private void RefreshActiveWeeks()
+    {
+        BuildCalendar();
+        BuildForecast();
+        OnPropertyChanged(nameof(PeriodText));
+    }
+
+    private static DateTime StartOfWeek(DateTime date) =>
+        date.Date.AddDays(-(((int)date.DayOfWeek + 6) % 7));
 }
 
 public sealed record PlanningDayViewModel(DateTime Date)
@@ -133,16 +173,31 @@ public sealed class PlanningArrivalCellViewModel : ObservableObject
     public static IReadOnlyList<string> AvailableOptions { get; } =
     ["Nessun arrivo", "23 C", "23 VISTA", "34 C", "34 VISTA", "44 C", "44 VISTA"];
 
-    public PlanningArrivalCellViewModel(PlannedArrival arrival) => Arrival = arrival;
+    public PlanningArrivalCellViewModel(PlannedArrival arrival)
+    {
+        Arrival = arrival;
+        Arrival.PropertyChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(Options));
+            OnPropertyChanged(nameof(Selection));
+            OnPropertyChanged(nameof(IsEditable));
+        };
+    }
     public PlannedArrival Arrival { get; }
-    public IReadOnlyList<string> Options => AvailableOptions;
+    public IReadOnlyList<string> Options => Arrival.Status == PlannedArrivalStatus.Confirmed
+        ? [$"✓ Arrivato · {Arrival.ConventionalThickness:0} {Arrival.Quality}"]
+        : AvailableOptions;
+    public bool IsEditable => Arrival.Status == PlannedArrivalStatus.Expected;
     public string Selection
     {
-        get => Arrival.LoadQuantity <= 0 || !Arrival.ConventionalThickness.HasValue
+        get => Arrival.Status == PlannedArrivalStatus.Confirmed
+            ? $"✓ Arrivato · {Arrival.ConventionalThickness:0} {Arrival.Quality}"
+            : Arrival.LoadQuantity <= 0 || !Arrival.ConventionalThickness.HasValue
             ? "Nessun arrivo"
             : $"{Arrival.ConventionalThickness.Value:0} {Arrival.Quality}";
         set
         {
+            if (!IsEditable) return;
             if (value == Selection) return;
             if (value == "Nessun arrivo")
             {

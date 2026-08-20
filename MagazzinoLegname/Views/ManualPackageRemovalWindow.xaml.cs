@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using MagazzinoLegname.Services;
 
 namespace MagazzinoLegname.Views;
 
@@ -8,10 +9,11 @@ public partial class ManualPackageRemovalWindow : Window
     public ManualPackageRemovalWindow(string packageCode)
     {
         InitializeComponent();
+        OperatorCombo.ItemsSource = OperatorCatalogService.Shared.ActiveOperatorNames;
         PackageText.Text = $"Pacco {packageCode} · il record resterà consultabile nello Storico.";
     }
 
-    public string OperatorName => (OperatorCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty;
+    public string OperatorName => OperatorCombo.SelectedItem?.ToString() ?? string.Empty;
     public string Reason => (ReasonCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? string.Empty;
     public string Note => NoteTextBox.Text.Trim();
 

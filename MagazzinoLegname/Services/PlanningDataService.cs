@@ -22,6 +22,13 @@ public sealed class PlanningDataService
         return arrival;
     }
 
+    public void ConfirmArrival(Guid arrivalId, string? operatorName = null)
+    {
+        var arrival = Arrivals.FirstOrDefault(item => item.Id == arrivalId);
+        if (arrival is null || arrival.Status == PlannedArrivalStatus.Confirmed) return;
+        arrival.Confirm(DateTime.Now, operatorName);
+    }
+
     public PlannedConsumption GetOrCreateConsumption(DateTime weekStart, decimal thickness, string quality)
     {
         var consumption = Consumptions.FirstOrDefault(item => item.WeekStart.Date == weekStart.Date

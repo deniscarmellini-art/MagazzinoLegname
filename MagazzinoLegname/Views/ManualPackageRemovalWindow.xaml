@@ -16,9 +16,7 @@
             <TextBlock Grid.Row="1" x:Name="PackageText" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,3,0,18"/>
             <StackPanel Grid.Row="2" Margin="0,0,0,12">
                 <TextBlock Text="OPERATORE" Style="{StaticResource FieldLabelStyle}"/>
-                <ComboBox x:Name="OperatorCombo" SelectedIndex="0">
-                    <ComboBoxItem Content="Andrea Rossi"/><ComboBoxItem Content="Elena Bianchi"/><ComboBoxItem Content="Marco Conti"/>
-                </ComboBox>
+                <ComboBox x:Name="OperatorCombo" SelectedIndex="0"/>
             </StackPanel>
             <StackPanel Grid.Row="3" Margin="0,0,0,12">
                 <TextBlock Text="MOTIVO" Style="{StaticResource FieldLabelStyle}"/>

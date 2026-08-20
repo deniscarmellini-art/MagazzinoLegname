@@ -66,22 +66,9 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <Grid Margin="2,0,2,8">
-                <Border HorizontalAlignment="Right" VerticalAlignment="Center" Background="#253B2B"
-                        BorderBrush="#3F6A48" BorderThickness="1" CornerRadius="12" Padding="12,7">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" Foreground="{DynamicResource SuccessBrush}" Margin="0,0,7,0"/>
-                        <TextBlock Foreground="{DynamicResource SuccessBrush}" FontWeight="Bold" FontSize="12">
-                            <Run Text="Certificazione "/><Run Text="{Binding CertificationIndicator, Mode=OneWay}"/>
-                        </TextBlock>
-                    </StackPanel>
-                </Border>
-            </Grid>
-
-            <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,0,0,16">
+            <Border Grid.Row="0" Style="{StaticResource CardStyle}" Margin="0,0,0,16">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
                         <Border Width="36" Height="36" CornerRadius="10" Background="{DynamicResource AccentSoftBrush}" Margin="0,0,11,0">
@@ -141,11 +128,16 @@
                 </StackPanel>
             </Border>
 
-            <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="0" Margin="0,0,0,16">
+            <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="0" Margin="0,0,0,16">
                 <Grid>
-                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <Grid Margin="18,15">
-                        <StackPanel Orientation="Horizontal">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="0.88*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="0.12*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Orientation="Horizontal">
                             <Border Width="36" Height="36" CornerRadius="10" Background="{DynamicResource AccentSoftBrush}" Margin="0,0,11,0">
                                 <TextBlock Text="&#xE7B8;" FontFamily="Segoe MDL2 Assets" Foreground="{DynamicResource AccentBrush}" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
@@ -154,7 +146,15 @@
                                 <TextBlock Text="Inserisci una riga per ogni tipologia ricevuta; i campi blu sono modificabili." Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11"/>
                             </StackPanel>
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <Border Background="{DynamicResource SurfaceRaisedBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                                    CornerRadius="9" Padding="10,7" Margin="0,0,12,0">
+                                <TextBlock FontSize="11.5" VerticalAlignment="Center">
+                                    <Run Text="Certificazione: " Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                    <Run Text="{Binding CertificationIndicator, Mode=OneWay}" Foreground="{DynamicResource PrimaryTextBrush}" FontWeight="SemiBold"/>
+                                </TextBlock>
+                            </Border>
                             <Border CornerRadius="9" BorderThickness="1" Padding="11,7" Margin="0,0,10,0">
                                 <Border.Style><Style TargetType="Border"><Setter Property="Background" Value="#3A3020"/><Setter Property="BorderBrush" Value="{DynamicResource WarningBrush}"/><Style.Triggers><DataTrigger Binding="{Binding AreExpectedPackagesComplete}" Value="True"><Setter Property="Background" Value="#253B2B"/><Setter Property="BorderBrush" Value="{DynamicResource SuccessBrush}"/></DataTrigger><DataTrigger Binding="{Binding ArePackagesExceeding}" Value="True"><Setter Property="Background" Value="#3B2830"/><Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}"/></DataTrigger></Style.Triggers></Style></Border.Style>
                                 <StackPanel><TextBlock Text="{Binding PackageControlText}" FontWeight="Bold" FontSize="12"/><TextBlock Text="{Binding PackageControlDetail}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="10"/></StackPanel>
@@ -200,8 +200,15 @@
                             <DataGridTextColumn Header="Valore €" Width="120" IsReadOnly="True" Binding="{Binding LineValue, StringFormat=N2}" ElementStyle="{StaticResource GridDisplayTextStyle}"/>
                         </DataGrid.Columns>
                     </DataGrid>
-                    <Expander Grid.Row="2" Margin="14,8" Foreground="{DynamicResource PrimaryTextBrush}">
-                        <Expander.Header><TextBlock Text="Dettagli calcolo della riga selezionata" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/></Expander.Header>
+                    <Expander Grid.Row="2" Margin="14,8" Padding="10,7"
+                              Background="#101820" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                              Foreground="{DynamicResource PrimaryTextBrush}">
+                        <Expander.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Dettagli calcolo della riga selezionata" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                                <TextBlock Text="  •  espandi o riduci" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="10.5" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Expander.Header>
                         <Border Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="10" Padding="14" Margin="0,8,0,0"><UniformGrid Columns="4">
                             <StackPanel Margin="5"><TextBlock Text="Spessore ingresso" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.IncomingThickness, StringFormat={}{0:N2} mm}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Spessore convenzionale" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.ConventionalThickness, StringFormat={}{0:N2} mm}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Spessore utile finale" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.UsefulProductionThickness, StringFormat={}{0:N2} mm}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Larghezza ingresso" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.IncomingWidth, StringFormat={}{0:N2} mm}"/></StackPanel>
                             <StackPanel Margin="5"><TextBlock Text="Prepiallatura applicata" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.PlaningReduction, StringFormat={}{0:N2} mm}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Riduzione standard" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.StandardWidthReduction, StringFormat={}{0:N2} mm}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Larghezza finale" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.FinalWidth, StringFormat={}{0:N2} mm}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Lunghezza ingresso" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.IncomingLength, StringFormat={}{0:N2} mm}"/></StackPanel>
@@ -209,16 +216,12 @@
                             <StackPanel Margin="5"><TextBlock Text="Perdita lavorazione" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.ProcessingLossCubicMeters, StringFormat=N2}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Perdita lavorazione %" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.ProcessingLossPercentage, StringFormat={}{0:N2}%}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Prezzo applicato" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.PrezzoApplicato, StringFormat={}{0:N2} €/m³}"/></StackPanel><StackPanel Margin="5"><TextBlock Text="Valore" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLine.LineValue, StringFormat={}{0:N2} €}"/></StackPanel>
                         </UniformGrid></Border>
                     </Expander>
-                    <Border Grid.Row="3" Background="#101820" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="18,10">
-                        <TextBlock Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11"
-                                   Text="Calcolo locale dimostrativo • Il prezzo varia per fornitore e spessore convenzionale • Nessun dato viene salvato"/>
-                    </Border>
                 </Grid>
             </Border>
 
-            <Border Grid.Row="3" Style="{StaticResource CardStyle}" Margin="0,0,0,16">
+            <Border Grid.Row="2" Style="{StaticResource CardStyle}" Margin="0,0,0,16">
                 <StackPanel>
-                    <TextBlock Text="RIEPILOGO CARICO" Foreground="{DynamicResource SecondaryTextBrush}" FontWeight="Bold" FontSize="11" Margin="0,0,0,13"/>
+                    <TextBlock Text="RIEPILOGO CARICO" Foreground="{DynamicResource PrimaryTextBrush}" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,13"/>
                     <UniformGrid Rows="1" HorizontalAlignment="Stretch">
                         <UniformGrid.Resources>
                             <Style TargetType="StackPanel">
@@ -241,7 +244,7 @@
                 </StackPanel>
             </Border>
 
-            <Grid Grid.Row="4" Margin="2,0">
+            <Grid Grid.Row="3" Margin="2,0">
                 <TextBlock Text="{Binding ValidationMessage, Mode=OneWay}" Foreground="{DynamicResource DangerBrush}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center" MaxWidth="820" HorizontalAlignment="Left"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button Content="Annulla" Click="Cancel_Click" IsEnabled="{Binding IsPrimaryActionEnabled}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,0"/>

@@ -27,11 +27,12 @@ public sealed class SettingsViewModel : ObservableObject
     public MaterialParameters MaterialParameters { get; } = MaterialParametersService.Shared.Parameters;
     public GeneralSettings GeneralSettings { get; } = GeneralSettingsService.Shared.Settings;
     public PlanningSettings PlanningSettings { get; } = PlanningSettingsService.Shared.Settings;
-    public string SelectedSection { get => _selectedSection; set { if (SetProperty(ref _selectedSection, value)) { OnPropertyChanged(nameof(IsSuppliersSection)); OnPropertyChanged(nameof(IsMaterialParametersSection)); OnPropertyChanged(nameof(IsGeneralSection)); OnPropertyChanged(nameof(IsPlanningParametersSection)); } } }
+    public ObservableCollection<Operator> Operators => OperatorCatalogService.Shared.Operators;
+    public string SelectedSection { get => _selectedSection; set { if (SetProperty(ref _selectedSection, value)) { OnPropertyChanged(nameof(IsSuppliersSection)); OnPropertyChanged(nameof(IsMaterialParametersSection)); OnPropertyChanged(nameof(IsPlanningParametersSection)); OnPropertyChanged(nameof(IsOperatorsSection)); } } }
     public bool IsSuppliersSection => SelectedSection == "Suppliers";
     public bool IsMaterialParametersSection => SelectedSection == "MaterialParameters";
-    public bool IsGeneralSection => SelectedSection == "General";
     public bool IsPlanningParametersSection => SelectedSection == "PlanningParameters";
+    public bool IsOperatorsSection => SelectedSection == "Operators";
     public SupplierContact? SelectedContact { get => _selectedContact; set => SetProperty(ref _selectedContact, value); }
     public Supplier? SelectedSupplier
     {
@@ -51,11 +52,16 @@ public sealed class SettingsViewModel : ObservableObject
     }
     public void ShowSuppliers() => SelectedSection = "Suppliers";
     public void ShowMaterialParameters() { IsHistoryVisible = false; SelectedSection = "MaterialParameters"; }
-    public void ShowGeneral() { IsHistoryVisible = false; SelectedSection = "General"; }
     public void ShowPlanningParameters() { IsHistoryVisible = false; SelectedSection = "PlanningParameters"; }
-    public void SaveGeneralSettings() => GeneralSettingsService.Shared.NotifyChanged();
-    public void SaveMaterialParameters() => MaterialParametersService.Shared.NotifyChanged();
+    public void ShowOperators() { IsHistoryVisible = false; SelectedSection = "Operators"; }
+    public void SaveMaterialParameters()
+    {
+        MaterialParametersService.Shared.NotifyChanged();
+        GeneralSettingsService.Shared.NotifyChanged();
+    }
     public void SavePlanningSettings() => PlanningSettingsService.Shared.NotifyChanged();
+    public Operator AddOperator() => OperatorCatalogService.Shared.AddOperator();
+    public void ToggleOperator(Operator item) => OperatorCatalogService.Shared.ToggleActive(item);
     public void AddContact()
     {
         if (SelectedSupplier is null) return;

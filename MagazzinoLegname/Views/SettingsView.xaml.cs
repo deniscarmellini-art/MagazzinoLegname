@@ -27,20 +27,27 @@ public partial class SettingsView : UserControl
     }
     private void ToggleHistory_Click(object sender, RoutedEventArgs e) => ViewModel.ToggleHistory();
     private void SuppliersSection_Click(object sender, RoutedEventArgs e) => ViewModel.ShowSuppliers();
-    private void GeneralSection_Click(object sender, RoutedEventArgs e) => ViewModel.ShowGeneral();
     private void MaterialParametersSection_Click(object sender, RoutedEventArgs e) => ViewModel.ShowMaterialParameters();
     private void PlanningParametersSection_Click(object sender, RoutedEventArgs e) => ViewModel.ShowPlanningParameters();
+    private void OperatorsSection_Click(object sender, RoutedEventArgs e) => ViewModel.ShowOperators();
     private void AddContact_Click(object sender, RoutedEventArgs e) => ViewModel.AddContact();
     private void DeleteContact_Click(object sender, RoutedEventArgs e) => ViewModel.DeleteContact();
+    private void AddOperator_Click(object sender, RoutedEventArgs e) => ViewModel.AddOperator();
+    private void EditOperator_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: Models.Operator item }) return;
+        OperatorsGrid.SelectedItem = item;
+        OperatorsGrid.CurrentCell = new DataGridCellInfo(item, OperatorsGrid.Columns[0]);
+        OperatorsGrid.BeginEdit();
+    }
+    private void ToggleOperator_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: Models.Operator item }) ViewModel.ToggleOperator(item);
+    }
     private void SaveMaterialParameters_Click(object sender, RoutedEventArgs e)
     {
         ViewModel.SaveMaterialParameters();
         MessageBox.Show("Parametri materiale aggiornati in memoria.", "Parametri materiale", MessageBoxButton.OK, MessageBoxImage.Information);
-    }
-    private void SaveGeneralSettings_Click(object sender, RoutedEventArgs e)
-    {
-        ViewModel.SaveGeneralSettings();
-        MessageBox.Show("Impostazioni generali aggiornate in memoria.", "Impostazioni generali", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void SavePlanningSettings_Click(object sender, RoutedEventArgs e)
     {

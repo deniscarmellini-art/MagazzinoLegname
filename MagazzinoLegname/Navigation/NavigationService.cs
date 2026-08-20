@@ -15,6 +15,7 @@ public sealed class NavigationService
         [PageKey.Inventory] = () => new InventoryView(),
         [PageKey.Planning] = () => new PlanningView(),
         [PageKey.History] = () => new HistoryView(),
+        [PageKey.Statistics] = () => new StatisticsView(),
         [PageKey.Settings] = () => new SettingsView()
     };
     private readonly Dictionary<PageKey, UserControl> _pages = [];
