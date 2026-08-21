@@ -112,16 +112,24 @@ public sealed class InventoryProjectionService
                 var presentCodes = groupCodes.Where(code => !movementByCode.ContainsKey(code)
                     && !removalByCode.ContainsKey(code)).ToList();
                 var adjustment = _workflow.WasteAdjustmentHistory.LastOrDefault(item => item.MaterialGroupId == group.GroupId);
-                var originalGroupBalance = adjustment?.RealAvailableCubicMeters
-                    ?? (group.IsLegacyImport ? group.LegacyEstimatedCubicMeters ?? 0m : group.TheoreticalUsefulCubicMeters ?? 0m);
+                var legacyReferenceVolume = group.IsLegacyImport
+                    ? (group.WasClassifiedAtLegacyImport ? group.LegacyEstimatedCubicMeters ?? 0m : group.IncomingPhysicalCubicMeters)
+                    : (group.TheoreticalUsefulCubicMeters ?? 0m);
+                var originalGroupBalance = adjustment?.RealAvailableCubicMeters ?? legacyReferenceVolume;
                 var residual = originalGroupBalance - movements.Sum(item => item.DischargedCubicMeters)
                     - removals.Sum(item => item.RemovedCubicMeters);
                 if (presentCodes.Count == 0) residual = 0m;
                 residual = Math.Max(0m, residual);
                 Dictionary<string, decimal> shareByCode;
                 if (group.IsLegacyImport && adjustment is null)
-                    shareByCode = legacyPackages.Where(item => presentCodes.Contains(item.PackageCode, StringComparer.OrdinalIgnoreCase))
-                        .ToDictionary(item => item.PackageCode, item => item.LegacyEstimatedCubicMeters ?? 0m, StringComparer.OrdinalIgnoreCase);
+                {
+                    var legacyPackageTotals = group.WasClassifiedAtLegacyImport
+                        ? legacyPackages.Where(item => presentCodes.Contains(item.PackageCode, StringComparer.OrdinalIgnoreCase))
+                            .ToDictionary(item => item.PackageCode, item => item.LegacyEstimatedCubicMeters ?? 0m, StringComparer.OrdinalIgnoreCase)
+                        : legacyPackages.Where(item => presentCodes.Contains(item.PackageCode, StringComparer.OrdinalIgnoreCase))
+                            .ToDictionary(item => item.PackageCode, item => item.IncomingPhysicalCubicMeters, StringComparer.OrdinalIgnoreCase);
+                    shareByCode = legacyPackageTotals;
+                }
                 else
                 {
                     var currentShares = DistributeExactly(residual, presentCodes.Count);
@@ -158,7 +166,8 @@ public sealed class InventoryProjectionService
                         AppliedPrice = group.AppliedPrice, TheoreticalUsefulCubicMeters = group.TheoreticalUsefulCubicMeters,
                         LegacyEstimatedCubicMeters = legacyPackage?.LegacyEstimatedCubicMeters,
                         InventoryQuantitySource = adjustment is not null ? InventoryQuantitySource.RealAfterAdjustment
-                            : group.IsLegacyImport ? InventoryQuantitySource.LegacyEstimate : InventoryQuantitySource.CurrentTheoretical,
+                            : group.IsLegacyImport && group.WasClassifiedAtLegacyImport ? InventoryQuantitySource.LegacyEstimate
+                            : InventoryQuantitySource.CurrentTheoretical,
                         LegacyLoadNumber = group.LegacyLoadNumber, LegacyPackageLabel = legacyPackage?.LegacyPackageLabel,
                         LegacyExcelRow = legacyPackage?.LegacyExcelRow, LegacyQr = legacyPackage?.LegacyQr, LegacyImportBatchId = group.LegacyImportBatchId,
                         UsesRealCubicMeters = adjustment is not null, IsPresent = isPresent,

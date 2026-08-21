@@ -24,6 +24,7 @@ public sealed class MaterialGroupClassification : ObservableObject
     public decimal? AppliedPrice { get; init; }
     public decimal? LineValue { get; init; }
     public bool IsLegacyImport { get; init; }
+    public bool WasClassifiedAtLegacyImport { get; init; }
     public decimal? LegacyEstimatedCubicMeters { get; init; }
     public string? LegacyLoadNumber { get; init; }
     public string? LegacyCertification { get; init; }

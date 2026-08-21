@@ -98,7 +98,8 @@ public sealed class LegacyInitialInventoryImportService
             ConventionalThickness = row.InputThickness.Value, UsefulThickness = 0m, IncomingWidth = row.InputWidth!.Value,
             WidthAfterPlaning = row.InputWidth.Value, FinalWidth = 0m, IncomingLength = row.InputLength!.Value, FinalLength = 0m,
             Quality = row.QualityNormalized!, PackageCount = rows.Count, InitialPieces = rows.Sum(item => decimal.ToInt32(item.Pieces!.Value)), AppliedPrice = null, LineValue = null,
-            IsLegacyImport = true, LegacyEstimatedCubicMeters = rows.Sum(item => item.LegacyEstimatedCubicMeters ?? 0m), LegacyLoadNumber = row.LoadNumber,
+            IsLegacyImport = true, WasClassifiedAtLegacyImport = row.IsClassified == true,
+            LegacyEstimatedCubicMeters = rows.Sum(item => item.LegacyEstimatedCubicMeters ?? 0m), LegacyLoadNumber = row.LoadNumber,
             LegacyImportBatchId = plan.BatchId, LegacyCertification = row.Certification };
         if (row.IsClassified == true) group.MarkAsLegacyClassified(row.ClassificationDate);
         return group;

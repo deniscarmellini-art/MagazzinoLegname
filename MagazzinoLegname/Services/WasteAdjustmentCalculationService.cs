@@ -10,9 +10,16 @@ public sealed class WasteAdjustmentCalculationService
         var discardedAtGroupLevel = Math.Clamp(discardedWholeBoards, 0, group.InitialPieces);
         var partialPercentage = Math.Clamp(partialWastePercentage, 0m, 100m);
         var goodGroupPieces = group.InitialPieces - discardedAtGroupLevel;
-        var usefulCubicMetersPerBoard = group.UsefulThickness * group.FinalWidth
-            * group.FinalLength / 1_000_000_000m;
-        var theoreticalUseful = group.InitialPieces * usefulCubicMetersPerBoard;
+
+        var legacyReferenceVolume = group.IsLegacyImport
+            ? (group.WasClassifiedAtLegacyImport && group.LegacyEstimatedCubicMeters.HasValue
+                ? group.LegacyEstimatedCubicMeters.Value
+                : group.IncomingPhysicalCubicMeters)
+            : group.InitialPieces * group.UsefulThickness * group.FinalWidth * group.FinalLength / 1_000_000_000m;
+
+        var usefulCubicMetersPerBoard = group.InitialPieces == 0 ? 0m : legacyReferenceVolume / group.InitialPieces;
+        var theoreticalUseful = legacyReferenceVolume;
+
         var afterWholeBoards = goodGroupPieces * usefulCubicMetersPerBoard;
         var partialWaste = afterWholeBoards * partialPercentage / 100m;
         var realAvailable = afterWholeBoards - partialWaste;
