@@ -21,6 +21,8 @@ public sealed class ClassificationLoad : ObservableObject
     public DateTime ArrivalDate { get; init; }
     public string DeliveryNoteNumber { get; init; } = string.Empty;
     public string ReceiptOperator { get; init; } = string.Empty;
+    public string? LegacyLoadNumber { get; init; }
+    public Guid? LegacyImportBatchId { get; init; }
     public ObservableCollection<MaterialGroupClassification> Groups { get; }
     public string SelectedOperator
     {

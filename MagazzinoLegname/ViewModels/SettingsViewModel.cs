@@ -13,6 +13,12 @@ public sealed class SettingsViewModel : ObservableObject
     private bool _isHistoryVisible;
     private string _selectedSection = "Suppliers";
     private SupplierContact? _selectedContact;
+    private string? _legacyFilePath;
+    private LegacyImportReport? _legacyReport;
+    private bool _isLegacyAnalysisRunning;
+    private string? _legacyAnalysisError;
+    private LegacyInitialInventoryImportPlan? _legacyImportPlan;
+    private LegacyInitialInventoryImportResult? _legacyImportResult;
 
     public SettingsViewModel()
     {
@@ -28,11 +34,22 @@ public sealed class SettingsViewModel : ObservableObject
     public GeneralSettings GeneralSettings { get; } = GeneralSettingsService.Shared.Settings;
     public PlanningSettings PlanningSettings { get; } = PlanningSettingsService.Shared.Settings;
     public ObservableCollection<Operator> Operators => OperatorCatalogService.Shared.Operators;
-    public string SelectedSection { get => _selectedSection; set { if (SetProperty(ref _selectedSection, value)) { OnPropertyChanged(nameof(IsSuppliersSection)); OnPropertyChanged(nameof(IsMaterialParametersSection)); OnPropertyChanged(nameof(IsPlanningParametersSection)); OnPropertyChanged(nameof(IsOperatorsSection)); } } }
+    public string SelectedSection { get => _selectedSection; set { if (SetProperty(ref _selectedSection, value)) { OnPropertyChanged(nameof(IsSuppliersSection)); OnPropertyChanged(nameof(IsMaterialParametersSection)); OnPropertyChanged(nameof(IsPlanningParametersSection)); OnPropertyChanged(nameof(IsOperatorsSection)); OnPropertyChanged(nameof(IsLegacyImportSection)); } } }
     public bool IsSuppliersSection => SelectedSection == "Suppliers";
     public bool IsMaterialParametersSection => SelectedSection == "MaterialParameters";
     public bool IsPlanningParametersSection => SelectedSection == "PlanningParameters";
     public bool IsOperatorsSection => SelectedSection == "Operators";
+    public bool IsLegacyImportSection => SelectedSection == "LegacyImport";
+    public string? LegacyFilePath { get => _legacyFilePath; set { if (SetProperty(ref _legacyFilePath, value)) OnPropertyChanged(nameof(CanAnalyzeLegacy)); } }
+    public LegacyImportReport? LegacyReport { get => _legacyReport; private set { if (SetProperty(ref _legacyReport, value)) OnPropertyChanged(nameof(HasLegacyReport)); } }
+    public bool HasLegacyReport => LegacyReport is not null;
+    public bool IsLegacyAnalysisRunning { get => _isLegacyAnalysisRunning; private set { if (SetProperty(ref _isLegacyAnalysisRunning, value)) OnPropertyChanged(nameof(CanAnalyzeLegacy)); } }
+    public bool CanAnalyzeLegacy => !IsLegacyAnalysisRunning && !string.IsNullOrWhiteSpace(LegacyFilePath);
+    public string? LegacyAnalysisError { get => _legacyAnalysisError; private set => SetProperty(ref _legacyAnalysisError, value); }
+    public LegacyInitialInventoryImportPlan? LegacyImportPlan { get => _legacyImportPlan; private set { if (SetProperty(ref _legacyImportPlan, value)) { OnPropertyChanged(nameof(HasLegacyImportPlan)); OnPropertyChanged(nameof(CanImportLegacy)); } } }
+    public LegacyInitialInventoryImportResult? LegacyImportResult { get => _legacyImportResult; private set => SetProperty(ref _legacyImportResult, value); }
+    public bool HasLegacyImportPlan => LegacyImportPlan is not null;
+    public bool CanImportLegacy => LegacyImportPlan?.CanCommit == true && LegacyImportResult is null;
     public SupplierContact? SelectedContact { get => _selectedContact; set => SetProperty(ref _selectedContact, value); }
     public Supplier? SelectedSupplier
     {
@@ -54,6 +71,28 @@ public sealed class SettingsViewModel : ObservableObject
     public void ShowMaterialParameters() { IsHistoryVisible = false; SelectedSection = "MaterialParameters"; }
     public void ShowPlanningParameters() { IsHistoryVisible = false; SelectedSection = "PlanningParameters"; }
     public void ShowOperators() { IsHistoryVisible = false; SelectedSection = "Operators"; }
+    public void ShowLegacyImport() { IsHistoryVisible = false; SelectedSection = "LegacyImport"; }
+    public async Task AnalyzeLegacyAsync()
+    {
+        if (!CanAnalyzeLegacy) return;
+        IsLegacyAnalysisRunning = true; LegacyAnalysisError = null; LegacyReport = null; LegacyImportPlan = null; LegacyImportResult = null;
+        try
+        {
+            var path = LegacyFilePath!;
+            LegacyReport = await Task.Run(() => new LegacyImportAnalyzer().Analyze(new LegacyExcelReader().Read(path)));
+            try { LegacyImportPlan = LegacyInitialInventoryImportService.Shared.BuildPlan(LegacyReport); }
+            catch (InvalidOperationException exception) { LegacyAnalysisError = $"Analisi completata, importazione non abilitata: {exception.Message}"; }
+        }
+        catch (Exception exception) { LegacyAnalysisError = exception.Message; }
+        finally { IsLegacyAnalysisRunning = false; }
+    }
+    public LegacyInitialInventoryImportResult ImportLegacyInMemory(string? operatorName)
+    {
+        if (!CanImportLegacy || LegacyImportPlan is null) throw new InvalidOperationException("Il piano di importazione non è pronto o presenta collisioni.");
+        LegacyImportResult = LegacyInitialInventoryImportService.Shared.Commit(LegacyImportPlan, operatorName);
+        OnPropertyChanged(nameof(CanImportLegacy));
+        return LegacyImportResult;
+    }
     public void SaveMaterialParameters()
     {
         MaterialParametersService.Shared.NotifyChanged();

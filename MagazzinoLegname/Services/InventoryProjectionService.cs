@@ -99,8 +99,9 @@ public sealed class InventoryProjectionService
             var loadSequence = 1;
             foreach (var group in load.Groups)
             {
-                var groupCodes = Enumerable.Range(loadSequence, group.PackageCount)
-                    .Select(sequence => $"{load.SupplierCode}-{load.LoadNumber}-P{sequence:00}").ToList();
+                var groupCodes = group.IsLegacyImport && group.LegacyPackageCode is not null
+                    ? new List<string> { group.LegacyPackageCode }
+                    : Enumerable.Range(loadSequence, group.PackageCount).Select(sequence => $"{load.SupplierCode}-{load.LoadNumber}-P{sequence:00}").ToList();
                 var movements = DischargeMovements.Where(item => item.MaterialGroupId == group.GroupId).ToList();
                 var movementByCode = movements.ToDictionary(item => item.PackageCode, StringComparer.OrdinalIgnoreCase);
                 var removals = ManualRemovalMovements.Where(item => item.MaterialGroupId == group.GroupId).ToList();
@@ -108,7 +109,8 @@ public sealed class InventoryProjectionService
                 var presentCodes = groupCodes.Where(code => !movementByCode.ContainsKey(code)
                     && !removalByCode.ContainsKey(code)).ToList();
                 var adjustment = _workflow.WasteAdjustmentHistory.LastOrDefault(item => item.MaterialGroupId == group.GroupId);
-                var originalGroupBalance = adjustment?.RealAvailableCubicMeters ?? group.TheoreticalUsefulCubicMeters;
+                var originalGroupBalance = adjustment?.RealAvailableCubicMeters
+                    ?? (group.IsLegacyImport ? group.LegacyEstimatedCubicMeters ?? 0m : group.TheoreticalUsefulCubicMeters ?? 0m);
                 var residual = originalGroupBalance - movements.Sum(item => item.DischargedCubicMeters)
                     - removals.Sum(item => item.RemovedCubicMeters);
                 if (presentCodes.Count == 0) residual = 0m;
@@ -131,7 +133,8 @@ public sealed class InventoryProjectionService
                     {
                         Id = packageId, LoadId = load.Id, MaterialGroupId = group.GroupId,
                         PackageCode = code, LoadNumber = load.LoadNumber, SupplierName = load.SupplierName,
-                        ArrivalDate = load.ArrivalDate, PackageNumber = loadSequence, TotalPackages = load.TotalPackages,
+                        ArrivalDate = load.ArrivalDate, PackageNumber = group.IsLegacyImport ? group.LegacyPackageNumber ?? loadSequence : loadSequence,
+                        TotalPackages = group.IsLegacyImport ? group.LegacyTotalPackages ?? load.TotalPackages : load.TotalPackages,
                         ConventionalThickness = group.ConventionalThickness, WidthAfterPlaning = group.WidthAfterPlaning,
                         IncomingLength = group.IncomingLength, Quality = group.Quality, Certification = load.Certification,
                         ClassificationStatus = group.IsClassified ? "Classificato" : "Da classificare",
@@ -139,7 +142,12 @@ public sealed class InventoryProjectionService
                         IncomingCubicMeters = incomingShares[index], ProcessingWastePercentage = group.ProcessingWastePercentage,
                         QualityWastePercentage = adjustment?.TotalClassificationWastePercentage,
                         InventoryCubicMeters = isPresent ? shareByCode[code] : 0m,
-                        AppliedPrice = group.AppliedPrice,
+                        AppliedPrice = group.AppliedPrice, TheoreticalUsefulCubicMeters = group.TheoreticalUsefulCubicMeters,
+                        LegacyEstimatedCubicMeters = group.LegacyEstimatedCubicMeters,
+                        InventoryQuantitySource = adjustment is not null ? InventoryQuantitySource.RealAfterAdjustment
+                            : group.IsLegacyImport ? InventoryQuantitySource.LegacyEstimate : InventoryQuantitySource.CurrentTheoretical,
+                        LegacyLoadNumber = group.LegacyLoadNumber, LegacyPackageLabel = group.LegacyPackageLabel,
+                        LegacyExcelRow = group.LegacyExcelRow, LegacyQr = group.LegacyQr, LegacyImportBatchId = group.LegacyImportBatchId,
                         UsesRealCubicMeters = adjustment is not null, IsPresent = isPresent,
                         PackageStatus = movement is not null ? "Scaricato" : removal is not null ? "Rimosso manualmente" : "Presente",
                         DischargeDate = movement?.DischargeDate, DischargeOperator = movement?.DischargeOperator,

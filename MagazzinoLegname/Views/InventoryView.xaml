@@ -37,7 +37,7 @@
                 <Border Style="{StaticResource InventoryKpiCardStyle}"><StackPanel VerticalAlignment="Center"><TextBlock Text="MC GIACENZA" Style="{StaticResource InventoryKpiLabelStyle}"/><TextBlock Text="{Binding InventoryCubicMeters, Mode=OneWay, StringFormat=N2}" Style="{StaticResource InventoryKpiValueStyle}" Foreground="{DynamicResource AccentBrush}"/></StackPanel></Border>
                 <Border Style="{StaticResource InventoryKpiCardStyle}"><StackPanel VerticalAlignment="Center"><TextBlock Text="MC DA CONSOLIDARE" Style="{StaticResource InventoryKpiLabelStyle}"/><TextBlock Text="{Binding CubicMetersToConsolidate, Mode=OneWay, StringFormat=N2}" Style="{StaticResource InventoryKpiValueStyle}"/></StackPanel></Border>
                 <Border Style="{StaticResource InventoryKpiCardStyle}"><StackPanel VerticalAlignment="Center"><TextBlock Text="MC REALI" Style="{StaticResource InventoryKpiLabelStyle}"/><TextBlock Text="{Binding RealCubicMeters, Mode=OneWay, StringFormat=N2}" Style="{StaticResource InventoryKpiValueStyle}"/></StackPanel></Border>
-                <Border Style="{StaticResource InventoryKpiCardStyle}" Margin="0"><StackPanel VerticalAlignment="Center"><TextBlock Text="VALORE MAGAZZINO" Style="{StaticResource InventoryKpiLabelStyle}"/><TextBlock Text="{Binding InventoryValue, Mode=OneWay, StringFormat={}{0:N2} €}" Style="{StaticResource InventoryKpiValueStyle}"/></StackPanel></Border>
+                <Border Style="{StaticResource InventoryKpiCardStyle}" Margin="0"><StackPanel VerticalAlignment="Center"><TextBlock Text="VALORE MAGAZZINO" Style="{StaticResource InventoryKpiLabelStyle}"/><TextBlock Text="{Binding InventoryValueDisplay}" Style="{StaticResource InventoryKpiValueStyle}"/></StackPanel></Border>
             </UniformGrid>
         </Grid>
 
@@ -73,7 +73,7 @@
                     <DataGridTextColumn Header="Sfrido lavorazioni %" Width="130" Binding="{Binding ProcessingWastePercentage, Mode=OneWay, StringFormat={}{0:N2}%}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
                     <DataGridTextColumn Header="Scarto qualità %" Width="115" Binding="{Binding QualityWasteDisplay, Mode=OneWay}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
                     <DataGridTextColumn Header="MC Giacenza" Width="95" Binding="{Binding InventoryCubicMeters, Mode=OneWay, StringFormat=N2}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
-                    <DataGridTextColumn Header="Valore €" Width="110" Binding="{Binding PackageValue, Mode=OneWay, StringFormat={}{0:N2} €}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
+                    <DataGridTextColumn Header="Valore €" Width="110" Binding="{Binding PackageValueDisplay}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
                     <DataGridTemplateColumn Header="Azioni" Width="115">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>

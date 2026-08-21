@@ -40,7 +40,10 @@ public sealed class InventoryViewModel : ObservableObject
     public decimal InventoryCubicMeters => VisiblePackages.Sum(package => package.InventoryCubicMeters);
     public decimal CubicMetersToConsolidate => VisiblePackages.Where(package => !package.UsesRealCubicMeters).Sum(package => package.InventoryCubicMeters);
     public decimal RealCubicMeters => VisiblePackages.Where(package => package.UsesRealCubicMeters).Sum(package => package.InventoryCubicMeters);
-    public decimal InventoryValue => VisiblePackages.Sum(package => package.PackageValue);
+    public decimal InventoryValue => VisiblePackages.Sum(package => package.PackageValue ?? 0m);
+    public int PackagesWithoutPrice => VisiblePackages.Count(package => !package.AppliedPrice.HasValue);
+    public string InventoryValueDisplay => VisiblePackages.Count == 0 || PackagesWithoutPrice == VisiblePackages.Count ? "N/D"
+        : $"{InventoryValue:N2} €" + (PackagesWithoutPrice > 0 ? " · PARZIALE" : "");
 
     public void RemovePackage(InventoryPackage package, string operatorName, string reason, string? note)
     {
@@ -91,6 +94,7 @@ public sealed class InventoryViewModel : ObservableObject
         OnPropertyChanged(nameof(PresentPackages)); OnPropertyChanged(nameof(InventoryCubicMeters));
         OnPropertyChanged(nameof(CubicMetersToConsolidate)); OnPropertyChanged(nameof(RealCubicMeters));
         OnPropertyChanged(nameof(InventoryValue));
+        OnPropertyChanged(nameof(PackagesWithoutPrice)); OnPropertyChanged(nameof(InventoryValueDisplay));
     }
 
     private static void ReplaceOptions(ObservableCollection<string> target, string allLabel, IEnumerable<string> values)

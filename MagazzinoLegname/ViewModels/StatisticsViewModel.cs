@@ -174,9 +174,9 @@ public sealed class StatisticsViewModel : ObservableObject
         CubicMetersEntered = entries.Sum(item => item.Group.IncomingPhysicalCubicMeters);
         RealCubicMetersAfterClassification = adjustments.Sum(item => item.Adjustment.RealAvailableCubicMeters);
         CubicMetersDischarged = discharges.Sum(item => item.CubicMeters);
-        PurchaseValue = entries.Sum(item => item.Group.LineValue);
+        PurchaseValue = entries.Sum(item => item.Group.LineValue ?? 0m);
         AverageProcessingWastePercentage = WeightedPercentage(entries.Sum(item => item.Group.IncomingPhysicalCubicMeters),
-            entries.Sum(item => item.Group.IncomingPhysicalCubicMeters - item.Group.TheoreticalUsefulCubicMeters));
+            entries.Where(item => item.Group.TheoreticalUsefulCubicMeters.HasValue).Sum(item => item.Group.IncomingPhysicalCubicMeters - item.Group.TheoreticalUsefulCubicMeters!.Value));
         AverageQualityWastePercentage = WeightedPercentage(adjustments.Sum(item => item.Adjustment.TheoreticalUsefulCubicMeters),
             adjustments.Sum(item => item.Adjustment.TheoreticalUsefulCubicMeters - item.Adjustment.RealAvailableCubicMeters));
 
@@ -196,13 +196,13 @@ public sealed class StatisticsViewModel : ObservableObject
         foreach (var supplierGroup in entries.GroupBy(item => item.Load.SupplierName).OrderBy(item => item.Key))
         {
             var cubicMeters = supplierGroup.Sum(item => item.Group.IncomingPhysicalCubicMeters);
-            var value = supplierGroup.Sum(item => item.Group.LineValue);
+            var value = supplierGroup.Sum(item => item.Group.LineValue ?? 0m);
             SupplierRows.Add(new SupplierStatisticsRow(supplierGroup.Key, cubicMeters, value,
                 cubicMeters == 0m ? 0m : value / cubicMeters,
                 qualityWasteBySupplier.TryGetValue(supplierGroup.Key, out var qualityWaste)
                     ? qualityWaste.QualityWastePercentage : 0m,
                 WeightedPercentage(cubicMeters,
-                    supplierGroup.Sum(item => item.Group.IncomingPhysicalCubicMeters - item.Group.TheoreticalUsefulCubicMeters))));
+                    supplierGroup.Where(item => item.Group.TheoreticalUsefulCubicMeters.HasValue).Sum(item => item.Group.IncomingPhysicalCubicMeters - item.Group.TheoreticalUsefulCubicMeters!.Value))));
         }
     }
 

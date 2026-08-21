@@ -31,6 +31,7 @@ public sealed class DashboardViewModel : ObservableObject
     public decimal CubicMetersToConsolidate { get; private set; }
     public decimal RealCubicMeters { get; private set; }
     public decimal InventoryValue { get; private set; }
+    public int PackagesWithoutPrice { get; private set; }
     public int LoadsToClassify { get; private set; }
     public int GroupsToClassify { get; private set; }
     public int GroupsToConsolidate { get; private set; }
@@ -83,7 +84,8 @@ public sealed class DashboardViewModel : ObservableObject
     public string InventoryCubicMetersDisplay => InventoryCubicMeters.ToString("N2");
     public string CubicMetersToConsolidateDisplay => CubicMetersToConsolidate.ToString("N2");
     public string RealCubicMetersDisplay => RealCubicMeters.ToString("N2");
-    public string InventoryValueDisplay => InventoryValue.ToString("N0") + " €";
+    public string InventoryValueDisplay => _allPackages.Count == 0 || PackagesWithoutPrice == _allPackages.Count ? "N/D"
+        : InventoryValue.ToString("N0") + " €" + (PackagesWithoutPrice > 0 ? " · PARZIALE" : "");
 
     private void Reload()
     {
@@ -92,7 +94,8 @@ public sealed class DashboardViewModel : ObservableObject
         InventoryCubicMeters = _allPackages.Sum(p => p.InventoryCubicMeters);
         CubicMetersToConsolidate = _allPackages.Where(p => !p.UsesRealCubicMeters).Sum(p => p.InventoryCubicMeters);
         RealCubicMeters = _allPackages.Where(p => p.UsesRealCubicMeters).Sum(p => p.InventoryCubicMeters);
-        InventoryValue = _allPackages.Sum(p => p.PackageValue);
+        InventoryValue = _allPackages.Sum(p => p.PackageValue ?? 0m);
+        PackagesWithoutPrice = _allPackages.Count(p => !p.AppliedPrice.HasValue);
         LoadsToClassify = _allPackages
             .Where(p => p.ClassificationStatus == "Da classificare")
             .Select(p => p.LoadId)
@@ -169,6 +172,7 @@ public sealed class DashboardViewModel : ObservableObject
         OnPropertyChanged(nameof(PresentPackages)); OnPropertyChanged(nameof(InventoryCubicMeters));
         OnPropertyChanged(nameof(CubicMetersToConsolidate)); OnPropertyChanged(nameof(RealCubicMeters));
         OnPropertyChanged(nameof(InventoryValue));
+        OnPropertyChanged(nameof(PackagesWithoutPrice));
         OnPropertyChanged(nameof(LoadsToClassify)); OnPropertyChanged(nameof(GroupsToClassify));
         OnPropertyChanged(nameof(GroupsToConsolidate));
 

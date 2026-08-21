@@ -73,7 +73,7 @@ public sealed class HistoryViewModel : ObservableObject
             DischargedPackages = packages.Count(item => item.PackageStatus == "Scaricato"),
             ManuallyRemovedPackages = packages.Count(item => item.PackageStatus == "Rimosso manualmente"),
             IncomingCubicMeters = load.Groups.Sum(item => item.IncomingPhysicalCubicMeters),
-            TheoreticalCubicMeters = load.Groups.Sum(item => item.TheoreticalUsefulCubicMeters),
+            TheoreticalCubicMeters = load.Groups.Sum(item => item.TheoreticalUsefulCubicMeters ?? 0m),
             RealCubicMeters = adjustments.Sum(item => item.RealAvailableCubicMeters),
             DischargedCubicMeters = packages.Sum(item => item.DischargedCubicMeters ?? 0m),
             ManuallyRemovedCubicMeters = packages.Sum(item => item.ManuallyRemovedCubicMeters ?? 0m),

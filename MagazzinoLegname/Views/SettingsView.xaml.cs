@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using MagazzinoLegname.ViewModels;
+using Microsoft.Win32;
 
 namespace MagazzinoLegname.Views;
 
@@ -30,6 +31,45 @@ public partial class SettingsView : UserControl
     private void MaterialParametersSection_Click(object sender, RoutedEventArgs e) => ViewModel.ShowMaterialParameters();
     private void PlanningParametersSection_Click(object sender, RoutedEventArgs e) => ViewModel.ShowPlanningParameters();
     private void OperatorsSection_Click(object sender, RoutedEventArgs e) => ViewModel.ShowOperators();
+    private void LegacyImportSection_Click(object sender, RoutedEventArgs e) => ViewModel.ShowLegacyImport();
+    private void SelectLegacyFile_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog { Title = "Seleziona storico Excel", Filter = "Cartella di lavoro Excel con macro (*.xlsm)|*.xlsm", CheckFileExists = true, Multiselect = false };
+        if (dialog.ShowDialog() == true) ViewModel.LegacyFilePath = dialog.FileName;
+    }
+    private async void AnalyzeLegacy_Click(object sender, RoutedEventArgs e)
+    {
+        await ViewModel.AnalyzeLegacyAsync();
+        if (!string.IsNullOrWhiteSpace(ViewModel.LegacyAnalysisError)) MessageBox.Show(ViewModel.LegacyAnalysisError, "Analisi storico Excel", MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
+    private void ExportLegacyReport_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel.LegacyReport is null) return;
+        var dialog = new SaveFileDialog { Title = "Esporta verifiche migrazione", Filter = "File CSV (*.csv)|*.csv", FileName = "verifica_storico.csv", AddExtension = true };
+        if (dialog.ShowDialog() != true) return;
+        try
+        {
+            var files = new Services.LegacyReportCsvExporter().Export(ViewModel.LegacyReport, dialog.FileName);
+            MessageBox.Show($"Creati {files.Count} file CSV nella cartella selezionata.", "Esportazione completata", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception exception) { MessageBox.Show(exception.Message, "Esportazione non riuscita", MessageBoxButton.OK, MessageBoxImage.Warning); }
+    }
+    private void ImportLegacyInMemory_Click(object sender, RoutedEventArgs e)
+    {
+        var plan = ViewModel.LegacyImportPlan;
+        if (plan is null) return;
+        var message = $"TEST TEMPORANEO IN MEMORIA\n\n" +
+            $"Pacchi: {plan.PackageCount:N0}\nCarichi: {plan.LoadCount:N0}\nClassificati: {plan.ClassifiedCount:N0}\nDa classificare: {plan.ToClassifyCount:N0}\n" +
+            $"MC fisici: {plan.PhysicalCubicMeters:N5}\nMC disponibili legacy: {plan.LegacyAvailableCubicMeters:N5}\nPrezzi mancanti: {plan.MissingPrices:N0}\n" +
+            $"Fingerprint: {plan.FileFingerprint}\n\nI dati saranno persi alla chiusura dell'applicazione. Procedere?";
+        if (MessageBox.Show(message, "Conferma importazione giacenza iniziale", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes) return;
+        try
+        {
+            var result = ViewModel.ImportLegacyInMemory(null);
+            MessageBox.Show($"Importazione temporanea completata.\nPacchi: {result.PackagesCreated:N0}\nCarichi: {result.LoadsCreated:N0}\nBatch: {result.Batch.Id}", "Importazione giacenza iniziale", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception exception) { MessageBox.Show(exception.Message, "Importazione bloccata", MessageBoxButton.OK, MessageBoxImage.Error); }
+    }
     private void AddContact_Click(object sender, RoutedEventArgs e) => ViewModel.AddContact();
     private void DeleteContact_Click(object sender, RoutedEventArgs e) => ViewModel.DeleteContact();
     private void AddOperator_Click(object sender, RoutedEventArgs e) => ViewModel.AddOperator();

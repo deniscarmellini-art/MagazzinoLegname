@@ -1,5 +1,7 @@
 namespace MagazzinoLegname.Models;
 
+public enum InventoryQuantitySource { CurrentTheoretical, LegacyEstimate, RealAfterAdjustment }
+
 public sealed class InventoryPackage
 {
     public Guid Id { get; init; } = Guid.NewGuid();
@@ -22,8 +24,18 @@ public sealed class InventoryPackage
     public decimal ProcessingWastePercentage { get; init; }
     public decimal? QualityWastePercentage { get; init; }
     public decimal InventoryCubicMeters { get; init; }
-    public decimal AppliedPrice { get; init; }
-    public decimal PackageValue => InventoryCubicMeters * AppliedPrice;
+    public decimal? AppliedPrice { get; init; }
+    public decimal? PackageValue => AppliedPrice.HasValue ? InventoryCubicMeters * AppliedPrice.Value : null;
+    public decimal? TheoreticalUsefulCubicMeters { get; init; }
+    public decimal? LegacyEstimatedCubicMeters { get; init; }
+    public InventoryQuantitySource InventoryQuantitySource { get; init; }
+    public string? LegacyLoadNumber { get; init; }
+    public string? LegacyPackageLabel { get; init; }
+    public int? LegacyExcelRow { get; init; }
+    public string? LegacyQr { get; init; }
+    public Guid? LegacyImportBatchId { get; init; }
+    public string PriceDisplay => AppliedPrice.HasValue ? $"{AppliedPrice:N2} €/m³" : "N/D";
+    public string PackageValueDisplay => PackageValue.HasValue ? $"{PackageValue:N2} €" : "N/D";
     public bool UsesRealCubicMeters { get; init; }
     public bool IsPresent { get; set; } = true;
     public string PackageStatus { get; init; } = "Presente";

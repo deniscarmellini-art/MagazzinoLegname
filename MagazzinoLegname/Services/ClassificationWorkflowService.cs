@@ -27,6 +27,7 @@ public sealed class ClassificationWorkflowService
             TotalClassificationWastePercentage = result.TotalQualityWastePercentage
         });
     }
+    private readonly object _workflowLock = new();
 
     public ObservableCollection<ClassificationLoad> Loads { get; }
     public ObservableCollection<PhysicalPackageDraft> RegisteredPhysicalPackages { get; } = [];
@@ -69,5 +70,30 @@ public sealed class ClassificationWorkflowService
         Loads.Add(load);
         foreach (var package in packages) RegisteredPhysicalPackages.Add(package);
         WorkflowChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void RegisterLegacyBatch(IReadOnlyList<ClassificationLoad> loads, IReadOnlyList<PhysicalPackageDraft> packages)
+    {
+        lock (_workflowLock)
+        {
+            var loadKeys = Loads.Select(x => $"{x.SupplierCode}|{x.LoadNumber}").ToHashSet(StringComparer.OrdinalIgnoreCase);
+            if (loads.Any(x => !loadKeys.Add($"{x.SupplierCode}|{x.LoadNumber}"))) throw new InvalidOperationException("Collisione con un numero carico esistente.");
+            var codes = RegisteredPhysicalPackages.Select(x => x.PackageCode).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            if (packages.Any(x => !codes.Add(x.PackageCode))) throw new InvalidOperationException("Collisione con un codice pacco esistente.");
+            foreach (var load in loads) Loads.Add(load);
+            foreach (var package in packages) RegisteredPhysicalPackages.Add(package);
+            WorkflowChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    public void RollbackLegacyBatch(Guid batchId)
+    {
+        lock (_workflowLock)
+        {
+            var loadIds = Loads.Where(x => x.LegacyImportBatchId == batchId).Select(x => x.Id).ToHashSet();
+            foreach (var load in Loads.Where(x => loadIds.Contains(x.Id)).ToList()) Loads.Remove(load);
+            foreach (var package in RegisteredPhysicalPackages.Where(x => loadIds.Contains(x.LoadId)).ToList()) RegisteredPhysicalPackages.Remove(package);
+            WorkflowChanged?.Invoke(this, EventArgs.Empty);
+        }
     }
 }
