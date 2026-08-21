@@ -26,13 +26,8 @@ public sealed class MaterialGroupClassification : ObservableObject
     public bool IsLegacyImport { get; init; }
     public decimal? LegacyEstimatedCubicMeters { get; init; }
     public string? LegacyLoadNumber { get; init; }
-    public string? LegacyPackageLabel { get; init; }
-    public int? LegacyExcelRow { get; init; }
-    public string? LegacyQr { get; init; }
+    public string? LegacyCertification { get; init; }
     public Guid? LegacyImportBatchId { get; init; }
-    public string? LegacyPackageCode { get; init; }
-    public int? LegacyPackageNumber { get; init; }
-    public int? LegacyTotalPackages { get; init; }
     public decimal IncomingPhysicalCubicMeters =>
         InitialPieces * IncomingThickness * IncomingWidth * IncomingLength / 1_000_000_000m;
     public decimal? TheoreticalUsefulCubicMeters => IsLegacyImport ? null : Volume(InitialPieces);

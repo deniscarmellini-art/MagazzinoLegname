@@ -37,7 +37,8 @@ public sealed class LegacyInitialInventoryImportService
             var existing = _catalog.Suppliers.FirstOrDefault(x => x.Name.Trim().Equals(name.Trim(), StringComparison.OrdinalIgnoreCase));
             return new LegacySupplierPlan(name, existing?.Code ?? CreateLegacyCode(name, reservedCodes), existing is not null);
         }).ToArray();
-        return new() { BatchId = Guid.NewGuid(), FilePath = report.FilePath, FileFingerprint = fingerprint, Rows = rows, Suppliers = suppliers, Collisions = collisions };
+        var previews = BuildMaterialGroupPreviews(rows);
+        return new() { BatchId = Guid.NewGuid(), FilePath = report.FilePath, FileFingerprint = fingerprint, Rows = rows, Suppliers = suppliers, Collisions = collisions, MaterialGroups = previews };
     }
 
     public LegacyInitialInventoryImportResult Commit(LegacyInitialInventoryImportPlan plan, string? operatorName)
@@ -60,14 +61,19 @@ public sealed class LegacyInitialInventoryImportService
                 foreach (var loadRows in plan.Rows.GroupBy(x => $"{x.SupplierNormalized ?? x.SupplierOriginal}|{x.LoadNumber}", StringComparer.OrdinalIgnoreCase))
                 {
                     var first = loadRows.First(); var supplierName = first.SupplierNormalized ?? first.SupplierOriginal!; var supplier = supplierLookup[supplierName.Trim()]; var loadId = Guid.NewGuid();
-                    var groups = loadRows.Select(row => CreateGroup(plan, loadId, row)).ToArray();
+                    var homogeneousRows = loadRows.GroupBy(row => new LegacyMaterialGroupKey(row.InputThickness!.Value, row.InputWidth!.Value,
+                        row.InputLength!.Value, row.QualityNormalized!, row.IsClassified == true, row.Certification ?? string.Empty));
+                    var groups = new List<MaterialGroupClassification>();
+                    foreach (var homogeneousGroup in homogeneousRows)
+                    {
+                        var groupRows = homogeneousGroup.OrderBy(row => row.ExcelRow).ToArray();
+                        var group = CreateGroup(plan, loadId, groupRows); groups.Add(group);
+                        packages.AddRange(groupRows.Select(row => CreatePackage(plan, loadId, group.GroupId, row)));
+                    }
                     var load = new ClassificationLoad(groups) { Id = loadId, LoadNumber = first.LoadNumber!, LegacyLoadNumber = first.LoadNumber,
                         LegacyImportBatchId = plan.BatchId, SupplierName = supplier.Name, SupplierCode = supplier.Code, Certification = first.Certification ?? string.Empty,
                         ArrivalDate = loadRows.Min(x => x.Date)!.Value.Date, ReceiptOperator = operatorName ?? "Importazione legacy" };
                     loads.Add(load);
-                    packages.AddRange(groups.Select(g => new PhysicalPackageDraft(Guid.NewGuid(), loadId, g.GroupId, g.LegacyExcelRow!.Value,
-                        g.InitialPieces, g.IncomingThickness, g.IncomingWidth, g.WidthAfterPlaning, g.IncomingLength, g.Quality)
-                    { TotalPackages = 1, ArrivalDate = load.ArrivalDate, PackageCode = g.LegacyPackageCode!, QrPayload = g.LegacyQr ?? string.Empty, Status = g.IsClassified ? "Classificato" : "Da classificare" }));
                 }
                 _workflow.RegisterLegacyBatch(loads, packages);
                 var batch = new LegacyImportBatch(plan.BatchId, Path.GetFileName(plan.FilePath), plan.FileFingerprint, DateTime.Now,
@@ -85,18 +91,48 @@ public sealed class LegacyInitialInventoryImportService
         }
     }
 
-    private static MaterialGroupClassification CreateGroup(LegacyInitialInventoryImportPlan plan, Guid loadId, LegacyStagingRow row)
+    private static MaterialGroupClassification CreateGroup(LegacyInitialInventoryImportPlan plan, Guid loadId, IReadOnlyList<LegacyStagingRow> rows)
     {
+        var row = rows[0];
         var group = new MaterialGroupClassification { LoadId = loadId, IncomingThickness = row.InputThickness!.Value,
             ConventionalThickness = row.InputThickness.Value, UsefulThickness = 0m, IncomingWidth = row.InputWidth!.Value,
             WidthAfterPlaning = row.InputWidth.Value, FinalWidth = 0m, IncomingLength = row.InputLength!.Value, FinalLength = 0m,
-            Quality = row.QualityNormalized!, PackageCount = 1, InitialPieces = decimal.ToInt32(row.Pieces!.Value), AppliedPrice = null, LineValue = null,
-            IsLegacyImport = true, LegacyEstimatedCubicMeters = row.LegacyEstimatedCubicMeters, LegacyLoadNumber = row.LoadNumber,
-            LegacyPackageLabel = row.PackageLabel, LegacyExcelRow = row.ExcelRow, LegacyQr = row.Qr, LegacyImportBatchId = plan.BatchId,
-            LegacyPackageCode = $"LEG-{plan.FileFingerprint[..10]}-{row.ExcelRow:000000}", LegacyPackageNumber = row.PackageNumber,
-            LegacyTotalPackages = row.TotalPackages };
+            Quality = row.QualityNormalized!, PackageCount = rows.Count, InitialPieces = rows.Sum(item => decimal.ToInt32(item.Pieces!.Value)), AppliedPrice = null, LineValue = null,
+            IsLegacyImport = true, LegacyEstimatedCubicMeters = rows.Sum(item => item.LegacyEstimatedCubicMeters ?? 0m), LegacyLoadNumber = row.LoadNumber,
+            LegacyImportBatchId = plan.BatchId, LegacyCertification = row.Certification };
         if (row.IsClassified == true) group.MarkAsLegacyClassified(row.ClassificationDate);
         return group;
+    }
+    private static PhysicalPackageDraft CreatePackage(LegacyInitialInventoryImportPlan plan, Guid loadId, Guid groupId, LegacyStagingRow row) =>
+        new(Guid.NewGuid(), loadId, groupId, row.ExcelRow, decimal.ToInt32(row.Pieces!.Value), row.InputThickness!.Value,
+            row.InputWidth!.Value, row.InputWidth.Value, row.InputLength!.Value, row.QualityNormalized!)
+        {
+            TotalPackages = row.TotalPackages ?? 1, ArrivalDate = row.Date!.Value.Date,
+            PackageCode = $"LEG-{plan.FileFingerprint[..10]}-{row.ExcelRow:000000}", QrPayload = row.Qr ?? string.Empty,
+            Status = row.IsClassified == true ? "Classificato" : "Da classificare", LegacyPackageLabel = row.PackageLabel,
+            LegacyExcelRow = row.ExcelRow, LegacyQr = row.Qr, LegacyIdentifier = LegacyKey(plan.FileFingerprint, row),
+            LegacyEstimatedCubicMeters = row.LegacyEstimatedCubicMeters, LegacyImportBatchId = plan.BatchId,
+            LegacyPackageNumber = row.PackageNumber, LegacyTotalPackages = row.TotalPackages
+        };
+    private sealed record LegacyMaterialGroupKey(decimal Thickness, decimal Width, decimal Length, string Quality, bool IsClassified, string Certification);
+    private static IReadOnlyList<LegacyMaterialGroupPreview> BuildMaterialGroupPreviews(IReadOnlyList<LegacyStagingRow> rows)
+    {
+        var result = new List<LegacyMaterialGroupPreview>();
+        foreach (var loadRows in rows.GroupBy(x => $"{x.SupplierNormalized ?? x.SupplierOriginal}|{x.LoadNumber}", StringComparer.OrdinalIgnoreCase))
+        {
+            var groupNumber = 0;
+            var groups = loadRows.GroupBy(row => new LegacyMaterialGroupKey(row.InputThickness!.Value, row.InputWidth!.Value,
+                row.InputLength!.Value, row.QualityNormalized!, row.IsClassified == true, row.Certification ?? string.Empty));
+            foreach (var group in groups)
+            {
+                var materialRows = group.ToArray(); groupNumber++;
+                result.Add(new(materialRows[0].LoadNumber!, groupNumber, group.Key.Thickness, group.Key.Width, group.Key.Length,
+                    group.Key.Quality, group.Key.IsClassified ? "Classificato" : "Da classificare", group.Key.Certification,
+                    materialRows.Length, materialRows.Sum(x => decimal.ToInt32(x.Pieces!.Value)),
+                    materialRows.Sum(x => x.RecalculatedPhysicalCubicMeters ?? 0m), materialRows.Sum(x => x.LegacyEstimatedCubicMeters ?? 0m)));
+            }
+        }
+        return result;
     }
     private static string Fingerprint(string path) { using var stream = File.OpenRead(path); return Convert.ToHexString(SHA256.HashData(stream)); }
     private static string LegacyKey(string fingerprint, LegacyStagingRow row) => $"{fingerprint}|{row.ExcelRow}|{row.LoadNumber}|{row.PackageLabel}";
@@ -105,5 +141,9 @@ public sealed class LegacyInitialInventoryImportService
         var stem = "L" + new string(name.Where(char.IsLetterOrDigit).Select(char.ToUpperInvariant).Take(5).ToArray()); var code = stem; var suffix = 1;
         while (!reserved.Add(code)) code = stem[..Math.Min(stem.Length, 6)] + suffix++;
         return code;
+    }
+    public void ResetTestImportRegistry()
+    {
+        lock (_sync) { _batches.Clear(); _importedKeys.Clear(); }
     }
 }

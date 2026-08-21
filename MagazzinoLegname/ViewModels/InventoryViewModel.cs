@@ -8,6 +8,7 @@ namespace MagazzinoLegname.ViewModels;
 public sealed class InventoryViewModel : ObservableObject
 {
     private readonly InventoryProjectionService _projection = InventoryProjectionService.Shared;
+    private readonly MaterialParameters _materialParameters = MaterialParametersService.Shared.Parameters;
     private IReadOnlyList<InventoryPackage> _allPackages = [];
     private string _selectedSupplier = "Tutti";
     private string _selectedThickness = "Tutti";
@@ -62,7 +63,7 @@ public sealed class InventoryViewModel : ObservableObject
 
         _allPackages = _projection.BuildInventory();
         ReplaceOptions(Suppliers, "Tutti", _allPackages.Select(package => package.SupplierName));
-        ReplaceOptions(Thicknesses, "Tutti", _allPackages.Select(package => package.ConventionalThickness.ToString("0")));
+        ReplaceOptions(Thicknesses, "Tutti", _allPackages.Select(package => ConventionalThickness(package).ToString("0")));
         ReplaceOptions(Widths, "Tutte", _allPackages.Select(package => package.WidthAfterPlaning.ToString("0")));
         ReplaceOptions(Qualities, "Tutte", _allPackages.Select(package => package.Quality));
 
@@ -81,7 +82,7 @@ public sealed class InventoryViewModel : ObservableObject
     {
         var matches = _allPackages
             .Where(package => SelectedSupplier == "Tutti" || package.SupplierName == SelectedSupplier)
-            .Where(package => SelectedThickness == "Tutti" || package.ConventionalThickness.ToString("0") == SelectedThickness)
+            .Where(package => SelectedThickness == "Tutti" || ConventionalThickness(package).ToString("0") == SelectedThickness)
             .Where(package => SelectedWidth == "Tutte" || package.WidthAfterPlaning.ToString("0") == SelectedWidth)
             .Where(package => SelectedQuality == "Tutte" || package.Quality == SelectedQuality)
             .Where(package => SelectedClassificationStatus == "Tutti" || package.ClassificationStatus == SelectedClassificationStatus)
@@ -102,6 +103,7 @@ public sealed class InventoryViewModel : ObservableObject
         target.Clear(); target.Add(allLabel);
         foreach (var value in values.Distinct().OrderBy(value => value)) target.Add(value);
     }
+    private decimal ConventionalThickness(InventoryPackage package) => _materialParameters.FindFamily(package.IncomingThickness)?.ConventionalThickness ?? 0m;
 
     private void RestoreSelection(ref string field, string propertyName,
         IEnumerable<string> availableOptions, string? previousValue, string fallback)

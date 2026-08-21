@@ -60,6 +60,7 @@ public partial class SettingsView : UserControl
         if (plan is null) return;
         var message = $"TEST TEMPORANEO IN MEMORIA\n\n" +
             $"Pacchi: {plan.PackageCount:N0}\nCarichi: {plan.LoadCount:N0}\nClassificati: {plan.ClassifiedCount:N0}\nDa classificare: {plan.ToClassifyCount:N0}\n" +
+            $"Gruppi materiale: {plan.MaterialGroupCount:N0}\nGruppi classificati da rettificare: {plan.ClassifiedMaterialGroups:N0}\nGruppi da classificare: {plan.MaterialGroupsToClassify:N0}\n" +
             $"MC fisici: {plan.PhysicalCubicMeters:N5}\nMC disponibili legacy: {plan.LegacyAvailableCubicMeters:N5}\nPrezzi mancanti: {plan.MissingPrices:N0}\n" +
             $"Fingerprint: {plan.FileFingerprint}\n\nI dati saranno persi alla chiusura dell'applicazione. Procedere?";
         if (MessageBox.Show(message, "Conferma importazione giacenza iniziale", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes) return;
@@ -69,6 +70,14 @@ public partial class SettingsView : UserControl
             MessageBox.Show($"Importazione temporanea completata.\nPacchi: {result.PackagesCreated:N0}\nCarichi: {result.LoadsCreated:N0}\nBatch: {result.Batch.Id}", "Importazione giacenza iniziale", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception exception) { MessageBox.Show(exception.Message, "Importazione bloccata", MessageBoxButton.OK, MessageBoxImage.Error); }
+    }
+    private void ResetTestData_Click(object sender, RoutedEventArgs e)
+    {
+        const string message = "Questa operazione elimina i dati operativi TEMPORANEI utilizzati per i test.\nContinuare?";
+        if (MessageBox.Show(message, "Azzera dati demo/test", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes) return;
+        ViewModel.ResetOperationalTestData();
+        MessageBox.Show("Dati operativi temporanei azzerati. Configurazioni, fornitori, parametri e operatori non sono stati modificati.",
+            "Store in-memory vuoto", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void AddContact_Click(object sender, RoutedEventArgs e) => ViewModel.AddContact();
     private void DeleteContact_Click(object sender, RoutedEventArgs e) => ViewModel.DeleteContact();

@@ -14,6 +14,7 @@ public sealed class InventoryPackage
     public int PackageNumber { get; init; }
     public int TotalPackages { get; init; }
     public decimal ConventionalThickness { get; init; }
+    public decimal IncomingThickness { get; init; }
     public decimal WidthAfterPlaning { get; init; }
     public decimal IncomingLength { get; init; }
     public required string Quality { get; init; }

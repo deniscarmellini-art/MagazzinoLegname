@@ -96,4 +96,13 @@ public sealed class ClassificationWorkflowService
             WorkflowChanged?.Invoke(this, EventArgs.Empty);
         }
     }
+
+    public void ResetOperationalTestData()
+    {
+        lock (_workflowLock)
+        {
+            Loads.Clear(); RegisteredPhysicalPackages.Clear(); ClassificationHistory.Clear(); WasteAdjustmentHistory.Clear();
+            WorkflowChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
 }

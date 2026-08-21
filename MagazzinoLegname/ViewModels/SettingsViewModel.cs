@@ -93,6 +93,11 @@ public sealed class SettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(CanImportLegacy));
         return LegacyImportResult;
     }
+    public void ResetOperationalTestData()
+    {
+        InMemoryTestDataResetService.Shared.ResetOperationalData();
+        LegacyReport = null; LegacyImportPlan = null; LegacyImportResult = null; LegacyAnalysisError = null;
+    }
     public void SaveMaterialParameters()
     {
         MaterialParametersService.Shared.NotifyChanged();

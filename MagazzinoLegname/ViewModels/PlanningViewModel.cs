@@ -17,6 +17,7 @@ public sealed class PlanningViewModel : ObservableObject
     private readonly PlanningDataService _planning = PlanningDataService.Shared;
     private readonly PlanningSettingsService _settings = PlanningSettingsService.Shared;
     private readonly InventoryProjectionService _inventory = InventoryProjectionService.Shared;
+    private readonly MaterialParameters _materialParameters = MaterialParametersService.Shared.Parameters;
     private DateTime _selectedWeekA;
     private DateTime _selectedWeekB;
 
@@ -112,7 +113,7 @@ public sealed class PlanningViewModel : ObservableObject
         foreach (var row in ForecastRows)
         {
             var openingBalance = packages
-                .Where(package => package.ConventionalThickness == row.ConventionalThickness
+                .Where(package => (_materialParameters.FindFamily(package.IncomingThickness)?.ConventionalThickness ?? 0m) == row.ConventionalThickness
                     && package.Quality == row.Quality)
                 .Sum(package => package.InventoryCubicMeters);
 

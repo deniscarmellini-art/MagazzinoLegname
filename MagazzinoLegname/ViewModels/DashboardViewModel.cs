@@ -14,6 +14,7 @@ public sealed class DashboardViewModel : ObservableObject
     private readonly PlanningDataService _planning = PlanningDataService.Shared;
     private readonly PlanningSettingsService _planningSettings = PlanningSettingsService.Shared;
     private readonly SupplierCatalogService _suppliers = SupplierCatalogService.Shared;
+    private readonly MaterialParameters _materialParameters = MaterialParametersService.Shared.Parameters;
     private IReadOnlyList<InventoryPackage> _allPackages = [];
 
     public DashboardViewModel()
@@ -112,13 +113,14 @@ public sealed class DashboardViewModel : ObservableObject
             .Distinct()
             .Count();
 
-        // Calcola giacenza per spessore (raggruppando per ConventionalThickness arrotondato)
+        // Raggruppa tramite la famiglia centralizzata, senza alterare lo spessore ingresso.
         var groups = _allPackages
-            .GroupBy(p => (int)decimal.Round(p.ConventionalThickness, 0, MidpointRounding.AwayFromZero))
-            .ToDictionary(g => g.Key, g => g.ToList());
+            .Select(package => new { Package = package, Family = _materialParameters.FindFamily(package.IncomingThickness)?.ConventionalThickness })
+            .Where(item => item.Family.HasValue)
+            .GroupBy(item => (int)item.Family!.Value)
+            .ToDictionary(group => group.Key, group => group.Select(item => item.Package).ToList());
 
-        // Assicurare che i spessori principali siano presenti
-        int[] required = new[] { 23, 34, 44 };
+        var required = _materialParameters.ThicknessFamilies.Select(family => (int)family.ConventionalThickness).Distinct().ToArray();
         foreach (var r in required) if (!groups.ContainsKey(r)) groups[r] = new List<InventoryPackage>();
 
         ThicknessRows.Clear();

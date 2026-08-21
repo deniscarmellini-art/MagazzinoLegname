@@ -15,6 +15,7 @@ public sealed class StatisticsViewModel : ObservableObject
     private readonly ClassificationWorkflowService _workflow = ClassificationWorkflowService.Shared;
     private readonly InventoryProjectionService _inventory = InventoryProjectionService.Shared;
     private readonly SupplierCatalogService _suppliers = SupplierCatalogService.Shared;
+    private readonly MaterialParameters _materialParameters = MaterialParametersService.Shared.Parameters;
     private string _selectedPeriod = "Questo mese";
     private bool _includeInactiveSuppliers;
     private string _selectedSupplier = "Tutti";
@@ -240,7 +241,7 @@ public sealed class StatisticsViewModel : ObservableObject
             string Cell(decimal thickness, string quality)
             {
                 var rows = adjustments.Where(item => item.Context.Load.SupplierName == supplierName
-                    && item.Context.Group.ConventionalThickness == thickness && item.Context.Group.Quality == quality).ToList();
+                    && ConventionalThickness(item.Context.Group.IncomingThickness) == thickness && item.Context.Group.Quality == quality).ToList();
                 if (rows.Count == 0) return "—";
                 return $"{WeightedPercentage(rows.Sum(item => item.Adjustment.TheoreticalUsefulCubicMeters), rows.Sum(item => item.Adjustment.TheoreticalUsefulCubicMeters - item.Adjustment.RealAvailableCubicMeters)):N2}%";
             }
@@ -259,7 +260,7 @@ public sealed class StatisticsViewModel : ObservableObject
         {
             if (SelectedThickness != "Tutti" && material.Item1.ToString("0") != SelectedThickness) continue;
             if (SelectedQuality != "Tutte" && material.Item2 != SelectedQuality) continue;
-            var period = periodDischarges.Where(item => item.Context.Group.ConventionalThickness == material.Item1 && item.Context.Group.Quality == material.Item2).Sum(item => item.CubicMeters);
+            var period = periodDischarges.Where(item => ConventionalThickness(item.Context.Group.IncomingThickness) == material.Item1 && item.Context.Group.Quality == material.Item2).Sum(item => item.CubicMeters);
             ConsumptionRows.Add(new ConsumptionStatisticsRow($"{material.Item1:0} {material.Item2}", period,
                 period / periodWeeks,
                 CalculateRollingWeeklyAverage(4, material.Item1, material.Item2, groupLookup),
@@ -285,7 +286,7 @@ public sealed class StatisticsViewModel : ObservableObject
             .Where(item => item.DischargeDate >= windowStart && item.DischargeDate < windowEndExclusive)
             .Where(item => groupLookup.TryGetValue(item.MaterialGroupId, out var context)
                 && (SelectedSupplier == "Tutti" || context.Load.SupplierName == SelectedSupplier)
-                && context.Group.ConventionalThickness == conventionalThickness
+                && ConventionalThickness(context.Group.IncomingThickness) == conventionalThickness
                 && context.Group.Quality == quality)
             .Sum(item => item.DischargedCubicMeters);
         return total / weeks;
@@ -497,10 +498,11 @@ public sealed class StatisticsViewModel : ObservableObject
     private bool MatchesDimensions(GroupContext item) =>
         IsSupplierInScope(item.Load.SupplierName)
         && (SelectedSupplier == "Tutti" || item.Load.SupplierName == SelectedSupplier)
-        && (SelectedThickness == "Tutti" || item.Group.ConventionalThickness.ToString("0") == SelectedThickness)
+        && (SelectedThickness == "Tutti" || ConventionalThickness(item.Group.IncomingThickness).ToString("0") == SelectedThickness)
         && (SelectedQuality == "Tutte" || item.Group.Quality == SelectedQuality);
 
     private static decimal WeightedPercentage(decimal basis, decimal loss) => basis == 0m ? 0m : loss / basis * 100m;
+    private decimal ConventionalThickness(decimal incomingThickness) => _materialParameters.FindFamily(incomingThickness)?.ConventionalThickness ?? 0m;
 
     private sealed record GroupContext(ClassificationLoad Load, MaterialGroupClassification Group);
     private sealed record AdjustmentContext(WasteAdjustment Adjustment, GroupContext Context);
