@@ -171,13 +171,13 @@
                               HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                               FrozenColumnCount="2" SelectionUnit="FullRow">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="N° pacchi" Width="90" Binding="{Binding PackageCount, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" ElementStyle="{StaticResource GridDisplayTextStyle}" EditingElementStyle="{StaticResource GridInputStyle}"/>
-                            <DataGridTextColumn Header="Pezzi / pacco" Width="105" Binding="{Binding PiecesPerPackage, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" ElementStyle="{StaticResource GridDisplayTextStyle}" EditingElementStyle="{StaticResource GridInputStyle}"/>
-                            <DataGridTextColumn Header="Spessore (mm)" Width="115" Binding="{Binding IncomingThickness, UpdateSourceTrigger=PropertyChanged, StringFormat=N2, ValidatesOnDataErrors=True}" ElementStyle="{StaticResource GridDisplayTextStyle}" EditingElementStyle="{StaticResource GridInputStyle}"/>
-                            <DataGridTextColumn Header="Larghezza (mm)" Width="120" Binding="{Binding IncomingWidth, UpdateSourceTrigger=PropertyChanged, StringFormat=N2, ValidatesOnDataErrors=True}" ElementStyle="{StaticResource GridDisplayTextStyle}" EditingElementStyle="{StaticResource GridInputStyle}"/>
-                            <DataGridTextColumn Header="Dopo prepiall. (mm)" Width="135" IsReadOnly="True" Binding="{Binding WidthAfterPlaning, StringFormat=N2}" ElementStyle="{StaticResource GridDisplayTextStyle}"/>
-                            <DataGridTextColumn Header="Lunghezza (mm)" Width="120" Binding="{Binding IncomingLength, UpdateSourceTrigger=PropertyChanged, StringFormat=N2, ValidatesOnDataErrors=True}" ElementStyle="{StaticResource GridDisplayTextStyle}" EditingElementStyle="{StaticResource GridInputStyle}"/>
-                            <DataGridComboBoxColumn Header="Qualità" Width="95"
+                            <DataGridTextColumn Header="N° pacchi" Width="0.9*" MinWidth="88" Binding="{Binding PackageCountInput, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" ElementStyle="{StaticResource GridDisplayTextStyle}" EditingElementStyle="{StaticResource GridInputStyle}"/>
+                            <DataGridTextColumn Header="Pezzi / pacco" Width="1.0*" MinWidth="98" Binding="{Binding PiecesPerPackageInput, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" ElementStyle="{StaticResource GridDisplayTextStyle}" EditingElementStyle="{StaticResource GridInputStyle}"/>
+                            <DataGridTextColumn Header="Spessore (mm)" Width="1.15*" MinWidth="112" Binding="{Binding IncomingThickness, UpdateSourceTrigger=PropertyChanged, StringFormat=N2, ValidatesOnDataErrors=True}" ElementStyle="{StaticResource GridDisplayTextStyle}" EditingElementStyle="{StaticResource GridInputStyle}"/>
+                            <DataGridTextColumn Header="Larghezza (mm)" Width="1.15*" MinWidth="112" Binding="{Binding IncomingWidth, UpdateSourceTrigger=PropertyChanged, StringFormat=N2, ValidatesOnDataErrors=True}" ElementStyle="{StaticResource GridDisplayTextStyle}" EditingElementStyle="{StaticResource GridInputStyle}"/>
+                            <DataGridTextColumn Header="Dopo prepiall. (mm)" Width="1.2*" MinWidth="128" IsReadOnly="True" Binding="{Binding WidthAfterPlaning, StringFormat=N2}" ElementStyle="{StaticResource GridDisplayTextStyle}"/>
+                            <DataGridTextColumn Header="Lunghezza (mm)" Width="1.2*" MinWidth="116" Binding="{Binding IncomingLength, UpdateSourceTrigger=PropertyChanged, StringFormat=N2, ValidatesOnDataErrors=True}" ElementStyle="{StaticResource GridDisplayTextStyle}" EditingElementStyle="{StaticResource GridInputStyle}"/>
+                            <DataGridComboBoxColumn Header="Qualità" Width="0.9*" MinWidth="92"
                                                     ItemsSource="{x:Static models:GoodsReceiptLine.AllowedQualities}"
                                                     SelectedItemBinding="{Binding Quality, UpdateSourceTrigger=PropertyChanged}">
                                 <DataGridComboBoxColumn.ElementStyle>
@@ -195,9 +195,9 @@
                                     </Style>
                                 </DataGridComboBoxColumn.EditingElementStyle>
                             </DataGridComboBoxColumn>
-                            <DataGridTextColumn Header="MC fisici" Width="115" IsReadOnly="True" Binding="{Binding PhysicalIncomingCubicMeters, StringFormat=N2}" ElementStyle="{StaticResource GridDisplayTextStyle}"/>
-                            <DataGridTextColumn Header="MC utili teorici" Width="125" IsReadOnly="True" Binding="{Binding TheoreticalUsefulCubicMeters, StringFormat=N2}" ElementStyle="{StaticResource GridDisplayTextStyle}"/>
-                            <DataGridTextColumn Header="Valore €" Width="120" IsReadOnly="True" Binding="{Binding LineValue, StringFormat=N2}" ElementStyle="{StaticResource GridDisplayTextStyle}"/>
+                            <DataGridTextColumn Header="MC fisici" Width="1.0*" MinWidth="98" IsReadOnly="True" Binding="{Binding PhysicalIncomingCubicMeters, StringFormat=N2}" ElementStyle="{StaticResource GridDisplayTextStyle}"/>
+                            <DataGridTextColumn Header="MC utili teorici" Width="1.1*" MinWidth="120" IsReadOnly="True" Binding="{Binding TheoreticalUsefulCubicMeters, StringFormat=N2}" ElementStyle="{StaticResource GridDisplayTextStyle}"/>
+                            <DataGridTextColumn Header="Valore €" Width="1.0*" MinWidth="98" IsReadOnly="True" Binding="{Binding LineValue, StringFormat=N2}" ElementStyle="{StaticResource GridDisplayTextStyle}"/>
                         </DataGrid.Columns>
                     </DataGrid>
                     <Expander Grid.Row="2" Margin="14,8" Padding="10,7"

@@ -48,7 +48,11 @@ public sealed class InventoryViewModel : ObservableObject
 
     public void RemovePackage(InventoryPackage package, string operatorName, string reason, string? note)
     {
-        _projection.RemovePackage(package.PackageCode, operatorName, reason, note);
+        if (reason == "Reso")
+            SupplierReturnService.Shared.ReturnPackages(package.LoadId, [package.PackageCode], operatorName,
+                "Reso a fornitore", note);
+        else
+            _projection.RemovePackage(package.PackageCode, operatorName, reason, note);
         Reload();
     }
 

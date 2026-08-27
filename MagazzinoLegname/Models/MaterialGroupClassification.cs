@@ -32,6 +32,9 @@ public sealed class MaterialGroupClassification : ObservableObject
     public decimal IncomingPhysicalCubicMeters =>
         InitialPieces * IncomingThickness * IncomingWidth * IncomingLength / 1_000_000_000m;
     public decimal? TheoreticalUsefulCubicMeters => IsLegacyImport ? null : Volume(InitialPieces);
+    public decimal AdjustmentBaseCubicMeters => IsLegacyImport
+        ? LegacyEstimatedCubicMeters ?? 0m
+        : TheoreticalUsefulCubicMeters ?? 0m;
     public decimal ProcessingWastePercentage => IncomingPhysicalCubicMeters == 0m || !TheoreticalUsefulCubicMeters.HasValue ? 0m
         : (IncomingPhysicalCubicMeters - TheoreticalUsefulCubicMeters.Value)
           / IncomingPhysicalCubicMeters * 100m;

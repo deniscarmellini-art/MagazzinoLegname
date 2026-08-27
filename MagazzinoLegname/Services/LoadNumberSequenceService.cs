@@ -1,87 +1,84 @@
+using System.Text.RegularExpressions;
 using MagazzinoLegname.Models;
 
 namespace MagazzinoLegname.Services;
 
-public sealed class LoadNumberSequenceService
+public sealed partial class LoadNumberSequenceService
 {
     private static readonly Lazy<LoadNumberSequenceService> SharedInstance = new(() => new());
     private readonly object _assignmentLock = new();
-    private readonly HashSet<(Guid SupplierId, int Year, int AnnualSequence)> _usedAssignments = [];
+    private readonly HashSet<(Guid SupplierId, int Year, int AnnualSequence)> _reservedAssignments = [];
 
-    private LoadNumberSequenceService()
-    {
-        SeedFromSharedLoadHistory();
-    }
-
+    private LoadNumberSequenceService() { }
     public static LoadNumberSequenceService Shared => SharedInstance.Value;
 
     public LoadNumberAssignment PreviewNext(Guid supplierId, int year)
     {
-        lock (_assignmentLock)
-            return new(supplierId, year, FindNextAvailable(supplierId, year));
+        lock (_assignmentLock) return new(supplierId, year, FindNextProgressive(supplierId, year));
     }
-
-    // Il controllo e la prenotazione avvengono sotto lo stesso lock: anche se la preview
-    // fosse diventata obsoleta, viene ricalcolato il primo progressivo libero. Nel database
-    // futuro questa operazione dovrà essere transazionale e protetta da UNIQUE
-    // (SupplierId, Year, AnnualSequence).
     public LoadNumberAssignment ReserveNext(Guid supplierId, int year)
     {
         lock (_assignmentLock)
         {
-            var next = FindNextAvailable(supplierId, year);
-            while (!_usedAssignments.Add((supplierId, year, next))) next++;
+            var next = FindNextProgressive(supplierId, year);
+            _reservedAssignments.Add((supplierId, year, next));
             return new(supplierId, year, next);
         }
     }
-
     public bool IsAlreadyUsed(Guid supplierId, int year, int annualSequence)
     {
-        lock (_assignmentLock)
-            return _usedAssignments.Contains((supplierId, year, annualSequence));
+        lock (_assignmentLock) return ExistingAssignments(supplierId, year).Contains(annualSequence)
+            || _reservedAssignments.Contains((supplierId, year, annualSequence));
     }
+    private int FindNextProgressive(Guid supplierId, int year) => ExistingAssignments(supplierId, year)
+        .Concat(_reservedAssignments.Where(x => x.SupplierId == supplierId && x.Year == year).Select(x => x.AnnualSequence))
+        .DefaultIfEmpty(0).Max() + 1;
 
-    private int FindNextAvailable(Guid supplierId, int year)
-    {
-        var max = _usedAssignments
-            .Where(item => item.SupplierId == supplierId && item.Year == year)
-            .Select(item => item.AnnualSequence)
-            .DefaultIfEmpty(0).Max();
-        var next = max + 1;
-        while (_usedAssignments.Contains((supplierId, year, next))) next++;
-        return next;
-    }
-
-    private void SeedFromSharedLoadHistory()
+    private IEnumerable<int> ExistingAssignments(Guid supplierId, int year)
     {
         var suppliers = SupplierCatalogService.Shared.Suppliers;
         foreach (var load in ClassificationWorkflowService.Shared.Loads)
         {
-            var supplier = suppliers.FirstOrDefault(item =>
-                item.Code.Equals(load.SupplierCode, StringComparison.OrdinalIgnoreCase));
-            if (supplier is null || !TryParseLoadNumber(load.LoadNumber, out var sequence, out var shortYear)) continue;
-            var century = load.ArrivalDate.Year / 100 * 100;
-            _usedAssignments.Add((supplier.Id, century + shortYear, sequence));
+            var linkedSupplierId = load.SupplierId != Guid.Empty ? load.SupplierId
+                : suppliers.FirstOrDefault(x => x.Code.Equals(load.SupplierCode, StringComparison.OrdinalIgnoreCase))?.Id ?? Guid.Empty;
+            if (linkedSupplierId != supplierId) continue;
+            if (load.LoadYear == year && load.AnnualProgressive is > 0) { yield return load.AnnualProgressive.Value; continue; }
+            if (!string.IsNullOrWhiteSpace(load.LegacyLoadNumber)
+                && TryParseLegacyLoadNumber(load.LegacyLoadNumber, load.ArrivalDate.Year, out var legacyYear, out var legacyProgressive)
+                && legacyYear == year) { yield return legacyProgressive; continue; }
+            if (TryParseCurrentLoadNumber(load.LoadNumber, load.ArrivalDate.Year, out var currentYear, out var currentProgressive)
+                && currentYear == year) yield return currentProgressive;
         }
-
-        // Carichi demo già conclusi/archiviati: restano nello storico numerazione anche se
-        // non compaiono più tra i carichi operativi o tra i pacchi presenti in giacenza.
-        SeedArchived("SEG", 2026, 1, 2);
-        SeedArchived("LEG", 2026, 1);
+        var supplierName = suppliers.FirstOrDefault(x => x.Id == supplierId)?.Name;
+        if (string.IsNullOrWhiteSpace(supplierName)) yield break;
+        foreach (var record in LegacyHistoricalStore.Shared.Records
+            .Where(item => item.SupplierName.Equals(supplierName, StringComparison.OrdinalIgnoreCase))
+            .GroupBy(item => item.LoadNumber, StringComparer.OrdinalIgnoreCase).Select(group => group.First()))
+            if (TryParseLegacyLoadNumber(record.LoadNumber, record.ArrivalDate.Year, out var legacyYear, out var legacyProgressive)
+                && legacyYear == year) yield return legacyProgressive;
     }
 
-    private void SeedArchived(string supplierCode, int year, params int[] sequences)
+    public static bool TryParseLegacyLoadNumber(string value, int referenceYear, out int year, out int progressive)
     {
-        var supplier = SupplierCatalogService.Shared.Suppliers.First(item =>
-            item.Code.Equals(supplierCode, StringComparison.OrdinalIgnoreCase));
-        foreach (var sequence in sequences) _usedAssignments.Add((supplier.Id, year, sequence));
+        year = 0; progressive = 0;
+        var match = LegacyLoadPattern().Match(value ?? string.Empty);
+        if (!match.Success || !int.TryParse(match.Groups["year"].Value, out var shortYear)
+            || !int.TryParse(match.Groups["progressive"].Value, out progressive) || progressive <= 0) return false;
+        year = referenceYear / 100 * 100 + shortYear;
+        if (year - referenceYear > 50) year -= 100; else if (referenceYear - year > 50) year += 100;
+        return true;
     }
-
-    private static bool TryParseLoadNumber(string value, out int sequence, out int shortYear)
+    private static bool TryParseCurrentLoadNumber(string value, int referenceYear, out int year, out int progressive)
     {
-        sequence = 0; shortYear = 0;
-        var parts = value.Split('-', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-        return parts.Length == 2 && int.TryParse(parts[0], out sequence)
-            && int.TryParse(parts[1], out shortYear) && sequence > 0 && shortYear is >= 0 and <= 99;
+        year = 0; progressive = 0;
+        var match = CurrentLoadPattern().Match(value ?? string.Empty);
+        if (!match.Success || !int.TryParse(match.Groups["progressive"].Value, out progressive)
+            || !int.TryParse(match.Groups["year"].Value, out var shortYear) || progressive <= 0) return false;
+        year = referenceYear / 100 * 100 + shortYear;
+        return true;
     }
+    [GeneratedRegex(@"^\s*.+?\s+(?<year>\d{2})\s*-\s*(?<progressive>\d+)\s*$", RegexOptions.CultureInvariant)]
+    private static partial Regex LegacyLoadPattern();
+    [GeneratedRegex(@"^\s*(?<progressive>\d+)\s*-\s*(?<year>\d{2})\s*$", RegexOptions.CultureInvariant)]
+    private static partial Regex CurrentLoadPattern();
 }

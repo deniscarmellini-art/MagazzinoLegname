@@ -10,6 +10,7 @@ public sealed record WasteAdjustment
     public required int InitialPieces { get; init; }
     public required int DiscardedWholeBoards { get; init; }
     public required int GoodPieces { get; init; }
+    public required decimal AdjustmentBaseCubicMeters { get; init; }
     public required decimal TheoreticalUsefulCubicMeters { get; init; }
     public required decimal CubicMetersAfterWholeBoardWaste { get; init; }
     public required decimal PartialWastePercentage { get; init; }

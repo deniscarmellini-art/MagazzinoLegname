@@ -14,6 +14,7 @@ public sealed class ClassificationLoad : ObservableObject
     }
 
     public Guid Id { get; init; } = Guid.NewGuid();
+    public Guid SupplierId { get; init; }
     public required string LoadNumber { get; init; }
     public required string SupplierName { get; init; }
     public required string SupplierCode { get; init; }
@@ -23,6 +24,9 @@ public sealed class ClassificationLoad : ObservableObject
     public string ReceiptOperator { get; init; } = string.Empty;
     public string? LegacyLoadNumber { get; init; }
     public Guid? LegacyImportBatchId { get; init; }
+    public int? LoadYear { get; init; }
+    public int? AnnualProgressive { get; init; }
+    public string? LegacyLoadNumberParseWarning { get; init; }
     public ObservableCollection<MaterialGroupClassification> Groups { get; }
     public string SelectedOperator
     {

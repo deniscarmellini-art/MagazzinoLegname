@@ -83,7 +83,7 @@
                 <Border Style="{StaticResource ClassificationTitleBarStyle}">
                     <StackPanel><TextBlock FontSize="18" FontWeight="Bold"><Run Text="Gruppi materiale · carico "/><Run Text="{Binding SelectedLoad.LoadNumber, Mode=OneWay}"/></TextBlock><TextBlock Text="Ogni gruppo può essere completato indipendentemente dagli altri." Style="{StaticResource PageSubtitleStyle}"/></StackPanel>
                 </Border>
-                <DataGrid Grid.Row="1" ItemsSource="{Binding SelectedLoad.Groups}" AutoGenerateColumns="False"
+                <DataGrid Grid.Row="1" ItemsSource="{Binding OperationalGroups}" AutoGenerateColumns="False"
                           IsReadOnly="True" CanUserAddRows="False" SelectionUnit="FullRow" RowHeight="46"
                           ColumnHeaderStyle="{StaticResource ClassificationHeaderStyle}">
                     <DataGrid.Resources>

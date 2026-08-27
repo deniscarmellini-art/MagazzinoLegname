@@ -33,6 +33,7 @@ public sealed class GoodsReceiptRegistrationService
             var load = new ClassificationLoad(groups)
             {
                 Id = draft.Id, LoadNumber = draft.LoadNumber,
+                SupplierId = supplier.Id, LoadYear = draft.Year, AnnualProgressive = draft.AnnualSequence,
                 SupplierName = supplier.Name, SupplierCode = supplier.Code,
                 Certification = draft.CertificationApplied,
                 ArrivalDate = arrivalDate.Date,

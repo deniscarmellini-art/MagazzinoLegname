@@ -209,7 +209,7 @@ public sealed class GoodsReceiptViewModel : ObservableObject
 
     private void AddLine()
     {
-        var line = new GoodsReceiptLine { PackageCount = 0 };
+        var line = new GoodsReceiptLine();
         line.PropertyChanged += Line_PropertyChanged;
         Lines.Add(line);
         Recalculate(line);

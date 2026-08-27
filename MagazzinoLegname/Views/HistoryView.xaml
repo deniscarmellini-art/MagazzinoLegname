@@ -5,8 +5,33 @@
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
         <Style x:Key="HistoryCellStyle" TargetType="TextBlock">
             <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="TextAlignment" Value="Left"/>
             <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
-            <Setter Property="Margin" Value="4,0"/>
+            <Setter Property="Margin" Value="10,0,6,0"/>
+        </Style>
+        <Style x:Key="HistoryCenteredCellStyle" TargetType="TextBlock" BasedOn="{StaticResource HistoryCellStyle}">
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="6,0"/>
+        </Style>
+        <Style x:Key="HistoryNumericCellStyle" TargetType="TextBlock" BasedOn="{StaticResource HistoryCellStyle}">
+            <Setter Property="TextAlignment" Value="Right"/>
+            <Setter Property="Margin" Value="6,0,12,0"/>
+        </Style>
+        <Style x:Key="HistoryLeftHeaderStyle" TargetType="DataGridColumnHeader"
+               BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Padding" Value="10,11,6,11"/>
+        </Style>
+        <Style x:Key="HistoryCenteredHeaderStyle" TargetType="DataGridColumnHeader"
+               BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="6,11"/>
+        </Style>
+        <Style x:Key="HistoryNumericHeaderStyle" TargetType="DataGridColumnHeader"
+               BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+            <Setter Property="HorizontalContentAlignment" Value="Right"/>
+            <Setter Property="Padding" Value="6,11,12,11"/>
         </Style>
         <Style x:Key="HistoryTabItemStyle" TargetType="TabItem">
             <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/>
@@ -74,6 +99,7 @@
                         <Button Content="Entrate" Tag="Entrate" Click="QuickFilter_Click" Style="{StaticResource SecondaryButtonStyle}" Padding="11,5" Margin="0,0,6,0"/>
                         <Button Content="Rettifiche" Tag="Rettifiche" Click="QuickFilter_Click" Style="{StaticResource SecondaryButtonStyle}" Padding="11,5" Margin="0,0,6,0"/>
                         <Button Content="Scarichi" Tag="Scarichi" Click="QuickFilter_Click" Style="{StaticResource SecondaryButtonStyle}" Padding="11,5" Margin="0,0,6,0"/>
+                        <Button Content="Resi" Tag="Resi" Click="QuickFilter_Click" Style="{StaticResource SecondaryButtonStyle}" Padding="11,5" Margin="0,0,6,0"/>
                         <Button Content="Rimozioni manuali" Tag="Rimozioni manuali" Click="QuickFilter_Click" Style="{StaticResource SecondaryButtonStyle}" Padding="11,5"/>
                     </StackPanel>
                     <TextBlock Text="{Binding QuickFilter, StringFormat=Vista: {0}}" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold"/>
@@ -99,17 +125,17 @@
             <DataGrid ItemsSource="{Binding VisibleMovements}" SelectedItem="{Binding SelectedMovement}"
                       AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" RowHeight="39">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="Data/Ora" Width="125" Binding="{Binding DateTime, StringFormat=dd/MM/yyyy HH:mm}" ElementStyle="{StaticResource HistoryCellStyle}"/>
-                    <DataGridTextColumn Header="Tipo movimento" Width="145" Binding="{Binding MovementType}" ElementStyle="{StaticResource HistoryCellStyle}"/>
-                    <DataGridTemplateColumn Header="Carico" Width="78">
-                        <DataGridTemplateColumn.CellTemplate><DataTemplate><Button Content="{Binding LoadNumber}" Tag="{Binding LoadId}" Click="LoadHistory_Click" Style="{StaticResource SecondaryButtonStyle}" Padding="8,4" Margin="4" Foreground="{DynamicResource AccentBrush}"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                    <DataGridTextColumn Header="Data/Ora" Width="125" Binding="{Binding DateTime, StringFormat=dd/MM/yyyy HH:mm, TargetNullValue=—}" ElementStyle="{StaticResource HistoryCellStyle}" HeaderStyle="{StaticResource HistoryLeftHeaderStyle}"/>
+                    <DataGridTextColumn Header="Tipo movimento" Width="145" Binding="{Binding MovementType}" ElementStyle="{StaticResource HistoryCellStyle}" HeaderStyle="{StaticResource HistoryLeftHeaderStyle}"/>
+                    <DataGridTemplateColumn Header="Carico" Width="145" MinWidth="135" HeaderStyle="{StaticResource HistoryLeftHeaderStyle}">
+                        <DataGridTemplateColumn.CellTemplate><DataTemplate><Button Content="{Binding LoadNumber}" Tag="{Binding LoadId}" Click="LoadHistory_Click" Style="{StaticResource SecondaryButtonStyle}" Padding="10,4" Margin="7,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Foreground="{DynamicResource AccentBrush}"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTextColumn Header="Fornitore" Width="1.35*" Binding="{Binding SupplierName}" ElementStyle="{StaticResource HistoryCellStyle}"/>
-                    <DataGridTextColumn Header="Materiale" Width="1.15*" Binding="{Binding Material}" ElementStyle="{StaticResource HistoryCellStyle}"/>
-                    <DataGridTextColumn Header="Qualità" Width="70" Binding="{Binding Quality, TargetNullValue=—}" ElementStyle="{StaticResource HistoryCellStyle}"/>
-                    <DataGridTextColumn Header="Pacco/Pacchi" Width="115" Binding="{Binding PackageDisplay}" ElementStyle="{StaticResource HistoryCellStyle}"/>
-                    <DataGridTextColumn Header="MC movimento" Width="105" Binding="{Binding CubicMetersDisplay}" ElementStyle="{StaticResource HistoryCellStyle}"/>
-                    <DataGridTextColumn Header="Operatore" Width="125" Binding="{Binding Operator, TargetNullValue=—}" ElementStyle="{StaticResource HistoryCellStyle}"/>
+                    <DataGridTextColumn Header="Fornitore" Width="1.35*" MinWidth="165" Binding="{Binding SupplierName}" ElementStyle="{StaticResource HistoryCellStyle}" HeaderStyle="{StaticResource HistoryLeftHeaderStyle}"/>
+                    <DataGridTextColumn Header="Materiale" Width="1.15*" MinWidth="145" Binding="{Binding Material}" ElementStyle="{StaticResource HistoryCellStyle}" HeaderStyle="{StaticResource HistoryLeftHeaderStyle}"/>
+                    <DataGridTextColumn Header="Qualità" Width="70" Binding="{Binding Quality, TargetNullValue=—}" ElementStyle="{StaticResource HistoryCenteredCellStyle}" HeaderStyle="{StaticResource HistoryCenteredHeaderStyle}"/>
+                    <DataGridTextColumn Header="Pacco/Pacchi" Width="115" Binding="{Binding PackageDisplay}" ElementStyle="{StaticResource HistoryCenteredCellStyle}" HeaderStyle="{StaticResource HistoryCenteredHeaderStyle}"/>
+                    <DataGridTextColumn Header="MC movimento" Width="110" Binding="{Binding CubicMetersDisplay}" ElementStyle="{StaticResource HistoryNumericCellStyle}" HeaderStyle="{StaticResource HistoryNumericHeaderStyle}"/>
+                    <DataGridTextColumn Header="Operatore" Width="125" Binding="{Binding Operator, TargetNullValue=—}" ElementStyle="{StaticResource HistoryCellStyle}" HeaderStyle="{StaticResource HistoryLeftHeaderStyle}"/>
                 </DataGrid.Columns>
             </DataGrid>
         </Border>

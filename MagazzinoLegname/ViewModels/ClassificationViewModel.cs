@@ -9,6 +9,7 @@ namespace MagazzinoLegname.ViewModels;
 public sealed class ClassificationViewModel : ObservableObject
 {
     private readonly IReadOnlyList<ClassificationLoad> _allLoads;
+    private readonly InventoryProjectionService _inventory = InventoryProjectionService.Shared;
     private readonly HashSet<Guid> _subscribedLoadIds = [];
     private ClassificationLoad? _selectedLoad;
 
@@ -23,15 +24,20 @@ public sealed class ClassificationViewModel : ObservableObject
             SubscribeToNewLoads();
             ApplyFilters();
         };
+        _inventory.InventoryChanged += (_, _) => ApplyFilters();
         ApplyFilters();
     }
 
     public ObservableCollection<ClassificationLoad> VisibleLoads { get; } = [];
+    public ObservableCollection<MaterialGroupClassification> OperationalGroups { get; } = [];
     public ReadOnlyObservableCollection<string> Operators { get; }
     public ClassificationLoad? SelectedLoad
     {
         get => _selectedLoad;
-        set => SetProperty(ref _selectedLoad, value);
+        set
+        {
+            if (SetProperty(ref _selectedLoad, value)) RefreshOperationalGroups();
+        }
     }
     public string LoadCountText => VisibleLoads.Count == 1
         ? "1 carico da completare" : $"{VisibleLoads.Count} carichi da completare";
@@ -53,14 +59,26 @@ public sealed class ClassificationViewModel : ObservableObject
     private void ApplyFilters()
     {
         var previousSelection = SelectedLoad;
-        var matches = _allLoads.Where(load => !load.IsFullyClassified)
+        var presentGroupIds = _inventory.BuildInventory().Select(package => package.MaterialGroupId).ToHashSet();
+        var matches = _allLoads.Where(load => load.Groups.Any(group =>
+                presentGroupIds.Contains(group.GroupId) && !group.IsClassified))
             .ToList();
         VisibleLoads.Clear();
         foreach (var load in matches) VisibleLoads.Add(load);
         SelectedLoad = previousSelection is not null && matches.Contains(previousSelection)
             ? previousSelection : matches.FirstOrDefault();
+        RefreshOperationalGroups();
         OnPropertyChanged(nameof(LoadCountText));
         EnsureActiveSelections();
+    }
+
+    private void RefreshOperationalGroups()
+    {
+        var presentGroupIds = _inventory.BuildInventory().Select(package => package.MaterialGroupId).ToHashSet();
+        OperationalGroups.Clear();
+        if (SelectedLoad is null) return;
+        foreach (var group in SelectedLoad.Groups.Where(group => presentGroupIds.Contains(group.GroupId)))
+            OperationalGroups.Add(group);
     }
 
     private void EnsureActiveSelections()

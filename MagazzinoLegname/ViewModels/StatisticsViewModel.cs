@@ -16,6 +16,7 @@ public sealed class StatisticsViewModel : ObservableObject
     private readonly InventoryProjectionService _inventory = InventoryProjectionService.Shared;
     private readonly SupplierCatalogService _suppliers = SupplierCatalogService.Shared;
     private readonly MaterialParameters _materialParameters = MaterialParametersService.Shared.Parameters;
+    private readonly LegacyHistoricalStore _legacyHistory = LegacyHistoricalStore.Shared;
     private string _selectedPeriod = "Questo mese";
     private bool _includeInactiveSuppliers;
     private string _selectedSupplier = "Tutti";
@@ -31,6 +32,7 @@ public sealed class StatisticsViewModel : ObservableObject
         Qualities = ["Tutte", "C", "VISTA"];
         _workflow.WorkflowChanged += (_, _) => Refresh();
         _inventory.InventoryChanged += (_, _) => Refresh();
+        _legacyHistory.HistoryChanged += (_, _) => { RefreshSuppliers(); Refresh(); };
         _suppliers.CatalogChanged += (_, _) => { RefreshSuppliers(); Refresh(); };
         RefreshSuppliers();
         UpdateFilterDates();
@@ -89,12 +91,16 @@ public sealed class StatisticsViewModel : ObservableObject
     public decimal CubicMetersEntered { get; private set; }
     public decimal RealCubicMetersAfterClassification { get; private set; }
     public decimal CubicMetersDischarged { get; private set; }
+    public decimal CubicMetersReturned { get; private set; }
+    public decimal NetIncomingCubicMeters => CubicMetersEntered - CubicMetersReturned;
     public decimal AverageQualityWastePercentage { get; private set; }
     public decimal AverageProcessingWastePercentage { get; private set; }
     public decimal PurchaseValue { get; private set; }
     public string CubicMetersEnteredDisplay => CubicMetersEntered.ToString("N2");
     public string RealCubicMetersAfterClassificationDisplay => RealCubicMetersAfterClassification.ToString("N2");
     public string CubicMetersDischargedDisplay => CubicMetersDischarged.ToString("N2");
+    public string CubicMetersReturnedDisplay => CubicMetersReturned.ToString("N2");
+    public string NetIncomingCubicMetersDisplay => NetIncomingCubicMeters.ToString("N2");
     public string AverageQualityWasteDisplay => $"{AverageQualityWastePercentage:N2}%";
     public string AverageProcessingWasteDisplay => $"{AverageProcessingWastePercentage:N2}%";
     public string PurchaseValueDisplay => $"{PurchaseValue:N2} €";
@@ -103,7 +109,9 @@ public sealed class StatisticsViewModel : ObservableObject
     {
         Suppliers.Clear();
         Suppliers.Add("Tutti");
-        foreach (var supplier in ScopedSuppliers().OrderBy(item => item.Name)) Suppliers.Add(supplier.Name);
+        foreach (var supplierName in ScopedSuppliers().Select(item => item.Name)
+            .Concat(_legacyHistory.Records.Select(item => item.SupplierName))
+            .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(item => item)) Suppliers.Add(supplierName);
         if (Suppliers.Contains(SelectedSupplier)) return;
 
         _selectedSupplier = "Tutti";
@@ -114,8 +122,8 @@ public sealed class StatisticsViewModel : ObservableObject
         .Where(item => IncludeInactiveSuppliers || item.IsActive);
 
     private bool IsSupplierInScope(string supplierName) => IncludeInactiveSuppliers
-        || _suppliers.Suppliers.Any(item => item.IsActive
-            && string.Equals(item.Name, supplierName, StringComparison.OrdinalIgnoreCase));
+        || !_suppliers.Suppliers.Any(item => string.Equals(item.Name, supplierName, StringComparison.OrdinalIgnoreCase))
+        || _suppliers.Suppliers.Any(item => item.IsActive && string.Equals(item.Name, supplierName, StringComparison.OrdinalIgnoreCase));
 
     private void UpdateFilterDates()
     {
@@ -143,6 +151,16 @@ public sealed class StatisticsViewModel : ObservableObject
             .Where(MatchesDimensions)
             .ToList();
         var entryGroups = allGroups.Where(item => item.Load.ArrivalDate >= from && item.Load.ArrivalDate <= to).ToList();
+        var legacyEntries = _legacyHistory.Records.Where(item => item.ArrivalDate >= from && item.ArrivalDate <= to)
+            .Where(MatchesLegacyDimensions).Select(item => new LegacyEntryContext(item)).ToList();
+        var legacyDischarges = _legacyHistory.Records.Where(item => item.FinishedOn.HasValue && !item.IsSupplierReturn
+                && item.FinishedOn.Value >= from && item.FinishedOn.Value <= to)
+            .Where(MatchesLegacyDimensions).Select(item => new LegacyDischargeContext(item)).ToList();
+        // I resi legacy testuali non hanno una data attendibile: restano visibili nei KPI
+        // senza attribuire loro una data artificiale nei grafici temporali.
+        var legacyReturns = _legacyHistory.Records.Where(item => item.IsSupplierReturn
+                && (!item.FinishedOn.HasValue || item.FinishedOn.Value >= from && item.FinishedOn.Value <= to))
+            .Where(MatchesLegacyDimensions).Select(item => new LegacyReturnContext(item)).ToList();
 
         var groupLookup = _workflow.Loads
             .SelectMany(load => load.Groups.Select(group => new GroupContext(load, group)))
@@ -158,23 +176,33 @@ public sealed class StatisticsViewModel : ObservableObject
             .Where(item => groupLookup.TryGetValue(item.MaterialGroupId, out var context) && MatchesDimensions(context))
             .Select(item => new DischargeContext(item.DischargedCubicMeters, item.DischargeDate, groupLookup[item.MaterialGroupId]))
             .ToList();
+        var returns = _inventory.SupplierReturnMovements
+            .Where(item => item.ReturnDate >= from && item.ReturnDate <= to)
+            .Where(item => groupLookup.TryGetValue(item.MaterialGroupId, out var context) && MatchesDimensions(context))
+            .Select(item => new ReturnContext(item, groupLookup[item.MaterialGroupId])).ToList();
         var supplierQualityWastePoints = BuildSupplierQualityWastePoints(adjustments);
 
-        RefreshKpis(entryGroups, adjustments, discharges);
-        RefreshSupplierAnalysis(entryGroups, supplierQualityWastePoints);
+        RefreshKpis(entryGroups, legacyEntries, adjustments, discharges, legacyDischarges, returns, legacyReturns);
+        RefreshSupplierAnalysis(entryGroups, legacyEntries, returns, legacyReturns, supplierQualityWastePoints);
         RefreshQualityWaste(adjustments);
-        RefreshConsumption(discharges, groupLookup, from, to);
-        RefreshChartSeries(entryGroups, discharges, from, to);
+        RefreshConsumption(discharges, legacyDischarges, groupLookup, from, to);
+        RefreshChartSeries(entryGroups, legacyEntries, discharges, legacyDischarges, returns, legacyReturns, from, to);
         RefreshSupplierQualityWasteChart(supplierQualityWastePoints);
         RefreshSupplierPurchaseChart(BuildSupplierPurchasePoints());
     }
 
-    private void RefreshKpis(IReadOnlyCollection<GroupContext> entries,
-        IReadOnlyCollection<AdjustmentContext> adjustments, IReadOnlyCollection<DischargeContext> discharges)
+    private void RefreshKpis(IReadOnlyCollection<GroupContext> entries, IReadOnlyCollection<LegacyEntryContext> legacyEntries,
+        IReadOnlyCollection<AdjustmentContext> adjustments, IReadOnlyCollection<DischargeContext> discharges,
+        IReadOnlyCollection<LegacyDischargeContext> legacyDischarges, IReadOnlyCollection<ReturnContext> returns,
+        IReadOnlyCollection<LegacyReturnContext> legacyReturns)
     {
-        CubicMetersEntered = entries.Sum(item => item.Group.IncomingPhysicalCubicMeters);
+        CubicMetersEntered = entries.Sum(item => item.Group.IncomingPhysicalCubicMeters)
+            + legacyEntries.Sum(item => item.Record.PhysicalCubicMeters);
         RealCubicMetersAfterClassification = adjustments.Sum(item => item.Adjustment.RealAvailableCubicMeters);
-        CubicMetersDischarged = discharges.Sum(item => item.CubicMeters);
+        CubicMetersDischarged = discharges.Sum(item => item.CubicMeters)
+            + legacyDischarges.Sum(item => item.Record.LegacyAvailableCubicMeters);
+        CubicMetersReturned = returns.Sum(item => item.Movement.ReturnedPhysicalCubicMeters)
+            + legacyReturns.Sum(item => item.Record.PhysicalCubicMeters);
         PurchaseValue = entries.Sum(item => item.Group.LineValue ?? 0m);
         AverageProcessingWastePercentage = WeightedPercentage(entries.Sum(item => item.Group.IncomingPhysicalCubicMeters),
             entries.Where(item => item.Group.TheoreticalUsefulCubicMeters.HasValue).Sum(item => item.Group.IncomingPhysicalCubicMeters - item.Group.TheoreticalUsefulCubicMeters!.Value));
@@ -184,26 +212,41 @@ public sealed class StatisticsViewModel : ObservableObject
         OnPropertyChanged(nameof(CubicMetersEnteredDisplay));
         OnPropertyChanged(nameof(RealCubicMetersAfterClassificationDisplay));
         OnPropertyChanged(nameof(CubicMetersDischargedDisplay));
+        OnPropertyChanged(nameof(CubicMetersReturnedDisplay));
+        OnPropertyChanged(nameof(NetIncomingCubicMetersDisplay));
         OnPropertyChanged(nameof(AverageQualityWasteDisplay));
         OnPropertyChanged(nameof(AverageProcessingWasteDisplay));
         OnPropertyChanged(nameof(PurchaseValueDisplay));
     }
 
     private void RefreshSupplierAnalysis(IReadOnlyCollection<GroupContext> entries,
+        IReadOnlyCollection<LegacyEntryContext> legacyEntries,
+        IReadOnlyCollection<ReturnContext> returns,
+        IReadOnlyCollection<LegacyReturnContext> legacyReturns,
         IReadOnlyCollection<SupplierQualityWastePoint> qualityWastePoints)
     {
         SupplierRows.Clear();
         var qualityWasteBySupplier = qualityWastePoints.ToDictionary(item => item.SupplierName);
-        foreach (var supplierGroup in entries.GroupBy(item => item.Load.SupplierName).OrderBy(item => item.Key))
+        var names = entries.Select(item => item.Load.SupplierName).Concat(legacyEntries.Select(item => item.Record.SupplierName))
+            .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(item => item);
+        foreach (var supplierName in names)
         {
-            var cubicMeters = supplierGroup.Sum(item => item.Group.IncomingPhysicalCubicMeters);
-            var value = supplierGroup.Sum(item => item.Group.LineValue ?? 0m);
-            SupplierRows.Add(new SupplierStatisticsRow(supplierGroup.Key, cubicMeters, value,
-                cubicMeters == 0m ? 0m : value / cubicMeters,
-                qualityWasteBySupplier.TryGetValue(supplierGroup.Key, out var qualityWaste)
+            var supplierGroups = entries.Where(item => item.Load.SupplierName.Equals(supplierName, StringComparison.OrdinalIgnoreCase)).ToArray();
+            var cubicMeters = supplierGroups.Sum(item => item.Group.IncomingPhysicalCubicMeters)
+                + legacyEntries.Where(item => item.Record.SupplierName.Equals(supplierName, StringComparison.OrdinalIgnoreCase)).Sum(item => item.Record.PhysicalCubicMeters);
+            var pricedGroups = supplierGroups.Where(item => item.Group.LineValue.HasValue).ToArray();
+            var pricedCubicMeters = pricedGroups.Sum(item => item.Group.IncomingPhysicalCubicMeters);
+            var value = pricedGroups.Sum(item => item.Group.LineValue!.Value);
+            var returned = returns.Where(item => item.Movement.SupplierName.Equals(supplierName, StringComparison.OrdinalIgnoreCase))
+                .Sum(item => item.Movement.ReturnedPhysicalCubicMeters)
+                + legacyReturns.Where(item => item.Record.SupplierName.Equals(supplierName, StringComparison.OrdinalIgnoreCase))
+                    .Sum(item => item.Record.PhysicalCubicMeters);
+            SupplierRows.Add(new SupplierStatisticsRow(supplierName, cubicMeters, returned, value,
+                pricedCubicMeters == 0m ? 0m : value / pricedCubicMeters,
+                qualityWasteBySupplier.TryGetValue(supplierName, out var qualityWaste)
                     ? qualityWaste.QualityWastePercentage : 0m,
-                WeightedPercentage(cubicMeters,
-                    supplierGroup.Where(item => item.Group.TheoreticalUsefulCubicMeters.HasValue).Sum(item => item.Group.IncomingPhysicalCubicMeters - item.Group.TheoreticalUsefulCubicMeters!.Value))));
+                WeightedPercentage(supplierGroups.Sum(item => item.Group.IncomingPhysicalCubicMeters),
+                    supplierGroups.Where(item => item.Group.TheoreticalUsefulCubicMeters.HasValue).Sum(item => item.Group.IncomingPhysicalCubicMeters - item.Group.TheoreticalUsefulCubicMeters!.Value))));
         }
     }
 
@@ -251,6 +294,7 @@ public sealed class StatisticsViewModel : ObservableObject
     }
 
     private void RefreshConsumption(IReadOnlyCollection<DischargeContext> periodDischarges,
+        IReadOnlyCollection<LegacyDischargeContext> legacyDischarges,
         IReadOnlyDictionary<Guid, GroupContext> groupLookup, DateTime from, DateTime to)
     {
         ConsumptionRows.Clear();
@@ -260,7 +304,10 @@ public sealed class StatisticsViewModel : ObservableObject
         {
             if (SelectedThickness != "Tutti" && material.Item1.ToString("0") != SelectedThickness) continue;
             if (SelectedQuality != "Tutte" && material.Item2 != SelectedQuality) continue;
-            var period = periodDischarges.Where(item => ConventionalThickness(item.Context.Group.IncomingThickness) == material.Item1 && item.Context.Group.Quality == material.Item2).Sum(item => item.CubicMeters);
+            var period = periodDischarges.Where(item => ConventionalThickness(item.Context.Group.IncomingThickness) == material.Item1 && item.Context.Group.Quality == material.Item2).Sum(item => item.CubicMeters)
+                + legacyDischarges.Where(item => ConventionalThickness(item.Record.IncomingThickness) == material.Item1
+                    && string.Equals(item.Record.QualityNormalized ?? item.Record.QualityOriginal, material.Item2, StringComparison.OrdinalIgnoreCase))
+                    .Sum(item => item.Record.LegacyAvailableCubicMeters);
             ConsumptionRows.Add(new ConsumptionStatisticsRow($"{material.Item1:0} {material.Item2}", period,
                 period / periodWeeks,
                 CalculateRollingWeeklyAverage(4, material.Item1, material.Item2, groupLookup),
@@ -289,11 +336,22 @@ public sealed class StatisticsViewModel : ObservableObject
                 && ConventionalThickness(context.Group.IncomingThickness) == conventionalThickness
                 && context.Group.Quality == quality)
             .Sum(item => item.DischargedCubicMeters);
-        return total / weeks;
+        var legacyTotal = _legacyHistory.Records.Where(item => item.FinishedOn.HasValue
+                && item.FinishedOn.Value >= windowStart && item.FinishedOn.Value < windowEndExclusive)
+            .Where(item => IsSupplierInScope(item.SupplierName)
+                && (SelectedSupplier == "Tutti" || item.SupplierName == SelectedSupplier)
+                && ConventionalThickness(item.IncomingThickness) == conventionalThickness
+                && string.Equals(item.QualityNormalized ?? item.QualityOriginal, quality, StringComparison.OrdinalIgnoreCase))
+            .Sum(item => item.LegacyAvailableCubicMeters);
+        return (total + legacyTotal) / weeks;
     }
 
     private void RefreshChartSeries(IReadOnlyCollection<GroupContext> entries,
-        IReadOnlyCollection<DischargeContext> discharges, DateTime from, DateTime to)
+        IReadOnlyCollection<LegacyEntryContext> legacyEntries,
+        IReadOnlyCollection<DischargeContext> discharges,
+        IReadOnlyCollection<LegacyDischargeContext> legacyDischarges,
+        IReadOnlyCollection<ReturnContext> returns, IReadOnlyCollection<LegacyReturnContext> legacyReturns,
+        DateTime from, DateTime to)
     {
         TimePoints.Clear();
         var isWeekly = (to.Date - from.Date).TotalDays + 1 <= 45;
@@ -306,13 +364,21 @@ public sealed class StatisticsViewModel : ObservableObject
             var bucketEnd = isWeekly ? bucket.AddDays(7) : bucket.AddMonths(1);
             var incoming = entries
                 .Where(item => item.Load.ArrivalDate >= bucket && item.Load.ArrivalDate < bucketEnd)
-                .Sum(item => item.Group.IncomingPhysicalCubicMeters);
+                .Sum(item => item.Group.IncomingPhysicalCubicMeters)
+                + legacyEntries.Where(item => item.Record.ArrivalDate >= bucket && item.Record.ArrivalDate < bucketEnd)
+                    .Sum(item => item.Record.PhysicalCubicMeters);
             var discharged = discharges
                 .Where(item => item.Date >= bucket && item.Date < bucketEnd)
-                .Sum(item => item.CubicMeters);
+                .Sum(item => item.CubicMeters)
+                + legacyDischarges.Where(item => item.Record.FinishedOn >= bucket && item.Record.FinishedOn < bucketEnd)
+                    .Sum(item => item.Record.LegacyAvailableCubicMeters);
+            var returned = returns.Where(item => item.Movement.ReturnDate >= bucket && item.Movement.ReturnDate < bucketEnd)
+                .Sum(item => item.Movement.ReturnedPhysicalCubicMeters)
+                + legacyReturns.Where(item => item.Record.FinishedOn >= bucket && item.Record.FinishedOn < bucketEnd)
+                    .Sum(item => item.Record.PhysicalCubicMeters);
             TimePoints.Add(new StatisticsTimePoint(bucket,
                 isWeekly ? bucket.ToString("dd/MM") : bucket.ToString("MMM yyyy"),
-                incoming, discharged));
+                incoming, discharged, returned));
         }
 
         var incomingPaint = new SolidColorPaint(new SKColor(46, 139, 214));
@@ -336,6 +402,13 @@ public sealed class StatisticsViewModel : ObservableObject
                 Stroke = null,
                 MaxBarWidth = 28,
                 YToolTipLabelFormatter = point => $"Scarichi: {point.Model:N2} m³"
+            },
+            new ColumnSeries<decimal>
+            {
+                Name = "Resi",
+                Values = TimePoints.Select(item => item.ReturnedCubicMeters).ToArray(),
+                Fill = new SolidColorPaint(new SKColor(190, 92, 92)), Stroke = null, MaxBarWidth = 28,
+                YToolTipLabelFormatter = point => $"Resi: {point.Model:N2} m³"
             }
         ];
 
@@ -501,18 +574,33 @@ public sealed class StatisticsViewModel : ObservableObject
         && (SelectedThickness == "Tutti" || ConventionalThickness(item.Group.IncomingThickness).ToString("0") == SelectedThickness)
         && (SelectedQuality == "Tutte" || item.Group.Quality == SelectedQuality);
 
+    private bool MatchesLegacyDimensions(LegacyHistoricalRecord item)
+    {
+        var conventional = ConventionalThickness(item.IncomingThickness);
+        var quality = item.QualityNormalized ?? item.QualityOriginal ?? string.Empty;
+        return IsSupplierInScope(item.SupplierName)
+            && (SelectedSupplier == "Tutti" || item.SupplierName == SelectedSupplier)
+            && (SelectedThickness == "Tutti" || conventional.ToString("0") == SelectedThickness)
+            && (SelectedQuality == "Tutte" || quality.Equals(SelectedQuality, StringComparison.OrdinalIgnoreCase));
+    }
+
     private static decimal WeightedPercentage(decimal basis, decimal loss) => basis == 0m ? 0m : loss / basis * 100m;
     private decimal ConventionalThickness(decimal incomingThickness) => _materialParameters.FindFamily(incomingThickness)?.ConventionalThickness ?? 0m;
 
     private sealed record GroupContext(ClassificationLoad Load, MaterialGroupClassification Group);
+    private sealed record LegacyEntryContext(LegacyHistoricalRecord Record);
+    private sealed record LegacyDischargeContext(LegacyHistoricalRecord Record);
+    private sealed record LegacyReturnContext(LegacyHistoricalRecord Record);
+    private sealed record ReturnContext(SupplierReturnMovement Movement, GroupContext Context);
     private sealed record AdjustmentContext(WasteAdjustment Adjustment, GroupContext Context);
     private sealed record DischargeContext(decimal CubicMeters, DateTime Date, GroupContext Context);
 }
 
-public sealed record SupplierStatisticsRow(string SupplierName, decimal PurchasedCubicMeters, decimal Value,
+public sealed record SupplierStatisticsRow(string SupplierName, decimal PurchasedCubicMeters, decimal ReturnedCubicMeters, decimal Value,
     decimal WeightedAveragePrice, decimal QualityWastePercentage, decimal ProcessingWastePercentage)
 {
     public string PurchasedCubicMetersDisplay => PurchasedCubicMeters.ToString("N2");
+    public string ReturnedCubicMetersDisplay => ReturnedCubicMeters.ToString("N2");
     public string ValueDisplay => $"{Value:N2} €";
     public string WeightedAveragePriceDisplay => $"{WeightedAveragePrice:N2} €/m³";
     public string QualityWasteDisplay => $"{QualityWastePercentage:N2}%";
@@ -532,7 +620,7 @@ public sealed record ConsumptionStatisticsRow(string Material, decimal Discharge
 }
 
 public sealed record StatisticsTimePoint(DateTime PeriodStart, string Label,
-    decimal IncomingCubicMeters, decimal DischargedCubicMeters);
+    decimal IncomingCubicMeters, decimal DischargedCubicMeters, decimal ReturnedCubicMeters);
 
 public sealed record SupplierQualityWastePoint(string SupplierName,
     decimal TheoreticalUsefulCubicMeters, decimal RealAvailableCubicMeters,

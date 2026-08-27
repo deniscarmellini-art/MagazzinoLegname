@@ -9,6 +9,7 @@ public sealed class HistoryViewModel : ObservableObject
 {
     private readonly ClassificationWorkflowService _workflow = ClassificationWorkflowService.Shared;
     private readonly InventoryProjectionService _inventory = InventoryProjectionService.Shared;
+    private readonly LegacyHistoricalStore _legacyHistory = LegacyHistoricalStore.Shared;
     private IReadOnlyList<HistoryMovementRow> _allMovements = [];
     private DateTime? _fromDate = DateTime.Today.AddYears(-1);
     private DateTime? _toDate = DateTime.Today;
@@ -26,6 +27,7 @@ public sealed class HistoryViewModel : ObservableObject
     {
         _workflow.WorkflowChanged += (_, _) => Reload();
         _inventory.InventoryChanged += (_, _) => Reload();
+        _legacyHistory.HistoryChanged += (_, _) => Reload();
         Reload();
     }
 
@@ -33,9 +35,9 @@ public sealed class HistoryViewModel : ObservableObject
     public ObservableCollection<string> Suppliers { get; } = [];
     public ObservableCollection<string> Thicknesses { get; } = [];
     public ObservableCollection<string> Operators { get; } = [];
-    public IReadOnlyList<string> MovementTypes { get; } = ["Tutti", "Entrata", "Classificazione", "Rettifica scarti", "Scarico", "Rimozione manuale"];
+    public IReadOnlyList<string> MovementTypes { get; } = ["Tutti", "Entrata", "Classificazione", "Rettifica scarti", "Scarico", "Reso", "Rimozione manuale"];
     public IReadOnlyList<string> Qualities { get; } = ["Tutte", "C", "VISTA"];
-    public IReadOnlyList<string> QuickFilters { get; } = ["Tutti", "Entrate", "Rettifiche", "Scarichi", "Rimozioni manuali"];
+    public IReadOnlyList<string> QuickFilters { get; } = ["Tutti", "Entrate", "Rettifiche", "Scarichi", "Resi", "Rimozioni manuali"];
     public ObservableCollection<HistoryMovementRow> LoadTimeline { get; } = [];
     public ObservableCollection<LoadPackageHistoryRow> LoadPackages { get; } = [];
 
@@ -55,7 +57,21 @@ public sealed class HistoryViewModel : ObservableObject
     public void SelectLoad(Guid loadId)
     {
         var load = _workflow.Loads.FirstOrDefault(item => item.Id == loadId);
-        if (load is null) return;
+        if (load is null)
+        {
+            var legacyRecords = _legacyHistory.Records.Where(item => item.HistoricalLoadId == loadId).ToArray();
+            if (legacyRecords.Length == 0) return;
+            LoadTimeline.Clear();
+            foreach (var movement in _allMovements.Where(item => item.LoadId == loadId).OrderBy(item => item.DateTime)) LoadTimeline.Add(movement);
+            LoadPackages.Clear();
+            SelectedLoadSummary = new LoadHistorySummary { LoadNumber = legacyRecords[0].LoadNumber,
+                SupplierName = legacyRecords[0].SupplierName, InitialPackages = legacyRecords.Length,
+                PresentPackages = 0, DischargedPackages = legacyRecords.Length,
+                IncomingCubicMeters = legacyRecords.Sum(item => item.PhysicalCubicMeters),
+                DischargedCubicMeters = legacyRecords.Where(item => item.FinishedOn.HasValue).Sum(item => item.LegacyAvailableCubicMeters),
+                PresentCubicMeters = 0m };
+            return;
+        }
         var packages = _inventory.BuildInventory(true).Where(item => item.LoadId == loadId).OrderBy(item => item.PackageNumber).ToList();
         LoadTimeline.Clear();
         foreach (var movement in _allMovements.Where(item => item.LoadId == loadId).OrderBy(item => item.DateTime)) LoadTimeline.Add(movement);
@@ -106,6 +122,74 @@ public sealed class HistoryViewModel : ObservableObject
     {
         var workflow = ClassificationWorkflowService.Shared;
         var inventory = InventoryProjectionService.Shared;
+
+        foreach (var aggregate in LegacyHistoricalStore.Shared.Records.GroupBy(item => new
+        {
+            item.HistoricalLoadId, item.ArrivalDate, item.SupplierName, item.LoadNumber,
+            item.IncomingThickness, item.IncomingWidth, item.IncomingLength,
+            Quality = item.QualityOriginal ?? item.QualityNormalized ?? "—"
+        }))
+        {
+            var rows = aggregate.OrderBy(item => item.ExcelRow).ToArray();
+            var conventional = MaterialParametersService.Shared.Parameters.FindFamily(aggregate.Key.IncomingThickness)?.ConventionalThickness;
+            var detailRows = string.Join("\n", rows.Select(item =>
+                $"Riga Excel {item.ExcelRow} · Pacco {item.PackageLabel ?? "—"} · Pezzi {item.Pieces:N0} · MC {item.PhysicalCubicMeters:N5} · Finito il {item.FinishedRawValue}"));
+            var detail = $"Origine: Importazione legacy\nCarico storico: {aggregate.Key.LoadNumber}\nFornitore: {aggregate.Key.SupplierName}\n" +
+                $"Data arrivo: {aggregate.Key.ArrivalDate:dd/MM/yyyy}\nMateriale: {aggregate.Key.IncomingThickness:N2} × {aggregate.Key.IncomingWidth:N2} × {aggregate.Key.IncomingLength:N2}\n" +
+                $"Qualità originale: {aggregate.Key.Quality}\nPacchi: {rows.Length:N0}\nPezzi: {rows.Sum(item => item.Pieces):N0}\nMC fisici: {rows.Sum(item => item.PhysicalCubicMeters):N5}\n\n{detailRows}";
+            yield return new HistoryMovementRow(aggregate.Key.ArrivalDate, "Entrata", aggregate.Key.HistoricalLoadId,
+                null, aggregate.Key.LoadNumber, aggregate.Key.SupplierName,
+                $"{aggregate.Key.IncomingThickness:0} × {aggregate.Key.IncomingWidth:0} × {aggregate.Key.IncomingLength:0}",
+                conventional, aggregate.Key.Quality, $"{rows.Length} pacchi", rows.Sum(item => item.PhysicalCubicMeters),
+                "Importazione legacy", "—", detail);
+        }
+
+        foreach (var aggregate in LegacyHistoricalStore.Shared.Records.Where(item => item.FinishedOn.HasValue && !item.IsSupplierReturn).GroupBy(item => new
+        {
+            item.HistoricalLoadId, FinishedOn = item.FinishedOn!.Value.Date,
+            item.SupplierName, item.LoadNumber, item.IncomingThickness, item.IncomingWidth, item.IncomingLength,
+            Quality = item.QualityOriginal ?? item.QualityNormalized ?? "—"
+        }))
+        {
+            var rows = aggregate.OrderBy(item => item.ExcelRow).ToArray();
+            var conventional = MaterialParametersService.Shared.Parameters.FindFamily(aggregate.Key.IncomingThickness)?.ConventionalThickness;
+            var cubicMeters = rows.Sum(item => item.LegacyAvailableCubicMeters);
+            var arrivalDates = string.Join(", ", rows.Select(item => item.ArrivalDate.ToString("dd/MM/yyyy")).Distinct().Order());
+            var detailRows = string.Join("\n", rows.Select(item =>
+                $"Riga Excel {item.ExcelRow} · Pacco {item.PackageLabel ?? "—"} · Pezzi {item.Pieces:N0} · MC scaricati {item.LegacyAvailableCubicMeters:N5}"));
+            var detail = $"Origine: Importazione legacy\nTipo movimento: Scarico\nCarico storico: {aggregate.Key.LoadNumber}\n" +
+                $"Fornitore: {aggregate.Key.SupplierName}\nData/Ora: {aggregate.Key.FinishedOn:dd/MM/yyyy}\nData arrivo originale: {arrivalDates}\n" +
+                $"Materiale: {aggregate.Key.IncomingThickness:N2} × {aggregate.Key.IncomingWidth:N2} × {aggregate.Key.IncomingLength:N2}\n" +
+                $"Qualità originale: {aggregate.Key.Quality}\nPacchi: {rows.Length:N0}\nPezzi: {rows.Sum(item => item.Pieces):N0}\nMC scaricati: {cubicMeters:N5}\n\n{detailRows}";
+            yield return new HistoryMovementRow(aggregate.Key.FinishedOn, "Scarico", aggregate.Key.HistoricalLoadId,
+                null, aggregate.Key.LoadNumber, aggregate.Key.SupplierName,
+                $"{aggregate.Key.IncomingThickness:0} × {aggregate.Key.IncomingWidth:0} × {aggregate.Key.IncomingLength:0}",
+                conventional, aggregate.Key.Quality, $"{rows.Length} pacchi", -cubicMeters,
+                "Importazione legacy", "—", detail);
+        }
+
+        foreach (var aggregate in LegacyHistoricalStore.Shared.Records.Where(item => item.IsSupplierReturn).GroupBy(item => new
+        {
+            item.HistoricalLoadId, ReturnDate = item.FinishedOn?.Date,
+            item.SupplierName, item.LoadNumber, item.IncomingThickness, item.IncomingWidth, item.IncomingLength,
+            Quality = item.QualityOriginal ?? item.QualityNormalized ?? "—"
+        }))
+        {
+            var rows = aggregate.OrderBy(item => item.ExcelRow).ToArray();
+            var conventional = MaterialParametersService.Shared.Parameters.FindFamily(aggregate.Key.IncomingThickness)?.ConventionalThickness;
+            var physical = rows.Sum(item => item.PhysicalCubicMeters);
+            var loadRecords = LegacyHistoricalStore.Shared.Records.Where(item => item.HistoricalLoadId == aggregate.Key.HistoricalLoadId).ToArray();
+            var mode = loadRecords.All(item => item.IsSupplierReturn) ? "Reso totale" : "Reso parziale";
+            var closureValues = string.Join(", ", rows.Select(item => item.FinishedRawValue).Distinct(StringComparer.OrdinalIgnoreCase));
+            yield return new HistoryMovementRow(aggregate.Key.ReturnDate, "Reso", aggregate.Key.HistoricalLoadId,
+                null, aggregate.Key.LoadNumber, aggregate.Key.SupplierName,
+                $"{aggregate.Key.IncomingThickness:0} × {aggregate.Key.IncomingWidth:0} × {aggregate.Key.IncomingLength:0}",
+                conventional, aggregate.Key.Quality, $"{rows.Length} pacchi", -physical,
+                "Importazione legacy", "—",
+                $"Origine: Importazione legacy\nTipo movimento: Reso a fornitore\nModalità: {mode}\nData/Ora: {(aggregate.Key.ReturnDate.HasValue ? aggregate.Key.ReturnDate.Value.ToString("dd/MM/yyyy") : "N/D")}\n" +
+                $"Carico: {aggregate.Key.LoadNumber}\nFornitore: {aggregate.Key.SupplierName}\nMateriale: {aggregate.Key.IncomingThickness:N2} × {aggregate.Key.IncomingWidth:N2} × {aggregate.Key.IncomingLength:N2}\n" +
+                $"Qualità: {aggregate.Key.Quality}\nPacchi: {rows.Length:N0}\nPezzi: {rows.Sum(item => item.Pieces):N0}\nMC fisici resi: {physical:N5}\nChiusura legacy: {closureValues}");
+        }
 
         foreach (var load in workflow.Loads)
         {
@@ -164,15 +248,35 @@ public sealed class HistoryViewModel : ObservableObject
                 removal.PackageCode, -removal.RemovedCubicMeters, removal.RemovalOperator, load.DeliveryNoteNumber,
                 $"Codice pacco: {removal.PackageCode}\nCarico: {load.LoadNumber}\nFornitore: {load.SupplierName}\nMateriale: {Material(group)}\nQualità: {group.Quality}\nMC rimossi: {removal.RemovedCubicMeters:N2}\nData/ora: {removal.RemovalDate:dd/MM/yyyy HH:mm}\nOperatore: {removal.RemovalOperator}\nMotivo: {removal.Reason}\nNota: {(string.IsNullOrWhiteSpace(removal.Note) ? "—" : removal.Note)}");
         }
+
+        foreach (var returnGroup in inventory.SupplierReturnMovements
+            .GroupBy(item => new { item.ReturnOperationId, item.MaterialGroupId }))
+        {
+            var movements = returnGroup.OrderBy(item => item.PackageCode).ToArray();
+            var first = movements[0];
+            var (load, group) = FindGroup(workflow, first.LoadId, first.MaterialGroupId);
+            if (load is null || group is null) continue;
+            var physical = movements.Sum(item => item.ReturnedPhysicalCubicMeters);
+            var removed = movements.Sum(item => item.RemovedInventoryCubicMeters);
+            yield return new HistoryMovementRow(first.ReturnDate, "Reso", load.Id, group.GroupId,
+                load.LoadNumber, load.SupplierName, Material(group), group.ConventionalThickness, group.Quality,
+                movements.Length == 1 ? first.PackageCode : $"{movements.Length} pacchi",
+                -physical, first.ReturnOperator, first.DocumentReference,
+                $"Tipo movimento: Reso a fornitore\nModalità: {(first.Mode == SupplierReturnMode.Total ? "Reso totale" : "Reso parziale")}\n" +
+                $"Carico: {load.LoadNumber}\nFornitore: {load.SupplierName}\nPacchi: {string.Join(", ", movements.Select(item => item.PackageCode))}\n" +
+                $"Materiale: {Material(group)}\nQualità: {group.Quality}\nMC fisici resi: {physical:N5}\nMC rimossi dalla giacenza: {removed:N5}\n" +
+                $"Data/ora: {first.ReturnDate:dd/MM/yyyy HH:mm}\nOperatore: {first.ReturnOperator}\nMotivo: {first.Reason}\n" +
+                $"Note: {(string.IsNullOrWhiteSpace(first.Note) ? "—" : first.Note)}\nDocumento reso: {(string.IsNullOrWhiteSpace(first.DocumentReference) ? "—" : first.DocumentReference)}");
+        }
     }
 
     private void ApplyFilters()
     {
         var quickType = QuickFilter switch { "Entrate" => "Entrata", "Rettifiche" => "Rettifica scarti",
-            "Scarichi" => "Scarico", "Rimozioni manuali" => "Rimozione manuale", _ => null };
+            "Scarichi" => "Scarico", "Resi" => "Reso", "Rimozioni manuali" => "Rimozione manuale", _ => null };
         var query = _allMovements
-            .Where(item => !FromDate.HasValue || item.DateTime.Date >= FromDate.Value.Date)
-            .Where(item => !ToDate.HasValue || item.DateTime.Date <= ToDate.Value.Date)
+            .Where(item => !item.DateTime.HasValue || !FromDate.HasValue || item.DateTime.Value.Date >= FromDate.Value.Date)
+            .Where(item => !item.DateTime.HasValue || !ToDate.HasValue || item.DateTime.Value.Date <= ToDate.Value.Date)
             .Where(item => SelectedSupplier == "Tutti" || item.SupplierName == SelectedSupplier)
             .Where(item => SelectedMovementType == "Tutti" || item.MovementType == SelectedMovementType)
             .Where(item => quickType is null || item.MovementType == quickType)
@@ -222,7 +326,7 @@ public sealed class HistoryViewModel : ObservableObject
     }
 }
 
-public sealed record HistoryMovementRow(DateTime DateTime, string MovementType, Guid LoadId,
+public sealed record HistoryMovementRow(DateTime? DateTime, string MovementType, Guid LoadId,
     Guid? MaterialGroupId, string LoadNumber, string SupplierName, string Material,
     decimal? ConventionalThickness, string? Quality, string PackageDisplay, decimal CubicMeters,
     string Operator, string DeliveryNoteNumber, string DetailText,

@@ -1,7 +1,7 @@
 <Window x:Class="MagazzinoLegname.Views.ManualPackageRemovalWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Rimozione manuale pacco" Width="470" Height="410"
+        Title="Rimozione pacco" Width="470" Height="500"
         ResizeMode="NoResize" WindowStartupLocation="CenterOwner"
         Background="{DynamicResource AppBackgroundBrush}"
         FontFamily="Inter, Segoe UI">
@@ -12,7 +12,7 @@
                 <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/><RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
-            <TextBlock Text="Rimozione manuale" FontSize="22" FontWeight="ExtraBold"/>
+            <TextBlock Text="Rimozione pacco" FontSize="22" FontWeight="ExtraBold"/>
             <TextBlock Grid.Row="1" x:Name="PackageText" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,3,0,18"/>
             <StackPanel Grid.Row="2" Margin="0,0,0,12">
                 <TextBlock Text="OPERATORE" Style="{StaticResource FieldLabelStyle}"/>
@@ -22,12 +22,17 @@
                 <TextBlock Text="MOTIVO" Style="{StaticResource FieldLabelStyle}"/>
                 <ComboBox x:Name="ReasonCombo" SelectedIndex="0">
                     <ComboBoxItem Content="Errore inserimento"/><ComboBoxItem Content="Rettifica inventario"/>
-                    <ComboBoxItem Content="Pacco non presente"/><ComboBoxItem Content="Altro"/>
+                    <ComboBoxItem Content="Reso"/><ComboBoxItem Content="Altro"/>
                 </ComboBox>
             </StackPanel>
             <StackPanel Grid.Row="4">
                 <TextBlock Text="NOTA (OBBLIGATORIA SE ALTRO)" Style="{StaticResource FieldLabelStyle}"/>
-                <TextBox x:Name="NoteTextBox" MaxLength="180" AcceptsReturn="True" Height="70" TextWrapping="Wrap"/>
+                <TextBox x:Name="NoteTextBox"
+                         MaxLength="180"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto"
+                         Height="90"/>
                 <TextBlock x:Name="ValidationText" Foreground="{DynamicResource DangerBrush}" Margin="0,7,0,0"/>
             </StackPanel>
             <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">

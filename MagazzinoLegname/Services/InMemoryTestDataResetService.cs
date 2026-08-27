@@ -14,6 +14,7 @@ public sealed class InMemoryTestDataResetService
             InventoryProjectionService.Shared.ResetOperationalTestData();
             ClassificationWorkflowService.Shared.ResetOperationalTestData();
             LegacyInitialInventoryImportService.Shared.ResetTestImportRegistry();
+            LegacyHistoricalStore.Shared.ResetTestImportRegistry();
         }
     }
 }

@@ -93,8 +93,8 @@ public sealed class DashboardViewModel : ObservableObject
         _allPackages = _projection.BuildInventory();
         PresentPackages = _allPackages.Count;
         InventoryCubicMeters = _allPackages.Sum(p => p.InventoryCubicMeters);
-        CubicMetersToConsolidate = _allPackages.Where(p => !p.UsesRealCubicMeters).Sum(p => p.InventoryCubicMeters);
-        RealCubicMeters = _allPackages.Where(p => p.UsesRealCubicMeters).Sum(p => p.InventoryCubicMeters);
+        CubicMetersToConsolidate = _allPackages.Where(p => !p.WasteVerified).Sum(p => p.InventoryCubicMeters);
+        RealCubicMeters = _allPackages.Where(p => p.WasteVerified).Sum(p => p.InventoryCubicMeters);
         InventoryValue = _allPackages.Sum(p => p.PackageValue ?? 0m);
         PackagesWithoutPrice = _allPackages.Count(p => !p.AppliedPrice.HasValue);
         LoadsToClassify = _allPackages
@@ -108,7 +108,7 @@ public sealed class DashboardViewModel : ObservableObject
             .Distinct()
             .Count();
         GroupsToConsolidate = _allPackages
-            .Where(p => p.ClassificationStatus != "Da classificare" && !p.UsesRealCubicMeters)
+            .Where(p => p.ClassificationStatus != "Da classificare" && !p.WasteVerified)
             .Select(p => p.MaterialGroupId)
             .Distinct()
             .Count();

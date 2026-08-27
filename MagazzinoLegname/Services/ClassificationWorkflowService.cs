@@ -8,24 +8,7 @@ public sealed class ClassificationWorkflowService
     public static ClassificationWorkflowService Shared { get; } = new();
     private ClassificationWorkflowService()
     {
-        Loads = new(new ClassificationDemoService().CreateLoads());
-        var demoGroup = Loads.SelectMany(load => load.Groups).First(group => group.IsClassified);
-        const int discardedBoards = 18;
-        const decimal partialPercentage = 3.5m;
-        var result = new WasteAdjustmentCalculationService().Calculate(
-            demoGroup, discardedBoards, partialPercentage);
-        AddAdjustment(demoGroup, new WasteAdjustment
-        {
-            LoadId = demoGroup.LoadId, MaterialGroupId = demoGroup.GroupId,
-            AdjustmentDate = DateTime.Today.AddHours(10), AdjustmentOperator = "Elena Bianchi",
-            InitialPieces = result.InitialGroupPieces, DiscardedWholeBoards = result.DiscardedWholeBoards,
-            GoodPieces = result.GoodGroupPieces, TheoreticalUsefulCubicMeters = result.TheoreticalUsefulCubicMeters,
-            CubicMetersAfterWholeBoardWaste = result.CubicMetersAfterWholeBoardWaste,
-            PartialWastePercentage = result.PartialWastePercentage, PartialWasteCubicMeters = result.PartialWasteCubicMeters,
-            RealAvailableCubicMeters = result.RealAvailableCubicMeters,
-            WholeBoardWastePercentage = result.WholeBoardWastePercentage,
-            TotalClassificationWastePercentage = result.TotalQualityWastePercentage
-        });
+        Loads = [];
     }
     private readonly object _workflowLock = new();
 

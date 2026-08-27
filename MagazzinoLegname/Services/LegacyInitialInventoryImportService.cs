@@ -70,7 +70,10 @@ public sealed class LegacyInitialInventoryImportService
                         var group = CreateGroup(plan, loadId, groupRows); groups.Add(group);
                         packages.AddRange(groupRows.Select(row => CreatePackage(plan, loadId, group.GroupId, row)));
                     }
+                    var parsed = LoadNumberSequenceService.TryParseLegacyLoadNumber(first.LoadNumber!, first.Date!.Value.Year, out var loadYear, out var annualProgressive);
                     var load = new ClassificationLoad(groups) { Id = loadId, LoadNumber = first.LoadNumber!, LegacyLoadNumber = first.LoadNumber,
+                        SupplierId = supplier.Id, LoadYear = parsed ? loadYear : null, AnnualProgressive = parsed ? annualProgressive : null,
+                        LegacyLoadNumberParseWarning = parsed ? null : $"Numero carico legacy non interpretabile: {first.LoadNumber}",
                         LegacyImportBatchId = plan.BatchId, SupplierName = supplier.Name, SupplierCode = supplier.Code, Certification = first.Certification ?? string.Empty,
                         ArrivalDate = loadRows.Min(x => x.Date)!.Value.Date, ReceiptOperator = operatorName ?? "Importazione legacy" };
                     loads.Add(load);

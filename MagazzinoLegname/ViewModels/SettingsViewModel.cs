@@ -19,6 +19,8 @@ public sealed class SettingsViewModel : ObservableObject
     private string? _legacyAnalysisError;
     private LegacyInitialInventoryImportPlan? _legacyImportPlan;
     private LegacyInitialInventoryImportResult? _legacyImportResult;
+    private LegacyClosedHistoryImportPlan? _legacyClosedHistoryPlan;
+    private LegacyClosedHistoryImportResult? _legacyClosedHistoryResult;
 
     public SettingsViewModel()
     {
@@ -50,6 +52,10 @@ public sealed class SettingsViewModel : ObservableObject
     public LegacyInitialInventoryImportResult? LegacyImportResult { get => _legacyImportResult; private set => SetProperty(ref _legacyImportResult, value); }
     public bool HasLegacyImportPlan => LegacyImportPlan is not null;
     public bool CanImportLegacy => LegacyImportPlan?.CanCommit == true && LegacyImportResult is null;
+    public LegacyClosedHistoryImportPlan? LegacyClosedHistoryPlan { get => _legacyClosedHistoryPlan; private set { if (SetProperty(ref _legacyClosedHistoryPlan, value)) { OnPropertyChanged(nameof(HasLegacyClosedHistoryPlan)); OnPropertyChanged(nameof(CanImportClosedHistory)); } } }
+    public LegacyClosedHistoryImportResult? LegacyClosedHistoryResult { get => _legacyClosedHistoryResult; private set => SetProperty(ref _legacyClosedHistoryResult, value); }
+    public bool HasLegacyClosedHistoryPlan => LegacyClosedHistoryPlan is not null;
+    public bool CanImportClosedHistory => LegacyClosedHistoryPlan?.CanCommit == true && LegacyClosedHistoryResult is null;
     public SupplierContact? SelectedContact { get => _selectedContact; set => SetProperty(ref _selectedContact, value); }
     public Supplier? SelectedSupplier
     {
@@ -75,13 +81,14 @@ public sealed class SettingsViewModel : ObservableObject
     public async Task AnalyzeLegacyAsync()
     {
         if (!CanAnalyzeLegacy) return;
-        IsLegacyAnalysisRunning = true; LegacyAnalysisError = null; LegacyReport = null; LegacyImportPlan = null; LegacyImportResult = null;
+        IsLegacyAnalysisRunning = true; LegacyAnalysisError = null; LegacyReport = null; LegacyImportPlan = null; LegacyImportResult = null; LegacyClosedHistoryPlan = null; LegacyClosedHistoryResult = null;
         try
         {
             var path = LegacyFilePath!;
             LegacyReport = await Task.Run(() => new LegacyImportAnalyzer().Analyze(new LegacyExcelReader().Read(path)));
             try { LegacyImportPlan = LegacyInitialInventoryImportService.Shared.BuildPlan(LegacyReport); }
             catch (InvalidOperationException exception) { LegacyAnalysisError = $"Analisi completata, importazione non abilitata: {exception.Message}"; }
+            LegacyClosedHistoryPlan = LegacyHistoricalStore.Shared.BuildPlan(LegacyReport);
         }
         catch (Exception exception) { LegacyAnalysisError = exception.Message; }
         finally { IsLegacyAnalysisRunning = false; }
@@ -93,10 +100,17 @@ public sealed class SettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(CanImportLegacy));
         return LegacyImportResult;
     }
+    public LegacyClosedHistoryImportResult ImportClosedHistoryInMemory()
+    {
+        if (!CanImportClosedHistory || LegacyClosedHistoryPlan is null) throw new InvalidOperationException("Il piano dello storico chiuso non è pronto o presenta collisioni.");
+        LegacyClosedHistoryResult = LegacyHistoricalStore.Shared.Commit(LegacyClosedHistoryPlan);
+        OnPropertyChanged(nameof(CanImportClosedHistory));
+        return LegacyClosedHistoryResult;
+    }
     public void ResetOperationalTestData()
     {
         InMemoryTestDataResetService.Shared.ResetOperationalData();
-        LegacyReport = null; LegacyImportPlan = null; LegacyImportResult = null; LegacyAnalysisError = null;
+        LegacyReport = null; LegacyImportPlan = null; LegacyImportResult = null; LegacyClosedHistoryPlan = null; LegacyClosedHistoryResult = null; LegacyAnalysisError = null;
     }
     public void SaveMaterialParameters()
     {

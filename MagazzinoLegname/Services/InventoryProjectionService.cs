@@ -14,6 +14,7 @@ public sealed class InventoryProjectionService
 
     public ObservableCollection<MaterialDischargeMovement> DischargeMovements { get; } = [];
     public ObservableCollection<ManualPackageRemovalMovement> ManualRemovalMovements { get; } = [];
+    public ObservableCollection<SupplierReturnMovement> SupplierReturnMovements { get; } = [];
     public event EventHandler? InventoryChanged;
 
     public IReadOnlyList<InventoryPackage> BuildInventory(bool includeDischarged = false)
@@ -91,6 +92,38 @@ public sealed class InventoryProjectionService
         }
     }
 
+    public SupplierReturnResult RegisterSupplierReturn(IReadOnlyCollection<InventoryPackage> packages,
+        SupplierReturnMode mode, string operatorName, string reason, string? note, string? documentReference)
+    {
+        lock (_sync)
+        {
+            var current = BuildInventoryCore(false).ToDictionary(item => item.PackageCode, StringComparer.OrdinalIgnoreCase);
+            if (packages.Any(item => !current.ContainsKey(item.PackageCode)))
+                throw new InvalidOperationException("Uno o più pacchi non sono più presenti e non possono essere resi.");
+            var operationId = Guid.NewGuid();
+            var returnDate = DateTime.Now;
+            var movements = packages.Select(snapshot =>
+            {
+                var package = current[snapshot.PackageCode];
+                return new SupplierReturnMovement
+                {
+                    ReturnOperationId = operationId, PackageId = package.Id, PackageCode = package.PackageCode,
+                    LoadId = package.LoadId, MaterialGroupId = package.MaterialGroupId,
+                    LoadNumber = package.LoadNumber, SupplierName = package.SupplierName,
+                    ReturnDate = returnDate, ReturnOperator = operatorName, Reason = reason,
+                    Note = note ?? string.Empty, DocumentReference = documentReference ?? string.Empty,
+                    ReturnedPhysicalCubicMeters = package.IncomingCubicMeters,
+                    RemovedInventoryCubicMeters = package.InventoryCubicMeters, Mode = mode
+                };
+            }).ToArray();
+            foreach (var movement in movements) SupplierReturnMovements.Add(movement);
+            InventoryChanged?.Invoke(this, EventArgs.Empty);
+            return new(operationId, mode, movements.Length,
+                movements.Sum(item => item.ReturnedPhysicalCubicMeters),
+                movements.Sum(item => item.RemovedInventoryCubicMeters));
+        }
+    }
+
     private IReadOnlyList<InventoryPackage> BuildInventoryCore(bool includeDischarged)
     {
         var packages = new List<InventoryPackage>();
@@ -109,15 +142,18 @@ public sealed class InventoryProjectionService
                 var movementByCode = movements.ToDictionary(item => item.PackageCode, StringComparer.OrdinalIgnoreCase);
                 var removals = ManualRemovalMovements.Where(item => item.MaterialGroupId == group.GroupId).ToList();
                 var removalByCode = removals.ToDictionary(item => item.PackageCode, StringComparer.OrdinalIgnoreCase);
+                var returns = SupplierReturnMovements.Where(item => item.MaterialGroupId == group.GroupId).ToList();
+                var returnByCode = returns.ToDictionary(item => item.PackageCode, StringComparer.OrdinalIgnoreCase);
                 var presentCodes = groupCodes.Where(code => !movementByCode.ContainsKey(code)
-                    && !removalByCode.ContainsKey(code)).ToList();
+                    && !removalByCode.ContainsKey(code) && !returnByCode.ContainsKey(code)).ToList();
                 var adjustment = _workflow.WasteAdjustmentHistory.LastOrDefault(item => item.MaterialGroupId == group.GroupId);
                 var legacyReferenceVolume = group.IsLegacyImport
                     ? (group.WasClassifiedAtLegacyImport ? group.LegacyEstimatedCubicMeters ?? 0m : group.IncomingPhysicalCubicMeters)
                     : (group.TheoreticalUsefulCubicMeters ?? 0m);
                 var originalGroupBalance = adjustment?.RealAvailableCubicMeters ?? legacyReferenceVolume;
                 var residual = originalGroupBalance - movements.Sum(item => item.DischargedCubicMeters)
-                    - removals.Sum(item => item.RemovedCubicMeters);
+                    - removals.Sum(item => item.RemovedCubicMeters)
+                    - returns.Sum(item => item.RemovedInventoryCubicMeters);
                 if (presentCodes.Count == 0) residual = 0m;
                 residual = Math.Max(0m, residual);
                 Dictionary<string, decimal> shareByCode;
@@ -146,7 +182,8 @@ public sealed class InventoryProjectionService
                     var legacyPackage = group.IsLegacyImport ? legacyPackages[index] : null;
                     movementByCode.TryGetValue(code, out var movement);
                     removalByCode.TryGetValue(code, out var removal);
-                    var isPresent = movement is null && removal is null;
+                    returnByCode.TryGetValue(code, out var supplierReturn);
+                    var isPresent = movement is null && removal is null && supplierReturn is null;
                     if (!includeDischarged && !isPresent) continue;
                     if (!_packageIds.TryGetValue(code, out var packageId))
                         _packageIds[code] = packageId = Guid.NewGuid();
@@ -165,13 +202,14 @@ public sealed class InventoryProjectionService
                         InventoryCubicMeters = isPresent ? shareByCode[code] : 0m,
                         AppliedPrice = group.AppliedPrice, TheoreticalUsefulCubicMeters = group.TheoreticalUsefulCubicMeters,
                         LegacyEstimatedCubicMeters = legacyPackage?.LegacyEstimatedCubicMeters,
-                        InventoryQuantitySource = adjustment is not null ? InventoryQuantitySource.RealAfterAdjustment
+                        InventoryQuantitySource = group.WasteVerified ? InventoryQuantitySource.RealAfterAdjustment
                             : group.IsLegacyImport && group.WasClassifiedAtLegacyImport ? InventoryQuantitySource.LegacyEstimate
                             : InventoryQuantitySource.CurrentTheoretical,
                         LegacyLoadNumber = group.LegacyLoadNumber, LegacyPackageLabel = legacyPackage?.LegacyPackageLabel,
                         LegacyExcelRow = legacyPackage?.LegacyExcelRow, LegacyQr = legacyPackage?.LegacyQr, LegacyImportBatchId = group.LegacyImportBatchId,
-                        UsesRealCubicMeters = adjustment is not null, IsPresent = isPresent,
-                        PackageStatus = movement is not null ? "Scaricato" : removal is not null ? "Rimosso manualmente" : "Presente",
+                        UsesRealCubicMeters = group.WasteVerified, WasteVerified = group.WasteVerified, IsPresent = isPresent,
+                        PackageStatus = movement is not null ? "Scaricato" : removal is not null ? "Rimosso manualmente"
+                            : supplierReturn is not null ? "Reso" : "Presente",
                         DischargeDate = movement?.DischargeDate, DischargeOperator = movement?.DischargeOperator,
                         DischargedCubicMeters = movement?.DischargedCubicMeters,
                         ManualRemovalDate = removal?.RemovalDate,
@@ -179,6 +217,13 @@ public sealed class InventoryProjectionService
                         ManuallyRemovedCubicMeters = removal?.RemovedCubicMeters,
                         ManualRemovalReason = removal?.Reason,
                         ManualRemovalNote = removal?.Note,
+                        SupplierReturnDate = supplierReturn?.ReturnDate,
+                        SupplierReturnOperator = supplierReturn?.ReturnOperator,
+                        ReturnedPhysicalCubicMeters = supplierReturn?.ReturnedPhysicalCubicMeters,
+                        ReturnRemovedInventoryCubicMeters = supplierReturn?.RemovedInventoryCubicMeters,
+                        SupplierReturnReason = supplierReturn?.Reason,
+                        SupplierReturnNote = supplierReturn?.Note,
+                        SupplierReturnDocumentReference = supplierReturn?.DocumentReference,
                         WasteAdjustmentDate = adjustment?.AdjustmentDate,
                         WasteAdjustmentOperator = adjustment?.AdjustmentOperator
                     });
@@ -202,7 +247,7 @@ public sealed class InventoryProjectionService
     {
         lock (_sync)
         {
-            DischargeMovements.Clear(); ManualRemovalMovements.Clear(); _packageIds.Clear();
+            DischargeMovements.Clear(); ManualRemovalMovements.Clear(); SupplierReturnMovements.Clear(); _packageIds.Clear();
             InventoryChanged?.Invoke(this, EventArgs.Empty);
         }
     }

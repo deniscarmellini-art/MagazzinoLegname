@@ -5,8 +5,8 @@ namespace MagazzinoLegname.Models;
 
 public sealed class GoodsReceiptLine : ObservableObject, IDataErrorInfo
 {
-    private int _packageCount = 1;
-    private int _piecesPerPackage = 1;
+    private int? _packageCountInput;
+    private int? _piecesPerPackageInput;
     private int _discardedPieces;
     private decimal _incomingThickness = 34m;
     private decimal _incomingWidth = 180m;
@@ -32,7 +32,17 @@ public sealed class GoodsReceiptLine : ObservableObject, IDataErrorInfo
 
     public Guid GroupId { get; init; } = Guid.NewGuid();
 
-    public int PackageCount { get => _packageCount; set => SetProperty(ref _packageCount, Math.Max(0, value)); }
+    public int? PackageCountInput
+    {
+        get => _packageCountInput;
+        set
+        {
+            int? normalizedValue = value.HasValue ? Math.Max(0, value.Value) : null;
+            if (!SetProperty(ref _packageCountInput, normalizedValue)) return;
+            OnPropertyChanged(nameof(PackageCount));
+        }
+    }
+    public int PackageCount { get => PackageCountInput ?? 0; set => PackageCountInput = Math.Max(0, value); }
     public string Quality
     {
         get => _quality;
@@ -42,7 +52,17 @@ public sealed class GoodsReceiptLine : ObservableObject, IDataErrorInfo
             SetProperty(ref _quality, value);
         }
     }
-    public int PiecesPerPackage { get => _piecesPerPackage; set => SetProperty(ref _piecesPerPackage, Math.Max(0, value)); }
+    public int? PiecesPerPackageInput
+    {
+        get => _piecesPerPackageInput;
+        set
+        {
+            int? normalizedValue = value.HasValue ? Math.Max(0, value.Value) : null;
+            if (!SetProperty(ref _piecesPerPackageInput, normalizedValue)) return;
+            OnPropertyChanged(nameof(PiecesPerPackage));
+        }
+    }
+    public int PiecesPerPackage { get => PiecesPerPackageInput ?? 0; set => PiecesPerPackageInput = Math.Max(0, value); }
     public int EnteredPieces => PackageCount * PiecesPerPackage;
     public int DiscardedPieces { get => _discardedPieces; set => SetProperty(ref _discardedPieces, Math.Clamp(value, 0, EnteredPieces)); }
     public int GoodPieces => Math.Max(0, EnteredPieces - DiscardedPieces);
@@ -88,8 +108,8 @@ public sealed class GoodsReceiptLine : ObservableObject, IDataErrorInfo
     public string Error => string.Empty;
     public string this[string columnName] => columnName switch
     {
-        nameof(PackageCount) when PackageCount <= 0 => "Il numero di pacchi deve essere maggiore di zero.",
-        nameof(PiecesPerPackage) when PiecesPerPackage <= 0 => "I pezzi per pacco devono essere maggiori di zero.",
+        nameof(PackageCount) or nameof(PackageCountInput) when PackageCount <= 0 => "Il numero di pacchi deve essere maggiore di zero.",
+        nameof(PiecesPerPackage) or nameof(PiecesPerPackageInput) when PiecesPerPackage <= 0 => "I pezzi per pacco devono essere maggiori di zero.",
         nameof(IncomingThickness) when IncomingThickness <= 0m => "Lo spessore deve essere maggiore di zero.",
         nameof(IncomingWidth) when IncomingWidth <= 0m => "La larghezza deve essere maggiore di zero.",
         nameof(IncomingLength) when IncomingLength <= 0m => "La lunghezza deve essere maggiore di zero.",
@@ -98,8 +118,8 @@ public sealed class GoodsReceiptLine : ObservableObject, IDataErrorInfo
 
     public GoodsReceiptLine DuplicateInputs() => new()
     {
-        PackageCount = PackageCount,
-        PiecesPerPackage = PiecesPerPackage,
+        PackageCountInput = PackageCountInput,
+        PiecesPerPackageInput = PiecesPerPackageInput,
         IncomingThickness = IncomingThickness,
         IncomingWidth = IncomingWidth,
         IncomingLength = IncomingLength,

@@ -38,6 +38,7 @@ public sealed class InventoryPackage
     public string PriceDisplay => AppliedPrice.HasValue ? $"{AppliedPrice:N2} €/m³" : "N/D";
     public string PackageValueDisplay => PackageValue.HasValue ? $"{PackageValue:N2} €" : "N/D";
     public bool UsesRealCubicMeters { get; init; }
+    public bool WasteVerified { get; init; }
     public bool IsPresent { get; set; } = true;
     public string PackageStatus { get; init; } = "Presente";
     public DateTime? DischargeDate { get; init; }
@@ -48,6 +49,13 @@ public sealed class InventoryPackage
     public decimal? ManuallyRemovedCubicMeters { get; init; }
     public string? ManualRemovalReason { get; init; }
     public string? ManualRemovalNote { get; init; }
+    public DateTime? SupplierReturnDate { get; init; }
+    public string? SupplierReturnOperator { get; init; }
+    public decimal? ReturnedPhysicalCubicMeters { get; init; }
+    public decimal? ReturnRemovedInventoryCubicMeters { get; init; }
+    public string? SupplierReturnReason { get; init; }
+    public string? SupplierReturnNote { get; init; }
+    public string? SupplierReturnDocumentReference { get; init; }
     public DateTime? WasteAdjustmentDate { get; init; }
     public string? WasteAdjustmentOperator { get; init; }
     public string PackagePosition => $"{PackageNumber} / {TotalPackages}";

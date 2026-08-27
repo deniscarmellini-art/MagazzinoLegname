@@ -7,6 +7,7 @@ namespace MagazzinoLegname.ViewModels;
 public sealed class WasteCorrectionViewModel : ObservableObject
 {
     private readonly ClassificationWorkflowService _workflow = ClassificationWorkflowService.Shared;
+    private readonly InventoryProjectionService _inventory = InventoryProjectionService.Shared;
     private WasteCorrectionRowViewModel? _selectedGroup;
 
     public WasteCorrectionViewModel()
@@ -14,8 +15,8 @@ public sealed class WasteCorrectionViewModel : ObservableObject
         Operators = OperatorCatalogService.Shared.ActiveOperatorNames;
         OperatorCatalogService.Shared.CatalogChanged += (_, _) => EnsureActiveSelections();
         _workflow.WorkflowChanged += (_, _) => ReloadEligibleGroups();
+        _inventory.InventoryChanged += (_, _) => ReloadEligibleGroups();
         ReloadEligibleGroups();
-        if (Groups.Count > 0) { Groups[0].DiscardedWholeBoards = 18; Groups[0].PartialWastePercentage = 3.5m; }
     }
 
     public ObservableCollection<WasteCorrectionRowViewModel> Groups { get; } = [];
@@ -38,8 +39,10 @@ public sealed class WasteCorrectionViewModel : ObservableObject
     private void ReloadEligibleGroups()
     {
         Groups.Clear();
+        var presentGroupIds = _inventory.BuildInventory().Select(package => package.MaterialGroupId).ToHashSet();
         foreach (var load in _workflow.Loads)
-        foreach (var group in load.Groups.Where(group => group.IsClassified && !group.WasteVerified))
+        foreach (var group in load.Groups.Where(group => group.IsClassified && !group.WasteVerified
+            && presentGroupIds.Contains(group.GroupId)))
             Groups.Add(new WasteCorrectionRowViewModel(load, group) { SelectedOperator = Operators.FirstOrDefault() ?? string.Empty });
         SelectedGroup = Groups.FirstOrDefault();
     }

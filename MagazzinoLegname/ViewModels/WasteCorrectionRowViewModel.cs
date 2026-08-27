@@ -21,6 +21,7 @@ public sealed class WasteCorrectionRowViewModel : ObservableObject
     public string LoadNumber => Load.LoadNumber;
     public string SupplierName => Load.SupplierName;
     public DateTime ArrivalDate => Load.ArrivalDate;
+    public decimal AdjustmentBaseCubicMeters => Group.AdjustmentBaseCubicMeters;
     public string SelectedOperator
     {
         get => _selectedOperator;
@@ -61,7 +62,8 @@ public sealed class WasteCorrectionRowViewModel : ObservableObject
             LoadId = Load.Id, MaterialGroupId = Group.GroupId, AdjustmentDate = date,
             AdjustmentOperator = operatorName, InitialPieces = result.InitialGroupPieces,
             DiscardedWholeBoards = result.DiscardedWholeBoards, GoodPieces = result.GoodGroupPieces,
-            TheoreticalUsefulCubicMeters = result.TheoreticalUsefulCubicMeters,
+            AdjustmentBaseCubicMeters = result.AdjustmentBaseCubicMeters,
+            TheoreticalUsefulCubicMeters = Group.TheoreticalUsefulCubicMeters ?? 0m,
             CubicMetersAfterWholeBoardWaste = result.CubicMetersAfterWholeBoardWaste,
             PartialWastePercentage = result.PartialWastePercentage,
             PartialWasteCubicMeters = result.PartialWasteCubicMeters,

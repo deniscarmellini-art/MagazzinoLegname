@@ -11,25 +11,21 @@ public sealed class WasteAdjustmentCalculationService
         var partialPercentage = Math.Clamp(partialWastePercentage, 0m, 100m);
         var goodGroupPieces = group.InitialPieces - discardedAtGroupLevel;
 
-        var legacyReferenceVolume = group.IsLegacyImport
-            ? (group.WasClassifiedAtLegacyImport && group.LegacyEstimatedCubicMeters.HasValue
-                ? group.LegacyEstimatedCubicMeters.Value
-                : group.IncomingPhysicalCubicMeters)
-            : group.InitialPieces * group.UsefulThickness * group.FinalWidth * group.FinalLength / 1_000_000_000m;
-
-        var usefulCubicMetersPerBoard = group.InitialPieces == 0 ? 0m : legacyReferenceVolume / group.InitialPieces;
-        var theoreticalUseful = legacyReferenceVolume;
+        var adjustmentBaseCubicMeters = group.AdjustmentBaseCubicMeters;
+        var usefulCubicMetersPerBoard = group.InitialPieces == 0
+            ? 0m
+            : adjustmentBaseCubicMeters / group.InitialPieces;
 
         var afterWholeBoards = goodGroupPieces * usefulCubicMetersPerBoard;
         var partialWaste = afterWholeBoards * partialPercentage / 100m;
         var realAvailable = afterWholeBoards - partialWaste;
         var wholeBoardPercentage = group.InitialPieces == 0 ? 0m
             : (decimal)discardedAtGroupLevel / group.InitialPieces * 100m;
-        var totalQualityPercentage = theoreticalUseful == 0m ? 0m
-            : (theoreticalUseful - realAvailable) / theoreticalUseful * 100m;
+        var totalQualityPercentage = adjustmentBaseCubicMeters == 0m ? 0m
+            : (adjustmentBaseCubicMeters - realAvailable) / adjustmentBaseCubicMeters * 100m;
 
         return new(group.InitialPieces, discardedAtGroupLevel, goodGroupPieces,
-            usefulCubicMetersPerBoard, theoreticalUseful, afterWholeBoards,
+            usefulCubicMetersPerBoard, adjustmentBaseCubicMeters, afterWholeBoards,
             partialPercentage, partialWaste, realAvailable,
             wholeBoardPercentage, totalQualityPercentage);
     }

@@ -5,7 +5,7 @@ public sealed record WasteAdjustmentCalculation(
     int DiscardedWholeBoards,
     int GoodGroupPieces,
     decimal UsefulCubicMetersPerBoard,
-    decimal TheoreticalUsefulCubicMeters,
+    decimal AdjustmentBaseCubicMeters,
     decimal CubicMetersAfterWholeBoardWaste,
     decimal PartialWastePercentage,
     decimal PartialWasteCubicMeters,

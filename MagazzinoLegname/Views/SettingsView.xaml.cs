@@ -71,6 +71,23 @@ public partial class SettingsView : UserControl
         }
         catch (Exception exception) { MessageBox.Show(exception.Message, "Importazione bloccata", MessageBoxButton.OK, MessageBoxImage.Error); }
     }
+    private void ImportClosedHistoryInMemory_Click(object sender, RoutedEventArgs e)
+    {
+        var plan = ViewModel.LegacyClosedHistoryPlan;
+        if (plan is null) return;
+        var message = $"STORICO CHIUSO · STORE TEMPORANEO IN MEMORIA\n\n" +
+            $"Record: {plan.RecordCount:N0}\nCarichi distinti: {plan.DistinctLoads:N0}\nFornitori: {plan.DistinctSuppliers:N0}\n" +
+            $"Periodo: {plan.CoveredPeriod}\nMC fisici: {plan.PhysicalCubicMeters:N5}\nRighe con anomalie informative: {plan.RowsWithWarnings:N0}\n" +
+            $"Fingerprint: {plan.FileFingerprint}\n\nI record saranno aggiunti esclusivamente allo storico legacy e non alla giacenza. Procedere?";
+        if (MessageBox.Show(message, "Conferma importazione storico chiuso", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes) return;
+        try
+        {
+            var result = ViewModel.ImportClosedHistoryInMemory();
+            MessageBox.Show($"Storico chiuso importato.\nRecord: {result.ImportedRecords:N0}\nCarichi: {result.DistinctLoads:N0}\nBatch: {result.Batch.Id}",
+                "Importazione storico chiuso", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception exception) { MessageBox.Show(exception.Message, "Importazione bloccata", MessageBoxButton.OK, MessageBoxImage.Error); }
+    }
     private void ResetTestData_Click(object sender, RoutedEventArgs e)
     {
         const string message = "Questa operazione elimina i dati operativi TEMPORANEI utilizzati per i test.\nContinuare?";
