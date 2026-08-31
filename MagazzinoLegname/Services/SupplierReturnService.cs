@@ -9,7 +9,7 @@ public sealed class SupplierReturnService
     private SupplierReturnService() { }
 
     public IReadOnlyList<InventoryPackage> GetReturnablePackages(Guid loadId) =>
-        _inventory.BuildInventory(false).Where(item => item.LoadId == loadId).OrderBy(item => item.PackageNumber).ToArray();
+        _inventory.BuildInventory(false).Where(item => item.LoadId == loadId && item.IsAccountedPackage).OrderBy(item => item.PackageNumber).ToArray();
 
     public SupplierReturnResult ReturnEntireLoad(Guid loadId, string operatorName, string reason,
         string? note = null, string? documentReference = null) =>

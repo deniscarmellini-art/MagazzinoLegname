@@ -4,6 +4,7 @@
              Width="1122.52" Height="793.7" Background="White"
              FontFamily="Arial" TextOptions.TextFormattingMode="Display">
     <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
         <Style x:Key="LabelCaption" TargetType="TextBlock">
             <Setter Property="Foreground" Value="Black"/>
             <Setter Property="FontSize" Value="16"/>
@@ -20,136 +21,305 @@
             <Setter Property="BorderThickness" Value="0,1,0,0"/>
             <Setter Property="Padding" Value="0,13,12,10"/>
         </Style>
+        <Style x:Key="StandardLabelCaption" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+        <Style x:Key="StandardDataCaption" TargetType="TextBlock" BasedOn="{StaticResource StandardLabelCaption}">
+            <Setter Property="FontSize" Value="17"/>
+        </Style>
+        <Style x:Key="StandardDataValue" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="FontSize" Value="35"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        <Style x:Key="StandardDataCell" TargetType="Border">
+            <Setter Property="BorderBrush" Value="#B8B8B8"/>
+            <Setter Property="BorderThickness" Value="0,1,0,0"/>
+            <Setter Property="Padding" Value="0,15,18,12"/>
+        </Style>
     </UserControl.Resources>
 
-    <Border Margin="12" BorderBrush="Black" BorderThickness="1.4" Background="White">
-        <Grid>
-            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+    <Grid>
+        <Border Margin="12" BorderBrush="Black" BorderThickness="1.4" Background="White">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Visible"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsSupplementary}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
 
-            <!-- FRONTE PACCO -->
-            <Grid Grid.Column="0" Margin="42,28,42,26">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="2.25*"/>
-                    <RowDefinition Height="1"/>
-                    <RowDefinition Height="2.65*"/>
-                    <RowDefinition Height="1"/>
-                    <RowDefinition Height="2.15*"/>
-                    <RowDefinition Height="0.9*"/>
-                </Grid.RowDefinitions>
+                <Grid Grid.Column="0" Margin="28,28,84,34">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="2.45*"/>
+                        <RowDefinition Height="1"/>
+                        <RowDefinition Height="2.85*"/>
+                        <RowDefinition Height="1"/>
+                        <RowDefinition Height="2.25*"/>
+                    </Grid.RowDefinitions>
 
-                <Grid Grid.Row="0" Margin="20,5">
-                    <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                    <Viewbox Grid.Row="0" Stretch="Uniform" StretchDirection="Both" Margin="10,0">
-                        <TextBlock Text="{Binding Package.IncomingThickness, StringFormat={}{0:0.##}}"
-                                   Foreground="#000000" FontFamily="Arial" FontSize="100" FontWeight="Bold"/>
-                    </Viewbox>
-                    <TextBlock Grid.Row="1" Text="SPESSORE" Foreground="Black" FontSize="20"
-                               FontWeight="Bold" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                    <Image Source="{Binding QrImage}" Width="76" Height="76"
+                           VerticalAlignment="Top" HorizontalAlignment="Left"
+                           Stretch="Uniform" RenderOptions.BitmapScalingMode="NearestNeighbor"
+                           Panel.ZIndex="2"/>
+
+                    <Grid Grid.Row="0" Margin="78,8,10,10">
+                        <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <Viewbox Grid.Row="0" Stretch="Uniform" StretchDirection="Both" Margin="0,0,0,0">
+                            <TextBlock Text="{Binding Package.IncomingThickness, StringFormat={}{0:0.##}}"
+                                       Foreground="Black" FontSize="170" FontWeight="Black"/>
+                        </Viewbox>
+                        <TextBlock Grid.Row="1" Text="SPESSORE" Foreground="Black" FontSize="23"
+                                   FontWeight="Black" HorizontalAlignment="Center" Margin="0,0,0,0"/>
+                    </Grid>
+                    <Border Grid.Row="1" Background="#B4B4B4"/>
+
+                    <Grid Grid.Row="2" Margin="0,20,0,12">
+                        <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <Viewbox Grid.Row="0" Stretch="Uniform" StretchDirection="Both" Margin="10,0,0,0">
+                            <TextBlock Text="{Binding Package.WidthAfterPlaning, StringFormat={}{0:0.##}}"
+                                       Foreground="Black" FontSize="190" FontWeight="Black"/>
+                        </Viewbox>
+                        <TextBlock Grid.Row="1" Text="LARGHEZZA" Foreground="Black" FontSize="23"
+                                   FontWeight="Black" HorizontalAlignment="Center"/>
+                    </Grid>
+                    <Border Grid.Row="3" Background="#B4B4B4"/>
+
+                    <Grid Grid.Row="4" Margin="0,20,0,0">
+                        <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <Viewbox Grid.Row="0" Stretch="Uniform" StretchDirection="Both" Margin="92,0,92,0">
+                            <TextBlock Text="{Binding Package.Quality}" Foreground="Black"
+                                       FontSize="130" FontWeight="Black" TextAlignment="Center"/>
+                        </Viewbox>
+                        <TextBlock Grid.Row="1" Text="QUALITÀ" Foreground="Black" FontSize="23"
+                                   FontWeight="Black" HorizontalAlignment="Center"/>
+                    </Grid>
                 </Grid>
-                <Border Grid.Row="1" Background="#9B9B9B"/>
 
-                <Grid Grid.Row="2" Margin="20,5">
-                    <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                    <Viewbox Grid.Row="0" Stretch="Uniform" StretchDirection="Both" Margin="10,0">
-                        <TextBlock Text="{Binding Package.WidthAfterPlaning, StringFormat={}{0:0.##}}"
-                                   Foreground="#000000" FontFamily="Arial" FontSize="100" FontWeight="Bold"/>
-                    </Viewbox>
-                    <TextBlock Grid.Row="1" Text="LARGHEZZA" Foreground="Black"
-                               FontSize="17" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,4,0,0"/>
-                </Grid>
-                <Border Grid.Row="3" Background="#9B9B9B"/>
+                <Grid Grid.Column="1" Margin="42,34,34,30">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
-                <StackPanel Grid.Row="4" VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <TextBlock Text="{Binding Package.Quality}" Foreground="#000000"
-                               FontFamily="Arial" FontSize="72" FontWeight="Bold"
-                               HorizontalAlignment="Center" TextAlignment="Center"/>
-                    <TextBlock Text="QUALITÀ" Foreground="Black" FontSize="20"
-                               FontWeight="Bold" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-                </StackPanel>
-
-                <Image Grid.Row="5" Source="{Binding QrImage}" Width="70" Height="70"
-                       VerticalAlignment="Center" HorizontalAlignment="Center"
-                       Stretch="Uniform" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
-            </Grid>
-
-            <!-- LATO PACCO -->
-            <Grid Grid.Column="1" Margin="105,45,12,32">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-
-                <StackPanel Margin="0,0,0,22">
-                    <TextBlock Text="MISURE" Style="{StaticResource LabelCaption}"/>
-                    <TextBlock Text="{Binding OperationalMeasure}" Foreground="Black"
-                               FontSize="43" FontWeight="Black" TextWrapping="NoWrap" Margin="0,6,0,0"/>
-                </StackPanel>
-
-                <Border Grid.Row="1" BorderBrush="#8F8F8F" BorderThickness="0,1,0,0" Padding="0,18,0,14">
-                    <StackPanel>
-                        <TextBlock Text="FORNITORE" Style="{StaticResource LabelCaption}"/>
-                        <TextBlock Text="{Binding SupplierName}" Foreground="Black" FontSize="27"
-                                   FontWeight="Bold" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                    <StackPanel Margin="0,0,0,22">
+                        <TextBlock Text="MISURE" Style="{StaticResource StandardLabelCaption}"/>
+                        <TextBlock Text="{Binding OperationalMeasure}" Foreground="Black"
+                                   FontSize="64" FontWeight="Black" TextWrapping="NoWrap" Margin="0,7,0,0"/>
                     </StackPanel>
-                </Border>
 
-                <Grid Grid.Row="2">
-                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-
-                    <Border Style="{StaticResource DataCell}" BorderThickness="0,1,1,0">
-                        <StackPanel><TextBlock Text="NUMERO CARICO" Style="{StaticResource LabelCaption}"/><TextBlock Text="{Binding LoadNumber}" Style="{StaticResource LabelValue}" Margin="0,6,0,0"/></StackPanel>
-                    </Border>
-                    <Border Grid.Column="1" Style="{StaticResource DataCell}" Padding="26,13,0,10">
-                        <StackPanel><TextBlock Text="NUMERO DDT" Style="{StaticResource LabelCaption}"/><TextBlock Text="{Binding DisplayDeliveryNoteNumber}" Style="{StaticResource LabelValue}" Margin="0,6,0,0"/></StackPanel>
+                    <Border Grid.Row="1" BorderBrush="#B8B8B8" BorderThickness="0,1,0,0" Padding="0,18,0,18">
+                        <StackPanel>
+                            <TextBlock Text="FORNITORE" Style="{StaticResource StandardLabelCaption}"/>
+                            <TextBlock Text="{Binding SupplierName}" Foreground="Black" FontSize="33"
+                                       FontWeight="Bold" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                        </StackPanel>
                     </Border>
 
-                    <Border Grid.Row="1" Style="{StaticResource DataCell}" BorderThickness="0,1,1,0">
-                        <StackPanel><TextBlock Text="PACCO" Style="{StaticResource LabelCaption}"/><TextBlock Text="{Binding PackagePosition}" Style="{StaticResource LabelValue}" Margin="0,6,0,0"/></StackPanel>
-                    </Border>
-                    <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource DataCell}" Padding="26,13,0,10">
-                        <StackPanel><TextBlock Text="DATA ARRIVO" Style="{StaticResource LabelCaption}"/><TextBlock Text="{Binding Package.ArrivalDate, StringFormat=dd/MM/yyyy}" Style="{StaticResource LabelValue}" Margin="0,6,0,0"/></StackPanel>
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+
+                        <Border Style="{StaticResource StandardDataCell}" BorderThickness="0,1,1,0">
+                            <StackPanel><TextBlock Text="NUMERO CARICO" Style="{StaticResource StandardDataCaption}"/><TextBlock Text="{Binding LoadNumber}" Style="{StaticResource StandardDataValue}" Margin="0,8,0,0"/></StackPanel>
+                        </Border>
+                        <Border Grid.Column="1" Style="{StaticResource StandardDataCell}" Padding="26,15,0,12">
+                            <StackPanel><TextBlock Text="NUMERO DDT" Style="{StaticResource StandardDataCaption}"/><TextBlock Text="{Binding DisplayDeliveryNoteNumber}" Style="{StaticResource StandardDataValue}" Margin="0,8,0,0"/></StackPanel>
+                        </Border>
+
+                        <Border Grid.Row="1" Style="{StaticResource StandardDataCell}" BorderThickness="0,1,1,0">
+                            <StackPanel><TextBlock Text="PACCO" Style="{StaticResource StandardDataCaption}"/><TextBlock Text="{Binding PackagePosition}" Style="{StaticResource StandardDataValue}" Margin="0,8,0,0"/></StackPanel>
+                        </Border>
+                        <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource StandardDataCell}" Padding="26,15,0,12">
+                            <StackPanel><TextBlock Text="DATA ARRIVO" Style="{StaticResource StandardDataCaption}"/><TextBlock Text="{Binding Package.ArrivalDate, StringFormat=dd/MM/yyyy}" Style="{StaticResource StandardDataValue}" Margin="0,8,0,0"/></StackPanel>
+                        </Border>
+
+                        <Border Grid.Row="2" Style="{StaticResource StandardDataCell}" BorderThickness="0,1,1,0">
+                            <StackPanel><TextBlock Text="PEZZI" Style="{StaticResource StandardDataCaption}"/><TextBlock Text="{Binding PieceCountDisplay}" Style="{StaticResource StandardDataValue}" Margin="0,8,0,0"/></StackPanel>
+                        </Border>
+                        <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource StandardDataCell}" Padding="26,15,0,12">
+                            <StackPanel><TextBlock Text="QUALITÀ" Style="{StaticResource StandardDataCaption}"/><TextBlock Text="{Binding Package.Quality}" Style="{StaticResource StandardDataValue}" Margin="0,8,0,0"/></StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <Border Grid.Row="3" BorderBrush="#B8B8B8" BorderThickness="0,1,0,0" Padding="0,16,0,0">
+                        <StackPanel>
+                            <TextBlock Text="CERTIFICAZIONE" Style="{StaticResource StandardLabelCaption}"/>
+                            <TextBlock Text="{Binding Certification}" Foreground="Black" FontSize="35" FontWeight="Black" Margin="0,7,0,0"/>
+                        </StackPanel>
                     </Border>
 
-                    <Border Grid.Row="2" Style="{StaticResource DataCell}" BorderThickness="0,1,1,0">
-                        <StackPanel><TextBlock Text="PEZZI" Style="{StaticResource LabelCaption}"/><TextBlock Text="{Binding Package.PieceCount}" Style="{StaticResource LabelValue}" Margin="0,6,0,0"/></StackPanel>
-                    </Border>
-                    <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource DataCell}" Padding="26,13,0,10">
-                        <StackPanel><TextBlock Text="QUALITÀ" Style="{StaticResource LabelCaption}"/><TextBlock Text="{Binding Package.Quality}" Style="{StaticResource LabelValue}" Margin="0,6,0,0"/></StackPanel>
-                    </Border>
+                    <StackPanel Grid.Row="4" VerticalAlignment="Bottom" HorizontalAlignment="Center">
+                        <Image Source="{Binding QrImage}" Width="94" Height="94" Stretch="Uniform"
+                               RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                        <TextBlock Text="CODICE PACCO" Foreground="Black" FontSize="18" FontWeight="Bold"
+                                   HorizontalAlignment="Center" Margin="0,9,0,0"/>
+                        <TextBlock Text="{Binding Package.PackageCode}" Foreground="Black" FontSize="37"
+                                   FontWeight="Black" HorizontalAlignment="Center"/>
+                    </StackPanel>
                 </Grid>
 
-                <Border Grid.Row="3" BorderBrush="#B5B5B5" BorderThickness="0,1,0,0" Padding="0,15,0,0">
-                    <StackPanel>
-                        <TextBlock Text="CERTIFICAZIONE" Style="{StaticResource LabelCaption}"/>
-                        <TextBlock Text="{Binding Certification}" Foreground="Black" FontSize="29" FontWeight="Black" Margin="0,5,0,0"/>
-                    </StackPanel>
-                </Border>
-
-                <StackPanel Grid.Row="4" VerticalAlignment="Bottom" HorizontalAlignment="Center">
-                    <Image Source="{Binding QrImage}" Width="112" Height="112" Stretch="Uniform"
-                           RenderOptions.BitmapScalingMode="NearestNeighbor"/>
-                    <TextBlock Text="CODICE PACCO" Foreground="Black" FontSize="16" FontWeight="Bold"
-                               HorizontalAlignment="Center" Margin="0,8,0,0"/>
-                    <TextBlock Text="{Binding Package.PackageCode}" Foreground="Black" FontSize="25"
-                               FontWeight="Black" HorizontalAlignment="Center"/>
-                </StackPanel>
+                <Border Grid.ColumnSpan="2" Width="1" HorizontalAlignment="Center"
+                        BorderBrush="#C9C9C9" BorderThickness="1,0,0,0"/>
             </Grid>
+        </Border>
 
-            <!-- riferimento leggero per la piega -->
-            <Border Grid.ColumnSpan="2" Width="1" HorizontalAlignment="Center" Margin="0,0,0,0"
-                    BorderBrush="#8E8E8E" BorderThickness="1,0,0,0" Opacity="0.75">
-                <Border.OpacityMask>
-                    <DrawingBrush TileMode="Tile" Viewport="0,0,1,12" ViewportUnits="Absolute">
-                        <DrawingBrush.Drawing>
-                            <GeometryDrawing Brush="Black" Geometry="M 0,0 L 1,0 1,6 0,6 Z"/>
-                        </DrawingBrush.Drawing>
-                    </DrawingBrush>
-                </Border.OpacityMask>
-            </Border>
-        </Grid>
-    </Border>
+        <Border Margin="12" BorderBrush="Black" BorderThickness="1.4" Background="White">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsSupplementary}" Value="True">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+
+                <!-- FRONTE PACCO -->
+                <Grid Grid.Column="0" Margin="42,28,42,26">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="2.25*"/>
+                        <RowDefinition Height="1"/>
+                        <RowDefinition Height="2.65*"/>
+                        <RowDefinition Height="1"/>
+                        <RowDefinition Height="2.15*"/>
+                        <RowDefinition Height="0.9*"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="20,5">
+                        <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <Viewbox Grid.Row="0" Stretch="Uniform" StretchDirection="Both" Margin="10,0">
+                            <TextBlock Text="{Binding Package.IncomingThickness, StringFormat={}{0:0.##}}"
+                                       Foreground="#000000" FontFamily="Arial" FontSize="100" FontWeight="Bold"/>
+                        </Viewbox>
+                        <TextBlock Grid.Row="1" Text="SPESSORE" Foreground="Black" FontSize="20"
+                                   FontWeight="Bold" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                    </Grid>
+                    <Border Grid.Row="1" Background="#9B9B9B"/>
+
+                    <Grid Grid.Row="2" Margin="20,5">
+                        <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <Viewbox Grid.Row="0" Stretch="Uniform" StretchDirection="Both" Margin="10,0">
+                            <TextBlock Text="{Binding Package.WidthAfterPlaning, StringFormat={}{0:0.##}}"
+                                       Foreground="#000000" FontFamily="Arial" FontSize="100" FontWeight="Bold"/>
+                        </Viewbox>
+                        <TextBlock Grid.Row="1" Text="LARGHEZZA" Foreground="Black"
+                                   FontSize="17" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                    </Grid>
+                    <Border Grid.Row="3" Background="#9B9B9B"/>
+
+                    <StackPanel Grid.Row="4" VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <TextBlock Text="{Binding Package.Quality}" Foreground="#000000"
+                                   FontFamily="Arial" FontSize="72" FontWeight="Bold"
+                                   HorizontalAlignment="Center" TextAlignment="Center"/>
+                        <TextBlock Text="QUALITÀ" Foreground="Black" FontSize="20"
+                                   FontWeight="Bold" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                    </StackPanel>
+
+                    <Image Grid.Row="5" Source="{Binding QrImage}" Width="70" Height="70"
+                           VerticalAlignment="Center" HorizontalAlignment="Center"
+                           Stretch="Uniform" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                </Grid>
+
+                <!-- LATO PACCO -->
+                <Grid Grid.Column="1" Margin="105,45,12,32">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Margin="0,0,0,22">
+                        <Border Background="#111111" BorderBrush="Black" BorderThickness="1" Padding="10,8" Margin="0,0,0,16" Visibility="{Binding IsSupplementary, Converter={StaticResource BoolToVisibility}}">
+                            <StackPanel>
+                                <TextBlock Text="ETICHETTA SUPPLEMENTARE" Foreground="White" FontSize="28" FontWeight="Black" HorizontalAlignment="Center"/>
+                                <TextBlock Text="PACCO SENZA MC CONTABILI" Foreground="White" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <TextBlock Text="MISURE" Style="{StaticResource LabelCaption}"/>
+                        <TextBlock Text="{Binding OperationalMeasure}" Foreground="Black"
+                                   FontSize="43" FontWeight="Black" TextWrapping="NoWrap" Margin="0,6,0,0"/>
+                    </StackPanel>
+
+                    <Border Grid.Row="1" BorderBrush="#8F8F8F" BorderThickness="0,1,0,0" Padding="0,18,0,14">
+                        <StackPanel>
+                            <TextBlock Text="FORNITORE" Style="{StaticResource LabelCaption}"/>
+                            <TextBlock Text="{Binding SupplierName}" Foreground="Black" FontSize="27"
+                                       FontWeight="Bold" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+
+                        <Border Style="{StaticResource DataCell}" BorderThickness="0,1,1,0">
+                            <StackPanel><TextBlock Text="NUMERO CARICO" Style="{StaticResource LabelCaption}"/><TextBlock Text="{Binding LoadNumber}" Style="{StaticResource LabelValue}" Margin="0,6,0,0"/></StackPanel>
+                        </Border>
+                        <Border Grid.Column="1" Style="{StaticResource DataCell}" Padding="26,13,0,10">
+                            <StackPanel><TextBlock Text="NUMERO DDT" Style="{StaticResource LabelCaption}"/><TextBlock Text="{Binding DisplayDeliveryNoteNumber}" Style="{StaticResource LabelValue}" Margin="0,6,0,0"/></StackPanel>
+                        </Border>
+
+                        <Border Grid.Row="1" Style="{StaticResource DataCell}" BorderThickness="0,1,1,0">
+                            <StackPanel><TextBlock Text="PACCO" Style="{StaticResource LabelCaption}"/><TextBlock Text="{Binding PackagePosition}" Style="{StaticResource LabelValue}" Margin="0,6,0,0"/></StackPanel>
+                        </Border>
+                        <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource DataCell}" Padding="26,13,0,10">
+                            <StackPanel><TextBlock Text="DATA ARRIVO" Style="{StaticResource LabelCaption}"/><TextBlock Text="{Binding Package.ArrivalDate, StringFormat=dd/MM/yyyy}" Style="{StaticResource LabelValue}" Margin="0,6,0,0"/></StackPanel>
+                        </Border>
+
+                        <Border Grid.Row="2" Style="{StaticResource DataCell}" BorderThickness="0,1,1,0">
+                            <StackPanel><TextBlock Text="PEZZI" Style="{StaticResource LabelCaption}"/><TextBlock Text="{Binding PieceCountDisplay}" Style="{StaticResource LabelValue}" Margin="0,6,0,0"/></StackPanel>
+                        </Border>
+                        <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource DataCell}" Padding="26,13,0,10">
+                            <StackPanel><TextBlock Text="QUALITÀ" Style="{StaticResource LabelCaption}"/><TextBlock Text="{Binding Package.Quality}" Style="{StaticResource LabelValue}" Margin="0,6,0,0"/></StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <Border Grid.Row="3" BorderBrush="#B5B5B5" BorderThickness="0,1,0,0" Padding="0,15,0,0">
+                        <StackPanel>
+                            <TextBlock Text="CERTIFICAZIONE" Style="{StaticResource LabelCaption}"/>
+                            <TextBlock Text="{Binding Certification}" Foreground="Black" FontSize="29" FontWeight="Black" Margin="0,5,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Grid.Row="4" VerticalAlignment="Bottom" HorizontalAlignment="Center">
+                        <Image Source="{Binding QrImage}" Width="112" Height="112" Stretch="Uniform"
+                               RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                        <TextBlock Text="{Binding PackageKindTitle}" Foreground="Black" FontSize="16" FontWeight="Bold"
+                                   HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                        <TextBlock Text="{Binding Package.PackageCode}" Foreground="Black" FontSize="25"
+                                   FontWeight="Black" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- riferimento leggero per la piega -->
+                <Border Grid.ColumnSpan="2" Width="1" HorizontalAlignment="Center" Margin="0,0,0,0"
+                        BorderBrush="#8E8E8E" BorderThickness="1,0,0,0" Opacity="0.75">
+                    <Border.OpacityMask>
+                        <DrawingBrush TileMode="Tile" Viewport="0,0,1,12" ViewportUnits="Absolute">
+                            <DrawingBrush.Drawing>
+                                <GeometryDrawing Brush="Black" Geometry="M 0,0 L 1,0 1,6 0,6 Z"/>
+                            </DrawingBrush.Drawing>
+                        </DrawingBrush>
+                    </Border.OpacityMask>
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
 </UserControl>

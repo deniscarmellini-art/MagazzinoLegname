@@ -28,7 +28,12 @@ public sealed class PackageLabelViewModel
     public string DisplayDeliveryNoteNumber => string.IsNullOrWhiteSpace(DeliveryNoteNumber) ? "—" : DeliveryNoteNumber;
     public string Certification { get; }
     public BitmapImage QrImage { get; }
-    public string PackagePosition => $"{Package.SequenceNumber} / {Package.TotalPackages}";
+    public bool IsSupplementary => Package.IsSupplementary;
+    public string PackageKindTitle => IsSupplementary ? "ETICHETTA SUPPLEMENTARE" : "CODICE PACCO";
+    public string PieceCountDisplay => IsSupplementary ? "—" : Package.PieceCount.ToString();
+    public string PackagePosition => IsSupplementary && Package.SupplementarySequence.HasValue
+        ? $"S{Package.SupplementarySequence.Value:00}"
+        : $"{Package.SequenceNumber} / {Package.TotalPackages}";
     public string OperationalMeasure =>
         $"{Package.IncomingThickness:0.##} × {Package.WidthAfterPlaning:0.##} × {Package.IncomingLength:0.##}";
 }

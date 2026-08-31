@@ -39,16 +39,18 @@
                 <Border Style="{StaticResource InventoryKpiCardStyle}"><StackPanel VerticalAlignment="Center"><TextBlock Text="MC REALI" Style="{StaticResource InventoryKpiLabelStyle}"/><TextBlock Text="{Binding RealCubicMeters, Mode=OneWay, StringFormat=N2}" Style="{StaticResource InventoryKpiValueStyle}"/></StackPanel></Border>
                 <Border Style="{StaticResource InventoryKpiCardStyle}" Margin="0"><StackPanel VerticalAlignment="Center"><TextBlock Text="VALORE MAGAZZINO" Style="{StaticResource InventoryKpiLabelStyle}"/><TextBlock Text="{Binding InventoryValueDisplay}" Style="{StaticResource InventoryKpiValueStyle}"/></StackPanel></Border>
             </UniformGrid>
+            <Button Content="Esporta Excel" Click="ExportExcel_Click" Style="{StaticResource PrimaryButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="16,8"/>
         </Grid>
 
         <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="13" Margin="0,0,0,9">
-            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="1.35*"/><ColumnDefinition Width="0.75*"/><ColumnDefinition Width="0.75*"/><ColumnDefinition Width="0.7*"/><ColumnDefinition Width="1.25*"/><ColumnDefinition Width="1.05*"/></Grid.ColumnDefinitions>
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="1.25*"/><ColumnDefinition Width="0.7*"/><ColumnDefinition Width="0.7*"/><ColumnDefinition Width="0.65*"/><ColumnDefinition Width="1.15*"/><ColumnDefinition Width="1.0*"/><ColumnDefinition Width="0.9*"/></Grid.ColumnDefinitions>
                 <StackPanel Margin="0,0,9,0"><TextBlock Text="FORNITORE" Style="{StaticResource FieldLabelStyle}"/><ComboBox ItemsSource="{Binding Suppliers, Mode=OneWay}" SelectedItem="{Binding SelectedSupplier}"/></StackPanel>
                 <StackPanel Grid.Column="1" Margin="0,0,9,0"><TextBlock Text="SPESSORE" Style="{StaticResource FieldLabelStyle}"/><ComboBox ItemsSource="{Binding Thicknesses, Mode=OneWay}" SelectedItem="{Binding SelectedThickness}"/></StackPanel>
                 <StackPanel Grid.Column="2" Margin="0,0,9,0"><TextBlock Text="LARGHEZZA" Style="{StaticResource FieldLabelStyle}"/><ComboBox ItemsSource="{Binding Widths, Mode=OneWay}" SelectedItem="{Binding SelectedWidth}"/></StackPanel>
                 <StackPanel Grid.Column="3" Margin="0,0,9,0"><TextBlock Text="QUALITÀ" Style="{StaticResource FieldLabelStyle}"/><ComboBox ItemsSource="{Binding Qualities, Mode=OneWay}" SelectedItem="{Binding SelectedQuality}"/></StackPanel>
                 <StackPanel Grid.Column="4" Margin="0,0,9,0"><TextBlock Text="STATO CLASSIFICAZIONE" Style="{StaticResource FieldLabelStyle}"/><ComboBox ItemsSource="{Binding ClassificationStatuses, Mode=OneWay}" SelectedItem="{Binding SelectedClassificationStatus}"/></StackPanel>
-                <StackPanel Grid.Column="5"><TextBlock Text="RETTIFICA SCARTI" Style="{StaticResource FieldLabelStyle}"/><ComboBox ItemsSource="{Binding WasteStatuses, Mode=OneWay}" SelectedItem="{Binding SelectedWasteStatus}"/></StackPanel>
+                <StackPanel Grid.Column="5" Margin="0,0,9,0"><TextBlock Text="RETTIFICA SCARTI" Style="{StaticResource FieldLabelStyle}"/><ComboBox ItemsSource="{Binding WasteStatuses, Mode=OneWay}" SelectedItem="{Binding SelectedWasteStatus}"/></StackPanel>
+                <StackPanel Grid.Column="6"><TextBlock Text="TIPO PACCO" Style="{StaticResource FieldLabelStyle}"/><ComboBox ItemsSource="{Binding PackageTypes, Mode=OneWay}" SelectedItem="{Binding SelectedPackageType}"/></StackPanel>
             </Grid>
         </Border>
         <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="0" ClipToBounds="True">
@@ -58,6 +60,7 @@
                     <DataGridTextColumn Header="Carico" Width="65" Binding="{Binding LoadNumber, Mode=OneWay}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
                     <DataGridTextColumn Header="Fornitore" Width="155" Binding="{Binding SupplierName, Mode=OneWay}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
                     <DataGridTextColumn Header="Data arrivo" Width="90" Binding="{Binding ArrivalDate, Mode=OneWay, StringFormat=dd/MM/yyyy}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
+                    <DataGridTextColumn Header="Tipo" Width="105" Binding="{Binding PackageTypeDisplay, Mode=OneWay}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
                     <DataGridTextColumn Header="Pacco" Width="65" Binding="{Binding PackagePosition, Mode=OneWay}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
                     <DataGridTextColumn Header="Spessore" Width="75" Binding="{Binding ConventionalThickness, Mode=OneWay, StringFormat=N2}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
                     <DataGridTextColumn Header="Larghezza" Width="80" Binding="{Binding WidthAfterPlaning, Mode=OneWay, StringFormat=N2}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
@@ -69,15 +72,16 @@
                     <DataGridTemplateColumn Header="Rettifica scarti" Width="105">
                         <DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding WasteAdjustmentStatus, Mode=OneWay}" FontSize="17" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock.ToolTip><StackPanel><TextBlock Text="Dati della rettifica del gruppo" FontWeight="Bold"/><TextBlock Text="{Binding WasteAdjustmentDate, Mode=OneWay, StringFormat=Data: {0:dd/MM/yyyy HH:mm}, TargetNullValue=Non ancora effettuata}"/><TextBlock Text="{Binding WasteAdjustmentOperator, Mode=OneWay, StringFormat=Operatore: {0}, TargetNullValue=—}"/></StackPanel></TextBlock.ToolTip></TextBlock></DataTemplate></DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTextColumn Header="MC ingresso" Width="95" Binding="{Binding IncomingCubicMeters, Mode=OneWay, StringFormat=N2}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
+                    <DataGridTextColumn Header="MC ingresso" Width="95" Binding="{Binding IncomingCubicMetersDisplay, Mode=OneWay}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
                     <DataGridTextColumn Header="Scarto qualità %" Width="115" Binding="{Binding QualityWasteDisplay, Mode=OneWay}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
-                    <DataGridTextColumn Header="MC Giacenza" Width="95" Binding="{Binding InventoryCubicMeters, Mode=OneWay, StringFormat=N2}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
+                    <DataGridTextColumn Header="MC Giacenza" Width="95" Binding="{Binding InventoryCubicMetersDisplay, Mode=OneWay}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
                     <DataGridTextColumn Header="Valore €" Width="110" Binding="{Binding PackageValueDisplay}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
                     <DataGridTemplateColumn Header="Azioni" Width="115">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <Button Content="Rimuovi pacco" Tag="{Binding}" Click="DeletePackage_Click"
-                                        Style="{StaticResource SecondaryButtonStyle}" Padding="11,6" Margin="5,3"/>
+                                <Button Content="Rimuovi pacco" Tag="{Binding}" Click="DeletePackage_Click" Padding="11,6" Margin="5,3">
+                                    <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}"><Style.Triggers><DataTrigger Binding="{Binding IsSupplementary}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                                </Button>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>

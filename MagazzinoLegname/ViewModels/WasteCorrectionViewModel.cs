@@ -39,7 +39,7 @@ public sealed class WasteCorrectionViewModel : ObservableObject
     private void ReloadEligibleGroups()
     {
         Groups.Clear();
-        var presentPackages = _inventory.BuildInventory();
+        var presentPackages = _inventory.BuildInventory().Where(package => package.IsAccountedPackage).ToArray();
         var presentGroupIds = presentPackages.Select(package => package.MaterialGroupId).ToHashSet();
         foreach (var load in _workflow.Loads)
         foreach (var group in load.Groups.Where(group => group.IsClassified && !group.WasteVerified

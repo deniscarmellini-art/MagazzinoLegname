@@ -35,9 +35,9 @@ public sealed class HistoryViewModel : ObservableObject
     public ObservableCollection<string> Suppliers { get; } = [];
     public ObservableCollection<string> Thicknesses { get; } = [];
     public ObservableCollection<string> Operators { get; } = [];
-    public IReadOnlyList<string> MovementTypes { get; } = ["Tutti", "Entrata", "Classificazione", "Rettifica scarti", "Scarico", "Reso", "Rimozione manuale"];
+    public IReadOnlyList<string> MovementTypes { get; } = ["Tutti", "Entrata", "Classificazione", "Rettifica scarti", "Scarico", "Uscita supplementare", "Reso", "Rimozione manuale"];
     public IReadOnlyList<string> Qualities { get; } = ["Tutte", "C", "VISTA"];
-    public IReadOnlyList<string> QuickFilters { get; } = ["Tutti", "Entrate", "Rettifiche", "Scarichi", "Resi", "Rimozioni manuali"];
+    public IReadOnlyList<string> QuickFilters { get; } = ["Tutti", "Entrate", "Rettifiche", "Scarichi", "Uscite supplementari", "Resi", "Rimozioni manuali"];
     public ObservableCollection<HistoryMovementRow> LoadTimeline { get; } = [];
     public ObservableCollection<LoadPackageHistoryRow> LoadPackages { get; } = [];
 
@@ -238,6 +238,16 @@ public sealed class HistoryViewModel : ObservableObject
                 $"Codice pacco: {discharge.PackageCode}\nCarico: {load.LoadNumber}\nFornitore: {load.SupplierName}\nPacco: {package?.PackagePosition ?? "—"}\nMateriale: {Material(group)}\nQualità: {group.Quality}\nMC scaricati: {discharge.DischargedCubicMeters:N2}\nData/ora: {discharge.DischargeDate:dd/MM/yyyy HH:mm}\nOperatore: {discharge.DischargeOperator}");
         }
 
+
+        foreach (var exit in inventory.SupplementaryExitMovements)
+        {
+            var (load, group) = FindGroup(workflow, exit.LoadId, exit.MaterialGroupId);
+            if (load is null || group is null) continue;
+            yield return new HistoryMovementRow(exit.ExitDate, "Uscita supplementare", load.Id, group.GroupId,
+                load.LoadNumber, load.SupplierName, Material(group), group.ConventionalThickness, group.Quality,
+                exit.PackageCode, 0m, exit.ExitOperator, load.DeliveryNoteNumber,
+                $"Tipo movimento: Uscita supplementare\nCodice pacco: {exit.PackageCode}\nCarico: {load.LoadNumber}\nFornitore: {load.SupplierName}\nMateriale: {Material(group)}\nQualità: {group.Quality}\nMC movimentati: —\nData/ora: {exit.ExitDate:dd/MM/yyyy HH:mm}\nOperatore: {exit.ExitOperator}");
+        }
         foreach (var removal in inventory.ManualRemovalMovements)
         {
             var (load, group) = FindGroup(workflow, removal.LoadId, removal.MaterialGroupId);
@@ -272,7 +282,7 @@ public sealed class HistoryViewModel : ObservableObject
     private void ApplyFilters()
     {
         var quickType = QuickFilter switch { "Entrate" => "Entrata", "Rettifiche" => "Rettifica scarti",
-            "Scarichi" => "Scarico", "Resi" => "Reso", "Rimozioni manuali" => "Rimozione manuale", _ => null };
+            "Scarichi" => "Scarico", "Uscite supplementari" => "Uscita supplementare", "Resi" => "Reso", "Rimozioni manuali" => "Rimozione manuale", _ => null };
         var query = _allMovements
             .Where(item => !item.DateTime.HasValue || !FromDate.HasValue || item.DateTime.Value.Date >= FromDate.Value.Date)
             .Where(item => !item.DateTime.HasValue || !ToDate.HasValue || item.DateTime.Value.Date <= ToDate.Value.Date)
@@ -356,7 +366,7 @@ public sealed class LoadPackageHistoryRow
     {
         PackageCode = package.PackageCode; Position = package.PackagePosition; Quality = package.Quality;
         Measure = package.OperationalMeasure; Status = package.PackageStatus;
-        EventDate = package.DischargeDate ?? package.ManualRemovalDate;
+        EventDate = package.DischargeDate ?? package.ManualRemovalDate ?? package.SupplementaryExitDate;
         EventCubicMeters = package.DischargedCubicMeters ?? package.ManuallyRemovedCubicMeters;
         Reason = package.ManualRemovalReason;
     }

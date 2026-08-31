@@ -244,7 +244,7 @@
                 <TextBlock Text="{Binding ValidationMessage, Mode=OneWay}" Foreground="{DynamicResource DangerBrush}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center" MaxWidth="820" HorizontalAlignment="Left"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button Content="Annulla" Click="Cancel_Click" IsEnabled="{Binding IsPrimaryActionEnabled}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,0"/>
-                    <Button Content="&#xE749;  REGISTRA E STAMPA ETICHETTE" Click="RegisterAndPrint_Click" IsEnabled="{Binding IsPrimaryActionEnabled}" Style="{StaticResource PrimaryButtonStyle}"/>
+                    <Button Content="&#xE749;  REGISTRA CARICO" Click="RegisterLoad_Click" IsEnabled="{Binding IsPrimaryActionEnabled}" Style="{StaticResource PrimaryButtonStyle}"/>
                 </StackPanel>
             </Grid>
         </Grid>

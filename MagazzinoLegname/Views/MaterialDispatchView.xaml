@@ -103,11 +103,11 @@
                     <StackPanel Margin="0,0,12,0"><TextBlock Text="CERTIFICAZIONE" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding CurrentPackage.Certification, Mode=OneWay}" FontWeight="Bold"/></StackPanel>
                     <StackPanel Margin="0,0,12,0"><TextBlock Text="CLASSIFICAZIONE" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding CurrentPackage.ClassificationStatus, Mode=OneWay}" FontWeight="Bold"/></StackPanel>
                     <StackPanel Margin="0,0,12,0"><TextBlock Text="RETTIFICA SCARTI" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding CurrentPackage.WasteAdjustmentStatus, Mode=OneWay}" FontSize="18" FontWeight="Bold"/></StackPanel>
-                    <StackPanel><TextBlock Text="MC GIACENZA" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding CurrentPackage.InventoryCubicMeters, Mode=OneWay, StringFormat=N2}" FontSize="22" FontWeight="ExtraBold" Foreground="{DynamicResource AccentBrush}"/></StackPanel>
+                    <StackPanel><TextBlock Text="MC GIACENZA" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding CurrentPackage.InventoryCubicMetersDisplay, Mode=OneWay}" FontSize="22" FontWeight="ExtraBold" Foreground="{DynamicResource AccentBrush}"/></StackPanel>
                 </UniformGrid>
                 <Grid Grid.Row="2" Margin="0,17,0,0">
                     <StackPanel VerticalAlignment="Center"><TextBlock Text="{Binding DischargeAmountText, Mode=OneWay}" FontSize="17" FontWeight="Bold"/><TextBlock Text="{Binding PreviousDischargeDetail, Mode=OneWay}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,4,0,0"/></StackPanel>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="Annulla" Style="{StaticResource SecondaryButtonStyle}" Click="Cancel_Click" Margin="0,0,9,0"/><Button Content="CONFERMA SCARICO" Style="{StaticResource PrimaryButtonStyle}" IsEnabled="{Binding CanDischarge}" Click="Confirm_Click"/></StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="Annulla" Style="{StaticResource SecondaryButtonStyle}" Click="Cancel_Click" Margin="0,0,9,0"/><Button Content="{Binding ConfirmButtonText, Mode=OneWay}" Style="{StaticResource PrimaryButtonStyle}" IsEnabled="{Binding CanDischarge}" Click="Confirm_Click"/></StackPanel>
                 </Grid>
             </Grid>
         </Border>
@@ -120,11 +120,11 @@
                         <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource DispatchHeaderStyle}"/>
                     </DataGrid.Resources>
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="Ora" Width="90" Binding="{Binding DischargeDate, Mode=OneWay, StringFormat=HH:mm:ss}" HeaderStyle="{StaticResource DispatchCenteredHeaderStyle}" ElementStyle="{StaticResource DispatchCenteredCellStyle}"/>
+                        <DataGridTextColumn Header="Ora" Width="90" Binding="{Binding Date, Mode=OneWay, StringFormat=HH:mm:ss}" HeaderStyle="{StaticResource DispatchCenteredHeaderStyle}" ElementStyle="{StaticResource DispatchCenteredCellStyle}"/>
                         <DataGridTextColumn Header="Codice pacco" Width="220" Binding="{Binding PackageCode, Mode=OneWay}" HeaderStyle="{StaticResource DispatchLeftHeaderStyle}" ElementStyle="{StaticResource DispatchLeftCellStyle}"/>
                         <DataGridTextColumn Header="Fornitore" Width="*" MinWidth="220" Binding="{Binding SupplierName, Mode=OneWay}" HeaderStyle="{StaticResource DispatchLeftHeaderStyle}" ElementStyle="{StaticResource DispatchLeftCellStyle}"/>
                         <DataGridTextColumn Header="Carico" Width="90" Binding="{Binding LoadNumber, Mode=OneWay}" HeaderStyle="{StaticResource DispatchCenteredHeaderStyle}" ElementStyle="{StaticResource DispatchCenteredCellStyle}"/>
-                        <DataGridTextColumn Header="MC scaricati" Width="120" Binding="{Binding DischargedCubicMeters, Mode=OneWay, StringFormat=N2}" HeaderStyle="{StaticResource DispatchCenteredHeaderStyle}" ElementStyle="{StaticResource DispatchCenteredCellStyle}"/>
+                        <DataGridTextColumn Header="MC scaricati" Width="120" Binding="{Binding CubicMeters, Mode=OneWay, TargetNullValue=—, StringFormat=N2}" HeaderStyle="{StaticResource DispatchCenteredHeaderStyle}" ElementStyle="{StaticResource DispatchCenteredCellStyle}"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </Grid>

@@ -27,7 +27,7 @@ public partial class GoodsReceiptView : UserControl
             : string.Empty);
     }
 
-    private void RegisterAndPrint_Click(object sender, RoutedEventArgs e)
+    private void RegisterLoad_Click(object sender, RoutedEventArgs e)
     {
         if (ViewModel.IsBusy) return;
         if (ViewModel.RegistrationState == GoodsReceiptRegistrationState.New
@@ -46,7 +46,7 @@ public partial class GoodsReceiptView : UserControl
                 ViewModel.MarkRegistered(packages);
             }
 
-            if (ViewModel.IsRegistered && ShowLabelPreview(ViewModel.RegisteredPackages) == true)
+            if (ViewModel.IsRegistered)
                 ViewModel.CompleteAndReset();
         }
         catch (Exception exception)
@@ -57,13 +57,5 @@ public partial class GoodsReceiptView : UserControl
         {
             ViewModel.IsBusy = false;
         }
-    }
-
-    private bool? ShowLabelPreview(IReadOnlyList<PhysicalPackageDraft> packages)
-    {
-        var preview = new QrPackagePreviewWindow(packages, ViewModel.SelectedSupplier!.Name,
-            ViewModel.LoadDraft.LoadNumber, ViewModel.LoadDraft.DeliveryNoteNumber,
-            ViewModel.LoadDraft.CertificationApplied) { Owner = Window.GetWindow(this) };
-        return preview.ShowDialog();
     }
 }

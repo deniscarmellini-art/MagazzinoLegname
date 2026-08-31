@@ -7,6 +7,8 @@ public sealed class MaterialGroupClassification : ObservableObject
     private DateTime? _classificationDate;
     private string? _classificationOperator;
     private bool _isClassified;
+    private DateTime? _officialLabelsPrintedAt;
+    private string? _officialLabelsPrintedBy;
 
     public Guid GroupId { get; init; } = Guid.NewGuid();
     public required Guid LoadId { get; init; }
@@ -38,12 +40,22 @@ public sealed class MaterialGroupClassification : ObservableObject
           / IncomingPhysicalCubicMeters * 100m;
     public DateTime? ClassificationDate { get => _classificationDate; private set => SetProperty(ref _classificationDate, value); }
     public string? ClassificationOperator { get => _classificationOperator; private set => SetProperty(ref _classificationOperator, value); }
+    public DateTime? OfficialLabelsPrintedAt { get => _officialLabelsPrintedAt; private set => SetProperty(ref _officialLabelsPrintedAt, value); }
+    public string? OfficialLabelsPrintedBy { get => _officialLabelsPrintedBy; private set => SetProperty(ref _officialLabelsPrintedBy, value); }
+    public bool OfficialLabelsPrinted => OfficialLabelsPrintedAt.HasValue;
     public bool WasteVerified { get; private set; }
     public bool IsClassified => _isClassified;
     public bool CanUndoClassification => IsClassified && !WasteVerified;
     public string ClassificationStatus => IsClassified
         ? WasteVerified ? "Disponibile" : "Classificato · scarti da verificare"
         : "Da classificare";
+
+    public void MarkOfficialLabelsPrinted(string operatorName, DateTime printedAt)
+    {
+        OfficialLabelsPrintedBy = operatorName;
+        OfficialLabelsPrintedAt = printedAt;
+        OnPropertyChanged(nameof(OfficialLabelsPrinted));
+    }
 
     public void MarkAsClassified(string operatorName, DateTime classifiedAt)
     {

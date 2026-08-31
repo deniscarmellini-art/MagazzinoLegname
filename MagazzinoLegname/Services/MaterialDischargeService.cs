@@ -14,6 +14,16 @@ public sealed partial class MaterialDischargeService
 
         var package = _inventory.FindPackage(packageCode);
         if (package is null) return new(PackageLookupStatus.NotFound, "Pacco non trovato");
+        if (package.IsSupplementary)
+        {
+            var previousExit = _inventory.FindSupplementaryExit(packageCode);
+            if (previousExit is not null || !package.IsPresent)
+                return new(PackageLookupStatus.AlreadyDischarged,
+                    "Pacco supplementare già uscito dalla giacenza fisica.", package);
+            return new(PackageLookupStatus.Ready,
+                "Pacco supplementare riconosciuto. Verrà registrata l'uscita fisica senza movimento di MC.", package);
+        }
+
         var previousMovement = _inventory.FindMovement(packageCode);
         if (previousMovement is not null || !package.IsPresent)
             return new(PackageLookupStatus.AlreadyDischarged, "Pacco già scaricato", package, previousMovement);
@@ -26,8 +36,20 @@ public sealed partial class MaterialDischargeService
         return new(PackageLookupStatus.Ready, "Pacco pronto per lo scarico", package);
     }
 
-    public MaterialDischargeMovement Confirm(InventoryPackage package, string operatorName) =>
-        _inventory.Discharge(package.PackageCode, operatorName);
+    public PackageExitResult Confirm(InventoryPackage package, string operatorName)
+    {
+        if (package.IsSupplementary)
+        {
+            var movement = _inventory.ExitSupplementaryPackage(package.PackageCode, operatorName);
+            return new PackageExitResult(movement.PackageCode, PackageType.Supplementary, movement.ExitDate,
+                movement.ExitOperator, null, "Uscita supplementare registrata senza movimento di MC.");
+        }
+
+        var discharge = _inventory.Discharge(package.PackageCode, operatorName);
+        return new PackageExitResult(discharge.PackageCode, PackageType.Official, discharge.DischargeDate,
+            discharge.DischargeOperator, discharge.DischargedCubicMeters,
+            $"Pacco {discharge.PackageCode} scaricato correttamente · MC scaricati: {discharge.DischargedCubicMeters:N6}");
+    }
 
     private static bool TryExtractPackageCode(string payload, out string packageCode)
     {
@@ -47,6 +69,6 @@ public sealed partial class MaterialDischargeService
         return PackageCodePattern().IsMatch(packageCode);
     }
 
-    [GeneratedRegex("^[A-Z0-9]{2,8}-[0-9]+-[0-9]{2}-P[0-9]{2,}$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex("^[A-Z0-9]{2,8}-[0-9]+-[0-9]{2}-[PS][0-9]{2,}$", RegexOptions.CultureInvariant)]
     private static partial Regex PackageCodePattern();
 }

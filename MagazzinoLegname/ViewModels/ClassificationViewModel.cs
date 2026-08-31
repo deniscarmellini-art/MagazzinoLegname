@@ -9,17 +9,18 @@ namespace MagazzinoLegname.ViewModels;
 public sealed class ClassificationViewModel : ObservableObject
 {
     private readonly IReadOnlyList<ClassificationLoad> _allLoads;
+    private readonly ClassificationWorkflowService _workflow = ClassificationWorkflowService.Shared;
     private readonly InventoryProjectionService _inventory = InventoryProjectionService.Shared;
     private readonly HashSet<Guid> _subscribedLoadIds = [];
     private ClassificationLoad? _selectedLoad;
 
     public ClassificationViewModel()
     {
-        _allLoads = ClassificationWorkflowService.Shared.Loads;
+        _allLoads = _workflow.Loads;
         Operators = OperatorCatalogService.Shared.ActiveOperatorNames;
         OperatorCatalogService.Shared.CatalogChanged += (_, _) => EnsureActiveSelections();
         SubscribeToNewLoads();
-        ClassificationWorkflowService.Shared.WorkflowChanged += (_, _) =>
+        _workflow.WorkflowChanged += (_, _) =>
         {
             SubscribeToNewLoads();
             ApplyFilters();
@@ -42,19 +43,81 @@ public sealed class ClassificationViewModel : ObservableObject
     public string LoadCountText => VisibleLoads.Count == 1
         ? "1 carico da completare" : $"{VisibleLoads.Count} carichi da completare";
 
+    public IReadOnlyList<PhysicalPackageDraft> GetOfficialPackages(MaterialGroupClassification group) =>
+        _workflow.RegisteredPhysicalPackages
+            .Where(package => package.OriginGroupId == group.GroupId && package.PackageType == PackageType.Official)
+            .OrderBy(package => package.SequenceNumber)
+            .ToArray();
+
+    public IReadOnlyList<PhysicalPackageDraft> GetSupplementaryPackages(MaterialGroupClassification group) =>
+        _workflow.SupplementaryPackages
+            .Where(package => package.MaterialGroupId == group.GroupId)
+            .OrderBy(package => package.SupplementarySequence)
+            .Select(ToLabelDraft)
+            .ToArray();
+
+    public PhysicalPackageDraft CreateSupplementaryPackage(MaterialGroupClassification group)
+    {
+        var load = _allLoads.FirstOrDefault(item => item.Id == group.LoadId)
+            ?? throw new InvalidOperationException("Carico non trovato.");
+        if (string.IsNullOrWhiteSpace(load.SelectedOperator))
+            throw new InvalidOperationException("Selezionare un operatore prima di creare l'etichetta supplementare.");
+        return ToLabelDraft(_workflow.CreateSupplementaryPackage(load, group, load.SelectedOperator, DateTime.Now));
+    }
+
+    public void MarkOfficialLabelsPrinted(MaterialGroupClassification group)
+    {
+        var load = _allLoads.FirstOrDefault(item => item.Id == group.LoadId)
+            ?? throw new InvalidOperationException("Carico non trovato.");
+        if (string.IsNullOrWhiteSpace(load.SelectedOperator))
+            throw new InvalidOperationException("Selezionare un operatore prima della stampa.");
+        _workflow.MarkOfficialLabelsPrinted(group, load.SelectedOperator, DateTime.Now);
+    }
+
+    public string GetSupplierName(MaterialGroupClassification group) =>
+        _allLoads.FirstOrDefault(item => item.Id == group.LoadId)?.SupplierName ?? string.Empty;
+
+    public string GetLoadNumber(MaterialGroupClassification group) =>
+        _allLoads.FirstOrDefault(item => item.Id == group.LoadId)?.LoadNumber ?? string.Empty;
+
+    public string GetDeliveryNoteNumber(MaterialGroupClassification group) =>
+        _allLoads.FirstOrDefault(item => item.Id == group.LoadId)?.DeliveryNoteNumber ?? string.Empty;
+
+    public string GetCertification(MaterialGroupClassification group) =>
+        _allLoads.FirstOrDefault(item => item.Id == group.LoadId)?.Certification ?? string.Empty;
+
+    public string GetPackageSummary(MaterialGroupClassification group)
+    {
+        var supplementary = _workflow.SupplementaryPackages.Count(item => item.MaterialGroupId == group.GroupId);
+        return $"Ufficiali: {group.PackageCount} · Supplementari: {supplementary} · Fisici tracciati: {group.PackageCount + supplementary}";
+    }
+
     public void MarkGroupAsClassified(MaterialGroupClassification group)
     {
         var load = _allLoads.FirstOrDefault(item => item.Id == group.LoadId);
         if (group.IsClassified || load is null || string.IsNullOrWhiteSpace(load.SelectedOperator)) return;
         group.MarkAsClassified(load.SelectedOperator, DateTime.Now);
-        ClassificationWorkflowService.Shared.RecordClassification(group);
+        _workflow.RecordClassification(group);
     }
 
     public void UndoGroupClassification(MaterialGroupClassification group)
     {
         if (!group.UndoClassification()) return;
-        ClassificationWorkflowService.Shared.NotifyClassificationChanged();
+        _workflow.NotifyClassificationChanged();
     }
+
+    private static PhysicalPackageDraft ToLabelDraft(SupplementaryPackage package) => new(
+        package.Id, package.LoadId, package.MaterialGroupId, package.SupplementarySequence, 0,
+        package.IncomingThickness, package.IncomingWidth, package.WidthAfterPlaning,
+        package.IncomingLength, package.Quality)
+    {
+        TotalPackages = 0,
+        ArrivalDate = package.ArrivalDate,
+        PackageCode = package.PackageCode,
+        QrPayload = package.QrPayload,
+        PackageType = PackageType.Supplementary,
+        SupplementarySequence = package.SupplementarySequence
+    };
 
     private void ApplyFilters()
     {

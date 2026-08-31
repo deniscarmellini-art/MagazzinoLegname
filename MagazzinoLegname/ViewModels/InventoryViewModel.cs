@@ -16,6 +16,7 @@ public sealed class InventoryViewModel : ObservableObject
     private string _selectedQuality = "Tutte";
     private string _selectedClassificationStatus = "Tutti";
     private string _selectedWasteStatus = "Tutti";
+    private string _selectedPackageType = "Tutti";
 
     public InventoryViewModel()
     {
@@ -31,23 +32,29 @@ public sealed class InventoryViewModel : ObservableObject
     public ObservableCollection<string> Qualities { get; } = [];
     public IReadOnlyList<string> ClassificationStatuses { get; } = ["Tutti", "Da classificare", "Classificato"];
     public IReadOnlyList<string> WasteStatuses { get; } = ["Tutti", "Da rettificare", "Rettificato"];
+    public IReadOnlyList<string> PackageTypes { get; } = ["Tutti", "Ufficiali", "Supplementari"];
     public string SelectedSupplier { get => _selectedSupplier; set { if (SetProperty(ref _selectedSupplier, value)) ApplyFilters(); } }
     public string SelectedThickness { get => _selectedThickness; set { if (SetProperty(ref _selectedThickness, value)) ApplyFilters(); } }
     public string SelectedWidth { get => _selectedWidth; set { if (SetProperty(ref _selectedWidth, value)) ApplyFilters(); } }
     public string SelectedQuality { get => _selectedQuality; set { if (SetProperty(ref _selectedQuality, value)) ApplyFilters(); } }
     public string SelectedClassificationStatus { get => _selectedClassificationStatus; set { if (SetProperty(ref _selectedClassificationStatus, value)) ApplyFilters(); } }
     public string SelectedWasteStatus { get => _selectedWasteStatus; set { if (SetProperty(ref _selectedWasteStatus, value)) ApplyFilters(); } }
+    public string SelectedPackageType { get => _selectedPackageType; set { if (SetProperty(ref _selectedPackageType, value)) ApplyFilters(); } }
     public int PresentPackages => VisiblePackages.Count;
-    public decimal InventoryCubicMeters => VisiblePackages.Sum(package => package.InventoryCubicMeters);
-    public decimal CubicMetersToConsolidate => VisiblePackages.Where(package => !package.UsesRealCubicMeters).Sum(package => package.InventoryCubicMeters);
-    public decimal RealCubicMeters => VisiblePackages.Where(package => package.UsesRealCubicMeters).Sum(package => package.InventoryCubicMeters);
-    public decimal InventoryValue => VisiblePackages.Sum(package => package.PackageValue ?? 0m);
-    public int PackagesWithoutPrice => VisiblePackages.Count(package => !package.AppliedPrice.HasValue);
-    public string InventoryValueDisplay => VisiblePackages.Count == 0 || PackagesWithoutPrice == VisiblePackages.Count ? "N/D"
+    public decimal InventoryCubicMeters => VisiblePackages.Where(package => package.IsAccountedPackage).Sum(package => package.InventoryCubicMeters);
+    public decimal CubicMetersToConsolidate => VisiblePackages.Where(package => package.IsAccountedPackage && !package.UsesRealCubicMeters).Sum(package => package.InventoryCubicMeters);
+    public decimal RealCubicMeters => VisiblePackages.Where(package => package.IsAccountedPackage && package.UsesRealCubicMeters).Sum(package => package.InventoryCubicMeters);
+    public decimal InventoryValue => VisiblePackages.Where(package => package.IsAccountedPackage).Sum(package => package.PackageValue ?? 0m);
+    public int AccountedPackages => VisiblePackages.Count(package => package.IsAccountedPackage);
+    public int PackagesWithoutPrice => VisiblePackages.Count(package => package.IsAccountedPackage && !package.AppliedPrice.HasValue);
+    public string InventoryValueDisplay => AccountedPackages == 0 || PackagesWithoutPrice == AccountedPackages ? "N/D"
         : $"{InventoryValue:N2} €" + (PackagesWithoutPrice > 0 ? " · PARZIALE" : "");
+
+    public IReadOnlyList<InventoryPackage> GetVisiblePackagesSnapshot() => VisiblePackages.ToArray();
 
     public void RemovePackage(InventoryPackage package, string operatorName, string reason, string? note)
     {
+        if (package.IsSupplementary) throw new InvalidOperationException("I pacchi supplementari devono uscire tramite Scarico supplementare.");
         if (reason == "Reso")
             SupplierReturnService.Shared.ReturnPackages(package.LoadId, [package.PackageCode], operatorName,
                 "Reso a fornitore", note);
@@ -64,6 +71,7 @@ public sealed class InventoryViewModel : ObservableObject
         var previousQuality = _selectedQuality;
         var previousClassificationStatus = _selectedClassificationStatus;
         var previousWasteStatus = _selectedWasteStatus;
+        var previousPackageType = _selectedPackageType;
 
         _allPackages = _projection.BuildInventory();
         ReplaceOptions(Suppliers, "Tutti", _allPackages.Select(package => package.SupplierName));
@@ -79,6 +87,8 @@ public sealed class InventoryViewModel : ObservableObject
             ClassificationStatuses, previousClassificationStatus, "Tutti");
         RestoreSelection(ref _selectedWasteStatus, nameof(SelectedWasteStatus),
             WasteStatuses, previousWasteStatus, "Tutti");
+        RestoreSelection(ref _selectedPackageType, nameof(SelectedPackageType),
+            PackageTypes, previousPackageType, "Tutti");
         ApplyFilters();
     }
 
@@ -91,14 +101,17 @@ public sealed class InventoryViewModel : ObservableObject
             .Where(package => SelectedQuality == "Tutte" || package.Quality == SelectedQuality)
             .Where(package => SelectedClassificationStatus == "Tutti" || package.ClassificationStatus == SelectedClassificationStatus)
             .Where(package => SelectedWasteStatus == "Tutti"
-                || SelectedWasteStatus == "Rettificato" && package.UsesRealCubicMeters
-                || SelectedWasteStatus == "Da rettificare" && !package.UsesRealCubicMeters)
+                || SelectedWasteStatus == "Rettificato" && package.IsAccountedPackage && package.UsesRealCubicMeters
+                || SelectedWasteStatus == "Da rettificare" && package.IsAccountedPackage && !package.UsesRealCubicMeters)
+            .Where(package => SelectedPackageType == "Tutti"
+                || SelectedPackageType == "Ufficiali" && package.PackageType == PackageType.Official
+                || SelectedPackageType == "Supplementari" && package.PackageType == PackageType.Supplementary)
             .ToList();
         VisiblePackages.Clear();
         foreach (var package in matches) VisiblePackages.Add(package);
         OnPropertyChanged(nameof(PresentPackages)); OnPropertyChanged(nameof(InventoryCubicMeters));
         OnPropertyChanged(nameof(CubicMetersToConsolidate)); OnPropertyChanged(nameof(RealCubicMeters));
-        OnPropertyChanged(nameof(InventoryValue));
+        OnPropertyChanged(nameof(InventoryValue)); OnPropertyChanged(nameof(AccountedPackages));
         OnPropertyChanged(nameof(PackagesWithoutPrice)); OnPropertyChanged(nameof(InventoryValueDisplay));
     }
 

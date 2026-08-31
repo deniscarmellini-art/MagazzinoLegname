@@ -84,7 +84,7 @@
                     <StackPanel><TextBlock FontSize="18" FontWeight="Bold"><Run Text="Gruppi materiale · carico "/><Run Text="{Binding SelectedLoad.LoadNumber, Mode=OneWay}"/></TextBlock><TextBlock Text="Ogni gruppo può essere completato indipendentemente dagli altri." Style="{StaticResource PageSubtitleStyle}"/></StackPanel>
                 </Border>
                 <DataGrid Grid.Row="1" ItemsSource="{Binding OperationalGroups}" AutoGenerateColumns="False"
-                          IsReadOnly="True" CanUserAddRows="False" SelectionUnit="FullRow" RowHeight="46"
+                          IsReadOnly="True" CanUserAddRows="False" SelectionUnit="FullRow" RowHeight="54"
                           ColumnHeaderStyle="{StaticResource ClassificationHeaderStyle}">
                     <DataGrid.Resources>
                         <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource ClassificationHeaderStyle}"/>
@@ -99,17 +99,25 @@
                         <DataGridTextColumn Header="Pacchi" Width="80" Binding="{Binding PackageCount, Mode=OneWay}" ElementStyle="{StaticResource CenteredGridText}"/>
                         <DataGridTextColumn Header="Pezzi iniziali" Width="110" Binding="{Binding InitialPieces, Mode=OneWay}" ElementStyle="{StaticResource CenteredGridText}"/>
                         <DataGridTextColumn Header="Stato classificazione" Width="220" Binding="{Binding ClassificationStatus, Mode=OneWay}" ElementStyle="{StaticResource CenteredGridText}"/>
-                        <DataGridTemplateColumn Header="Azione" Width="205">
+                        <DataGridTemplateColumn Header="Etichette e azioni" Width="520">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <Grid Margin="5,2">
-                                        <Button Content="Segna come classificato" Tag="{Binding}" Click="MarkClassified_Click" Padding="12,6">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="5,2">
+                                        <Button Content="Avvia e stampa" Tag="{Binding}" Click="StartOfficialLabels_Click" Padding="10,6" Margin="0,0,6,0" ToolTip="Stampa le etichette ufficiali P01...Pxx al primo avvio">
+                                            <Button.Style><Style TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}"><Style.Triggers><DataTrigger Binding="{Binding OfficialLabelsPrinted}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding IsClassified}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                                        </Button>
+                                        <Button Content="Ristampa" Tag="{Binding}" Click="ReprintOfficialLabels_Click" Style="{StaticResource SecondaryButtonStyle}" Padding="10,6" Margin="0,0,6,0" ToolTip="Ristampa le etichette ufficiali senza creare pacchi"/>
+                                        <Button Content="+ Supplementare" Tag="{Binding}" Click="AddSupplementaryLabel_Click" Padding="10,6" Margin="0,0,6,0" ToolTip="Crea e stampa una sola etichetta Sxx senza MC contabili">
+                                            <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}"><Style.Triggers><DataTrigger Binding="{Binding IsClassified}" Value="True"><Setter Property="IsEnabled" Value="False"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                                        </Button>
+                                        <Button Content="Ristampa suppl." Tag="{Binding}" Click="ReprintSupplementaryLabels_Click" Style="{StaticResource SecondaryButtonStyle}" Padding="10,6" Margin="0,0,6,0" ToolTip="Ristampa le supplementari già create senza generarne di nuove"/>
+                                        <Button Content="Classificato" Tag="{Binding}" Click="MarkClassified_Click" Padding="10,6">
                                             <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}"><Style.Triggers><DataTrigger Binding="{Binding IsClassified}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Button.Style>
                                         </Button>
-                                        <Button Content="↶  Annulla classificazione" Tag="{Binding}" Click="UndoClassification_Click" Padding="12,6" ToolTip="Riporta il gruppo allo stato Da classificare">
+                                        <Button Content="↶" Tag="{Binding}" Click="UndoClassification_Click" Padding="10,6" ToolTip="Riporta il gruppo allo stato Da classificare">
                                             <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding CanUndoClassification}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Button.Style>
                                         </Button>
-                                    </Grid>
+                                    </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>

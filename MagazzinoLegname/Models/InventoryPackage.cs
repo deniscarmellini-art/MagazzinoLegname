@@ -13,10 +13,14 @@ public sealed class InventoryPackage
     public DateTime ArrivalDate { get; init; }
     public int PackageNumber { get; init; }
     public int TotalPackages { get; init; }
+    public int? PieceCount { get; init; }
     public decimal ConventionalThickness { get; init; }
     public decimal IncomingThickness { get; init; }
+    public decimal IncomingWidth { get; init; }
     public decimal WidthAfterPlaning { get; init; }
     public decimal IncomingLength { get; init; }
+    public PackageType PackageType { get; init; } = PackageType.Official;
+    public int? SupplementarySequence { get; init; }
     public required string Quality { get; init; }
     public required string Certification { get; init; }
     public required string ClassificationStatus { get; init; }
@@ -26,7 +30,9 @@ public sealed class InventoryPackage
     public decimal? QualityWastePercentage { get; init; }
     public decimal InventoryCubicMeters { get; init; }
     public decimal? AppliedPrice { get; init; }
-    public decimal? PackageValue => AppliedPrice.HasValue ? InventoryCubicMeters * AppliedPrice.Value : null;
+    public bool IsSupplementary => PackageType == PackageType.Supplementary;
+    public bool IsAccountedPackage => PackageType == PackageType.Official;
+    public decimal? PackageValue => AppliedPrice.HasValue && IsAccountedPackage ? InventoryCubicMeters * AppliedPrice.Value : null;
     public decimal? TheoreticalUsefulCubicMeters { get; init; }
     public decimal? LegacyEstimatedCubicMeters { get; init; }
     public InventoryQuantitySource InventoryQuantitySource { get; init; }
@@ -35,7 +41,7 @@ public sealed class InventoryPackage
     public int? LegacyExcelRow { get; init; }
     public string? LegacyQr { get; init; }
     public Guid? LegacyImportBatchId { get; init; }
-    public string PriceDisplay => AppliedPrice.HasValue ? $"{AppliedPrice:N2} €/m³" : "N/D";
+    public string PriceDisplay => AppliedPrice.HasValue && IsAccountedPackage ? $"{AppliedPrice:N2} €/m³" : "N/D";
     public string PackageValueDisplay => PackageValue.HasValue ? $"{PackageValue:N2} €" : "N/D";
     public bool UsesRealCubicMeters { get; init; }
     public bool WasteVerified { get; init; }
@@ -56,13 +62,20 @@ public sealed class InventoryPackage
     public string? SupplierReturnReason { get; init; }
     public string? SupplierReturnNote { get; init; }
     public string? SupplierReturnDocumentReference { get; init; }
+    public DateTime? SupplementaryExitDate { get; init; }
+    public string? SupplementaryExitOperator { get; init; }
     public DateTime? WasteAdjustmentDate { get; init; }
     public string? WasteAdjustmentOperator { get; init; }
-    public string PackagePosition => $"{PackageNumber} / {TotalPackages}";
-    public string QualityWasteDisplay => QualityWastePercentage.HasValue
+    public string PackageTypeDisplay => IsSupplementary ? "Supplementare" : "Ufficiale";
+    public string PieceCountDisplay => PieceCount.HasValue ? PieceCount.Value.ToString("N0") : "—";
+    public string PackagePosition => IsSupplementary && SupplementarySequence.HasValue ? $"S{SupplementarySequence.Value:00}" : $"{PackageNumber} / {TotalPackages}";
+    public string InventoryCubicMetersDisplay => IsSupplementary ? "—" : InventoryCubicMeters.ToString("N2");
+    public string IncomingCubicMetersDisplay => IsSupplementary ? "—" : IncomingCubicMeters.ToString("N2");
+    public string PackageValueExportDisplay => IsSupplementary ? string.Empty : PackageValueDisplay;
+    public string QualityWasteDisplay => QualityWastePercentage.HasValue && IsAccountedPackage
         ? $"{QualityWastePercentage.Value:N2}%" : "—";
     public string OperationalMeasure => $"{ConventionalThickness:N2} × {WidthAfterPlaning:N2} × {IncomingLength:N2}";
-    public string InventoryStatus => ClassificationStatus switch
+    public string InventoryStatus => IsSupplementary ? "Supplementare · senza MC contabili" : ClassificationStatus switch
     {
         "Da classificare" => "Da classificare",
         _ when !UsesRealCubicMeters => "Classificato · rettifica da fare",

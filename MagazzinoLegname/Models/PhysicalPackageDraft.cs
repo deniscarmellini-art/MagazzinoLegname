@@ -21,9 +21,13 @@ public sealed record PhysicalPackageDraft(
     public int? LegacyExcelRow { get; init; }
     public string? LegacyQr { get; init; }
     public string? LegacyIdentifier { get; init; }
+    public PackageType PackageType { get; init; } = PackageType.Official;
+    public int? SupplementarySequence { get; init; }
     public decimal? LegacyEstimatedCubicMeters { get; init; }
     public Guid? LegacyImportBatchId { get; init; }
     public int? LegacyPackageNumber { get; init; }
     public int? LegacyTotalPackages { get; init; }
+    public bool IsSupplementary => PackageType == PackageType.Supplementary;
+    public string SupplementaryCode => SupplementarySequence.HasValue ? $"S{SupplementarySequence.Value:00}" : string.Empty;
     public decimal IncomingPhysicalCubicMeters => PieceCount * IncomingThickness * IncomingWidth * IncomingLength / 1_000_000_000m;
 }

@@ -13,6 +13,7 @@ public sealed class InventoryProjectionService
     private InventoryProjectionService() { }
 
     public ObservableCollection<MaterialDischargeMovement> DischargeMovements { get; } = [];
+    public ObservableCollection<SupplementaryPackageExitMovement> SupplementaryExitMovements { get; } = [];
     public ObservableCollection<ManualPackageRemovalMovement> ManualRemovalMovements { get; } = [];
     public ObservableCollection<SupplierReturnMovement> SupplierReturnMovements { get; } = [];
     public event EventHandler? InventoryChanged;
@@ -33,6 +34,13 @@ public sealed class InventoryProjectionService
     {
         lock (_sync)
             return DischargeMovements.LastOrDefault(movement =>
+                movement.PackageCode.Equals(packageCode, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public SupplementaryPackageExitMovement? FindSupplementaryExit(string packageCode)
+    {
+        lock (_sync)
+            return SupplementaryExitMovements.LastOrDefault(movement =>
                 movement.PackageCode.Equals(packageCode, StringComparison.OrdinalIgnoreCase));
     }
 
@@ -59,6 +67,29 @@ public sealed class InventoryProjectionService
                 PreviousStatus = "Presente", NextStatus = "Scaricato"
             };
             DischargeMovements.Add(movement);
+            InventoryChanged?.Invoke(this, EventArgs.Empty);
+            return movement;
+        }
+    }
+
+    public SupplementaryPackageExitMovement ExitSupplementaryPackage(string packageCode, string operatorName)
+    {
+        lock (_sync)
+        {
+            var package = BuildInventoryCore(true).FirstOrDefault(item =>
+                item.PackageCode.Equals(packageCode, StringComparison.OrdinalIgnoreCase))
+                ?? throw new InvalidOperationException("Pacco supplementare non trovato.");
+            if (!package.IsSupplementary) throw new InvalidOperationException("Il pacco indicato non è supplementare.");
+            if (!package.IsPresent) throw new InvalidOperationException("Pacco supplementare già uscito dalla giacenza fisica.");
+            if (string.IsNullOrWhiteSpace(operatorName)) throw new InvalidOperationException("Indicare l'operatore.");
+            var movement = new SupplementaryPackageExitMovement
+            {
+                PackageId = package.Id, PackageCode = package.PackageCode,
+                LoadId = package.LoadId, MaterialGroupId = package.MaterialGroupId,
+                LoadNumber = package.LoadNumber, SupplierName = package.SupplierName,
+                ExitDate = DateTime.Now, ExitOperator = operatorName
+            };
+            SupplementaryExitMovements.Add(movement);
             InventoryChanged?.Invoke(this, EventArgs.Empty);
             return movement;
         }
@@ -97,6 +128,8 @@ public sealed class InventoryProjectionService
     {
         lock (_sync)
         {
+            if (packages.Any(item => item.IsSupplementary))
+                throw new InvalidOperationException("I pacchi supplementari non possono generare movimenti di reso con MC.");
             var current = BuildInventoryCore(false).ToDictionary(item => item.PackageCode, StringComparer.OrdinalIgnoreCase);
             if (packages.Any(item => !current.ContainsKey(item.PackageCode)))
                 throw new InvalidOperationException("Uno o più pacchi non sono più presenti e non possono essere resi.");
@@ -183,6 +216,7 @@ public sealed class InventoryProjectionService
                     movementByCode.TryGetValue(code, out var movement);
                     removalByCode.TryGetValue(code, out var removal);
                     returnByCode.TryGetValue(code, out var supplierReturn);
+                    var registeredPackage = RegisteredPackageByCode(code);
                     var isPresent = movement is null && removal is null && supplierReturn is null;
                     if (!includeDischarged && !isPresent) continue;
                     if (!_packageIds.TryGetValue(code, out var packageId))
@@ -193,7 +227,8 @@ public sealed class InventoryProjectionService
                         PackageCode = code, LoadNumber = load.LoadNumber, SupplierName = load.SupplierName,
                         ArrivalDate = legacyPackage?.ArrivalDate ?? load.ArrivalDate, PackageNumber = legacyPackage?.LegacyPackageNumber ?? loadSequence,
                         TotalPackages = legacyPackage?.LegacyTotalPackages ?? load.TotalPackages,
-                        ConventionalThickness = group.ConventionalThickness, IncomingThickness = group.IncomingThickness, WidthAfterPlaning = group.WidthAfterPlaning,
+                        PieceCount = registeredPackage?.PieceCount,
+                        ConventionalThickness = group.ConventionalThickness, IncomingThickness = group.IncomingThickness, IncomingWidth = group.IncomingWidth, WidthAfterPlaning = group.WidthAfterPlaning,
                         IncomingLength = group.IncomingLength, Quality = group.Quality, Certification = group.LegacyCertification ?? load.Certification,
                         ClassificationStatus = group.IsClassified ? "Classificato" : "Da classificare",
                         WasteAdjustmentStatus = adjustment is null ? "—" : "✓",
@@ -230,7 +265,59 @@ public sealed class InventoryProjectionService
                 }
             }
         }
+        AddSupplementaryPackages(packages, includeDischarged);
         return packages;
+    }
+
+    private PhysicalPackageDraft? RegisteredPackageByCode(string packageCode) =>
+        _workflow.RegisteredPhysicalPackages.FirstOrDefault(item =>
+            item.PackageCode.Equals(packageCode, StringComparison.OrdinalIgnoreCase));
+
+    private void AddSupplementaryPackages(List<InventoryPackage> packages, bool includeDischarged)
+    {
+        foreach (var supplementary in _workflow.SupplementaryPackages.OrderBy(item => item.CreatedAt).ThenBy(item => item.SupplementarySequence))
+        {
+            var exit = SupplementaryExitMovements.LastOrDefault(item =>
+                item.PackageCode.Equals(supplementary.PackageCode, StringComparison.OrdinalIgnoreCase));
+            var isPresent = exit is null;
+            if (!includeDischarged && !isPresent) continue;
+            packages.Add(new InventoryPackage
+            {
+                Id = supplementary.Id,
+                LoadId = supplementary.LoadId,
+                MaterialGroupId = supplementary.MaterialGroupId,
+                PackageCode = supplementary.PackageCode,
+                LoadNumber = supplementary.LoadNumber,
+                SupplierName = supplementary.SupplierName,
+                ArrivalDate = supplementary.ArrivalDate,
+                PackageNumber = supplementary.SupplementarySequence,
+                TotalPackages = 0,
+                ConventionalThickness = supplementary.ConventionalThickness,
+                IncomingThickness = supplementary.IncomingThickness,
+                IncomingWidth = supplementary.IncomingWidth,
+                WidthAfterPlaning = supplementary.WidthAfterPlaning,
+                IncomingLength = supplementary.IncomingLength,
+                PackageType = PackageType.Supplementary,
+                SupplementarySequence = supplementary.SupplementarySequence,
+                Quality = supplementary.Quality,
+                Certification = supplementary.Certification,
+                ClassificationStatus = "Classificato",
+                WasteAdjustmentStatus = "—",
+                IncomingCubicMeters = 0m,
+                ProcessingWastePercentage = 0m,
+                QualityWastePercentage = null,
+                InventoryCubicMeters = 0m,
+                AppliedPrice = null,
+                TheoreticalUsefulCubicMeters = null,
+                InventoryQuantitySource = InventoryQuantitySource.CurrentTheoretical,
+                UsesRealCubicMeters = true,
+                WasteVerified = true,
+                IsPresent = isPresent,
+                PackageStatus = isPresent ? "Presente" : "Uscita supplementare",
+                SupplementaryExitDate = exit?.ExitDate,
+                SupplementaryExitOperator = exit?.ExitOperator
+            });
+        }
     }
 
     public static IReadOnlyList<decimal> DistributeExactly(decimal total, int count)
@@ -247,7 +334,7 @@ public sealed class InventoryProjectionService
     {
         lock (_sync)
         {
-            DischargeMovements.Clear(); ManualRemovalMovements.Clear(); SupplierReturnMovements.Clear(); _packageIds.Clear();
+            DischargeMovements.Clear(); SupplementaryExitMovements.Clear(); ManualRemovalMovements.Clear(); SupplierReturnMovements.Clear(); _packageIds.Clear();
             InventoryChanged?.Invoke(this, EventArgs.Empty);
         }
     }
