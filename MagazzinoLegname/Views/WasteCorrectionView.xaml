@@ -99,7 +99,7 @@
                         <DataGridTextColumn Header="Lunghezza" Width="95" Binding="{Binding Group.IncomingLength, Mode=OneWay, StringFormat=N2}" HeaderStyle="{StaticResource WasteCenteredHeaderStyle}" ElementStyle="{StaticResource WasteCenteredCellStyle}"/>
                         <DataGridTextColumn Header="Qualità" Width="70" Binding="{Binding Group.Quality, Mode=OneWay}" HeaderStyle="{StaticResource WasteCenteredHeaderStyle}" ElementStyle="{StaticResource WasteCenteredCellStyle}"/>
                         <DataGridTextColumn Header="Pacchi" Width="60" Binding="{Binding Group.PackageCount, Mode=OneWay}" HeaderStyle="{StaticResource WasteCenteredHeaderStyle}" ElementStyle="{StaticResource WasteCenteredCellStyle}"/>
-                        <DataGridTextColumn Header="Pezzi" Width="60" Binding="{Binding Group.InitialPieces, Mode=OneWay}" HeaderStyle="{StaticResource WasteCenteredHeaderStyle}" ElementStyle="{StaticResource WasteCenteredCellStyle}"/>
+                        <DataGridTextColumn Header="Pezzi" Width="60" Binding="{Binding InitialPieces, Mode=OneWay}" HeaderStyle="{StaticResource WasteCenteredHeaderStyle}" ElementStyle="{StaticResource WasteCenteredCellStyle}"/>
                         <DataGridTextColumn Header="MC base rettifica" Width="145" Binding="{Binding AdjustmentBaseCubicMeters, Mode=OneWay, StringFormat=N2}" HeaderStyle="{StaticResource WasteCenteredHeaderStyle}" ElementStyle="{StaticResource WasteCenteredCellStyle}"/>
                         <DataGridTemplateColumn Header="Operatore" Width="190" HeaderStyle="{StaticResource WasteCenteredHeaderStyle}">
                             <DataGridTemplateColumn.CellTemplate>
@@ -160,7 +160,7 @@
                             <TextBlock Text="DATI INIZIALI" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold"/>
                             <StackPanel Grid.Row="2">
                                 <TextBlock Text="PEZZI INIZIALI" Style="{StaticResource FieldLabelStyle}"/>
-                                <TextBlock Text="{Binding SelectedGroup.Group.InitialPieces}" Style="{StaticResource WastePanelValueStyle}"/>
+                                <TextBlock Text="{Binding SelectedGroup.InitialPieces}" Style="{StaticResource WastePanelValueStyle}"/>
                             </StackPanel>
                             <StackPanel Grid.Row="4">
                                 <TextBlock Text="MC BASE RETTIFICA" Style="{StaticResource FieldLabelStyle}"/>

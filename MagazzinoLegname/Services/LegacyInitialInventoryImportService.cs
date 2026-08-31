@@ -97,8 +97,10 @@ public sealed class LegacyInitialInventoryImportService
     private static MaterialGroupClassification CreateGroup(LegacyInitialInventoryImportPlan plan, Guid loadId, IReadOnlyList<LegacyStagingRow> rows)
     {
         var row = rows[0];
+        var family = MaterialParametersService.Shared.Parameters.FindFamily(row.InputThickness!.Value);
         var group = new MaterialGroupClassification { LoadId = loadId, IncomingThickness = row.InputThickness!.Value,
-            ConventionalThickness = row.InputThickness.Value, UsefulThickness = 0m, IncomingWidth = row.InputWidth!.Value,
+            ConventionalThickness = family?.ConventionalThickness ?? row.InputThickness.Value,
+            UsefulThickness = family?.UsefulProductionThickness ?? 0m, IncomingWidth = row.InputWidth!.Value,
             WidthAfterPlaning = row.InputWidth.Value, FinalWidth = 0m, IncomingLength = row.InputLength!.Value, FinalLength = 0m,
             Quality = row.QualityNormalized!, PackageCount = rows.Count, InitialPieces = rows.Sum(item => decimal.ToInt32(item.Pieces!.Value)), AppliedPrice = null, LineValue = null,
             IsLegacyImport = true, WasClassifiedAtLegacyImport = row.IsClassified == true,

@@ -147,24 +147,24 @@ public sealed class InventoryProjectionService
                 var presentCodes = groupCodes.Where(code => !movementByCode.ContainsKey(code)
                     && !removalByCode.ContainsKey(code) && !returnByCode.ContainsKey(code)).ToList();
                 var adjustment = _workflow.WasteAdjustmentHistory.LastOrDefault(item => item.MaterialGroupId == group.GroupId);
-                var legacyReferenceVolume = group.IsLegacyImport
-                    ? (group.WasClassifiedAtLegacyImport ? group.LegacyEstimatedCubicMeters ?? 0m : group.IncomingPhysicalCubicMeters)
-                    : (group.TheoreticalUsefulCubicMeters ?? 0m);
-                var originalGroupBalance = adjustment?.RealAvailableCubicMeters ?? legacyReferenceVolume;
-                var residual = originalGroupBalance - movements.Sum(item => item.DischargedCubicMeters)
-                    - removals.Sum(item => item.RemovedCubicMeters)
-                    - returns.Sum(item => item.RemovedInventoryCubicMeters);
+                var originalGroupBalance = adjustment?.RealAvailableCubicMeters ?? group.IncomingPhysicalCubicMeters;
+                var movementsToSubtract = adjustment is null ? movements
+                    : movements.Where(item => item.DischargeDate > adjustment.AdjustmentDate).ToList();
+                var removalsToSubtract = adjustment is null ? removals
+                    : removals.Where(item => item.RemovalDate > adjustment.AdjustmentDate).ToList();
+                var returnsToSubtract = adjustment is null ? returns
+                    : returns.Where(item => item.ReturnDate > adjustment.AdjustmentDate).ToList();
+                var residual = originalGroupBalance - movementsToSubtract.Sum(item => item.DischargedCubicMeters)
+                    - removalsToSubtract.Sum(item => item.RemovedCubicMeters)
+                    - returnsToSubtract.Sum(item => item.RemovedInventoryCubicMeters);
                 if (presentCodes.Count == 0) residual = 0m;
                 residual = Math.Max(0m, residual);
                 Dictionary<string, decimal> shareByCode;
                 if (group.IsLegacyImport && adjustment is null)
                 {
-                    var legacyPackageTotals = group.WasClassifiedAtLegacyImport
-                        ? legacyPackages.Where(item => presentCodes.Contains(item.PackageCode, StringComparer.OrdinalIgnoreCase))
-                            .ToDictionary(item => item.PackageCode, item => item.LegacyEstimatedCubicMeters ?? 0m, StringComparer.OrdinalIgnoreCase)
-                        : legacyPackages.Where(item => presentCodes.Contains(item.PackageCode, StringComparer.OrdinalIgnoreCase))
-                            .ToDictionary(item => item.PackageCode, item => item.IncomingPhysicalCubicMeters, StringComparer.OrdinalIgnoreCase);
-                    shareByCode = legacyPackageTotals;
+                    shareByCode = legacyPackages
+                        .Where(item => presentCodes.Contains(item.PackageCode, StringComparer.OrdinalIgnoreCase))
+                        .ToDictionary(item => item.PackageCode, item => item.IncomingPhysicalCubicMeters, StringComparer.OrdinalIgnoreCase);
                 }
                 else
                 {

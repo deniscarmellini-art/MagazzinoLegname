@@ -97,11 +97,7 @@ public sealed class GoodsReceiptViewModel : ObservableObject
     public int TotalPackages => Lines.Sum(line => line.PackageCount);
     public int TotalPieces => Lines.Sum(line => line.TotalPieces);
     public decimal TotalArrivedCubicMeters => Lines.Sum(line => line.PhysicalIncomingCubicMeters);
-    public decimal TotalTheoreticalCubicMeters => Lines.Sum(line => line.TheoreticalUsefulCubicMeters);
     public decimal TotalRealAvailableCubicMeters => Lines.Sum(line => line.RealAvailableUsefulCubicMeters);
-    public decimal TotalProcessingLossCubicMeters => Lines.Sum(line => line.ProcessingLossCubicMeters);
-    public decimal TotalProcessingLossPercentage => TotalArrivedCubicMeters > 0m
-        ? TotalProcessingLossCubicMeters / TotalArrivedCubicMeters * 100m : 0m;
     public decimal TotalValue => Lines.Sum(line => line.LineValue);
     public GoodsReceiptLoadDraft LoadDraft => _loadDraft;
     public string CertificationIndicator => _loadDraft.IsCertificationCaptured
@@ -267,9 +263,8 @@ public sealed class GoodsReceiptViewModel : ObservableObject
     private void NotifyTotalsChanged()
     {
         OnPropertyChanged(nameof(TotalPackages)); OnPropertyChanged(nameof(TotalPieces));
-        OnPropertyChanged(nameof(TotalArrivedCubicMeters)); OnPropertyChanged(nameof(TotalTheoreticalCubicMeters));
+        OnPropertyChanged(nameof(TotalArrivedCubicMeters));
         OnPropertyChanged(nameof(TotalRealAvailableCubicMeters)); OnPropertyChanged(nameof(TotalValue));
-        OnPropertyChanged(nameof(TotalProcessingLossCubicMeters)); OnPropertyChanged(nameof(TotalProcessingLossPercentage));
         OnPropertyChanged(nameof(IsReceiptValid));
         NotifyPackageControlChanged();
     }

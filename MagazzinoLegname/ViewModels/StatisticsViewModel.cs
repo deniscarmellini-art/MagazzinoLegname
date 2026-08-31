@@ -94,7 +94,6 @@ public sealed class StatisticsViewModel : ObservableObject
     public decimal CubicMetersReturned { get; private set; }
     public decimal NetIncomingCubicMeters => CubicMetersEntered - CubicMetersReturned;
     public decimal AverageQualityWastePercentage { get; private set; }
-    public decimal AverageProcessingWastePercentage { get; private set; }
     public decimal PurchaseValue { get; private set; }
     public string CubicMetersEnteredDisplay => CubicMetersEntered.ToString("N2");
     public string RealCubicMetersAfterClassificationDisplay => RealCubicMetersAfterClassification.ToString("N2");
@@ -102,7 +101,6 @@ public sealed class StatisticsViewModel : ObservableObject
     public string CubicMetersReturnedDisplay => CubicMetersReturned.ToString("N2");
     public string NetIncomingCubicMetersDisplay => NetIncomingCubicMeters.ToString("N2");
     public string AverageQualityWasteDisplay => $"{AverageQualityWastePercentage:N2}%";
-    public string AverageProcessingWasteDisplay => $"{AverageProcessingWastePercentage:N2}%";
     public string PurchaseValueDisplay => $"{PurchaseValue:N2} €";
 
     private void RefreshSuppliers()
@@ -204,10 +202,8 @@ public sealed class StatisticsViewModel : ObservableObject
         CubicMetersReturned = returns.Sum(item => item.Movement.ReturnedPhysicalCubicMeters)
             + legacyReturns.Sum(item => item.Record.PhysicalCubicMeters);
         PurchaseValue = entries.Sum(item => item.Group.LineValue ?? 0m);
-        AverageProcessingWastePercentage = WeightedPercentage(entries.Sum(item => item.Group.IncomingPhysicalCubicMeters),
-            entries.Where(item => item.Group.TheoreticalUsefulCubicMeters.HasValue).Sum(item => item.Group.IncomingPhysicalCubicMeters - item.Group.TheoreticalUsefulCubicMeters!.Value));
-        AverageQualityWastePercentage = WeightedPercentage(adjustments.Sum(item => item.Adjustment.TheoreticalUsefulCubicMeters),
-            adjustments.Sum(item => item.Adjustment.TheoreticalUsefulCubicMeters - item.Adjustment.RealAvailableCubicMeters));
+        AverageQualityWastePercentage = WeightedPercentage(adjustments.Sum(item => item.Adjustment.AdjustmentBaseCubicMeters),
+            adjustments.Sum(item => item.Adjustment.AdjustmentBaseCubicMeters - item.Adjustment.RealAvailableCubicMeters));
 
         OnPropertyChanged(nameof(CubicMetersEnteredDisplay));
         OnPropertyChanged(nameof(RealCubicMetersAfterClassificationDisplay));
@@ -215,7 +211,6 @@ public sealed class StatisticsViewModel : ObservableObject
         OnPropertyChanged(nameof(CubicMetersReturnedDisplay));
         OnPropertyChanged(nameof(NetIncomingCubicMetersDisplay));
         OnPropertyChanged(nameof(AverageQualityWasteDisplay));
-        OnPropertyChanged(nameof(AverageProcessingWasteDisplay));
         OnPropertyChanged(nameof(PurchaseValueDisplay));
     }
 
@@ -244,22 +239,20 @@ public sealed class StatisticsViewModel : ObservableObject
             SupplierRows.Add(new SupplierStatisticsRow(supplierName, cubicMeters, returned, value,
                 pricedCubicMeters == 0m ? 0m : value / pricedCubicMeters,
                 qualityWasteBySupplier.TryGetValue(supplierName, out var qualityWaste)
-                    ? qualityWaste.QualityWastePercentage : 0m,
-                WeightedPercentage(supplierGroups.Sum(item => item.Group.IncomingPhysicalCubicMeters),
-                    supplierGroups.Where(item => item.Group.TheoreticalUsefulCubicMeters.HasValue).Sum(item => item.Group.IncomingPhysicalCubicMeters - item.Group.TheoreticalUsefulCubicMeters!.Value))));
+                    ? qualityWaste.QualityWastePercentage : 0m));
         }
     }
 
     private static List<SupplierQualityWastePoint> BuildSupplierQualityWastePoints(
         IReadOnlyCollection<AdjustmentContext> adjustments) => adjustments
-        .Where(item => item.Adjustment.TheoreticalUsefulCubicMeters > 0m)
+        .Where(item => item.Adjustment.AdjustmentBaseCubicMeters > 0m)
         .GroupBy(item => item.Context.Load.SupplierName)
         .Select(group =>
         {
-            var theoretical = group.Sum(item => item.Adjustment.TheoreticalUsefulCubicMeters);
+            var physical = group.Sum(item => item.Adjustment.AdjustmentBaseCubicMeters);
             var real = group.Sum(item => item.Adjustment.RealAvailableCubicMeters);
-            return new SupplierQualityWastePoint(group.Key, theoretical, real,
-                WeightedPercentage(theoretical, theoretical - real));
+            return new SupplierQualityWastePoint(group.Key, physical, real,
+                WeightedPercentage(physical, physical - real));
         })
         .OrderBy(item => item.QualityWastePercentage)
         .ThenBy(item => item.SupplierName)
@@ -286,7 +279,7 @@ public sealed class StatisticsViewModel : ObservableObject
                 var rows = adjustments.Where(item => item.Context.Load.SupplierName == supplierName
                     && ConventionalThickness(item.Context.Group.IncomingThickness) == thickness && item.Context.Group.Quality == quality).ToList();
                 if (rows.Count == 0) return "—";
-                return $"{WeightedPercentage(rows.Sum(item => item.Adjustment.TheoreticalUsefulCubicMeters), rows.Sum(item => item.Adjustment.TheoreticalUsefulCubicMeters - item.Adjustment.RealAvailableCubicMeters)):N2}%";
+                return $"{WeightedPercentage(rows.Sum(item => item.Adjustment.AdjustmentBaseCubicMeters), rows.Sum(item => item.Adjustment.AdjustmentBaseCubicMeters - item.Adjustment.RealAvailableCubicMeters)):N2}%";
             }
             QualityWasteRows.Add(new QualityWasteMatrixRow(supplierName, Cell(23m, "C"), Cell(23m, "VISTA"),
                 Cell(34m, "C"), Cell(34m, "VISTA"), Cell(44m, "C"), Cell(44m, "VISTA")));
@@ -474,7 +467,7 @@ public sealed class StatisticsViewModel : ObservableObject
                 {
                     var item = chartPoints[point.Index];
                     return $"{item.SupplierName}\nScarto qualità: {item.QualityWastePercentage:N2}%\n" +
-                        $"MC utili teorici analizzati: {item.TheoreticalUsefulCubicMeters:N2} m³\n" +
+                        $"MC fisici analizzati: {item.IncomingPhysicalCubicMeters:N2} m³\n" +
                         $"MC reali risultanti: {item.RealAvailableCubicMeters:N2} m³";
                 }
             }
@@ -597,14 +590,13 @@ public sealed class StatisticsViewModel : ObservableObject
 }
 
 public sealed record SupplierStatisticsRow(string SupplierName, decimal PurchasedCubicMeters, decimal ReturnedCubicMeters, decimal Value,
-    decimal WeightedAveragePrice, decimal QualityWastePercentage, decimal ProcessingWastePercentage)
+    decimal WeightedAveragePrice, decimal QualityWastePercentage)
 {
     public string PurchasedCubicMetersDisplay => PurchasedCubicMeters.ToString("N2");
     public string ReturnedCubicMetersDisplay => ReturnedCubicMeters.ToString("N2");
     public string ValueDisplay => $"{Value:N2} €";
     public string WeightedAveragePriceDisplay => $"{WeightedAveragePrice:N2} €/m³";
     public string QualityWasteDisplay => $"{QualityWastePercentage:N2}%";
-    public string ProcessingWasteDisplay => $"{ProcessingWastePercentage:N2}%";
 }
 
 public sealed record QualityWasteMatrixRow(string SupplierName, string Thickness23C, string Thickness23Vista,
@@ -623,7 +615,7 @@ public sealed record StatisticsTimePoint(DateTime PeriodStart, string Label,
     decimal IncomingCubicMeters, decimal DischargedCubicMeters, decimal ReturnedCubicMeters);
 
 public sealed record SupplierQualityWastePoint(string SupplierName,
-    decimal TheoreticalUsefulCubicMeters, decimal RealAvailableCubicMeters,
+    decimal IncomingPhysicalCubicMeters, decimal RealAvailableCubicMeters,
     decimal QualityWastePercentage);
 
 public sealed record SupplierPurchasePoint(string SupplierName, decimal IncomingCubicMeters,

@@ -39,11 +39,14 @@ public sealed class WasteCorrectionViewModel : ObservableObject
     private void ReloadEligibleGroups()
     {
         Groups.Clear();
-        var presentGroupIds = _inventory.BuildInventory().Select(package => package.MaterialGroupId).ToHashSet();
+        var presentPackages = _inventory.BuildInventory();
+        var presentGroupIds = presentPackages.Select(package => package.MaterialGroupId).ToHashSet();
         foreach (var load in _workflow.Loads)
         foreach (var group in load.Groups.Where(group => group.IsClassified && !group.WasteVerified
             && presentGroupIds.Contains(group.GroupId)))
-            Groups.Add(new WasteCorrectionRowViewModel(load, group) { SelectedOperator = Operators.FirstOrDefault() ?? string.Empty });
+            Groups.Add(new WasteCorrectionRowViewModel(load, group,
+                presentPackages.Where(package => package.MaterialGroupId == group.GroupId).ToArray())
+                { SelectedOperator = Operators.FirstOrDefault() ?? string.Empty });
         SelectedGroup = Groups.FirstOrDefault();
     }
 

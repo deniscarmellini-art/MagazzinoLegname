@@ -23,11 +23,10 @@ public sealed class GoodsReceiptCalculationService
             line.IncomingWidth, line.IncomingLength);
         line.TheoreticalUsefulCubicMeters = Volume(line.EnteredPieces, line.UsefulProductionThickness,
             line.FinalWidth, line.FinalLength);
-        line.ProcessingLossCubicMeters = Math.Max(0m,
-            line.PhysicalIncomingCubicMeters - line.TheoreticalUsefulCubicMeters);
-        line.ProcessingLossPercentage = line.PhysicalIncomingCubicMeters > 0m
-            ? line.ProcessingLossCubicMeters / line.PhysicalIncomingCubicMeters * 100m
-            : 0m;
+        // Le dimensioni finali restano informazioni tecniche. Lo sfrido di lavorazione
+        // non appartiene alla logica di magazzino e non riduce mai la giacenza.
+        line.ProcessingLossCubicMeters = 0m;
+        line.ProcessingLossPercentage = 0m;
 
         // Disponibile reale solo dopo classificazione: ricalcolo dimensionale sui pezzi buoni.
         line.RealAvailableUsefulCubicMeters = line.IsClassified

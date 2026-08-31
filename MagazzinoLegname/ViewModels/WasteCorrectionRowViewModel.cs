@@ -11,9 +11,15 @@ public sealed class WasteCorrectionRowViewModel : ObservableObject
     private string _selectedOperator = string.Empty;
     private readonly WasteAdjustmentCalculationService _calculationService = new();
 
-    public WasteCorrectionRowViewModel(ClassificationLoad load, MaterialGroupClassification group)
+    public WasteCorrectionRowViewModel(ClassificationLoad load, MaterialGroupClassification group,
+        IReadOnlyCollection<InventoryPackage> presentPackages)
     {
         Load = load; Group = group;
+        InitialPieces = presentPackages.Sum(package =>
+            ClassificationWorkflowService.Shared.RegisteredPhysicalPackages
+                .FirstOrDefault(item => item.PackageCode.Equals(package.PackageCode, StringComparison.OrdinalIgnoreCase))?.PieceCount
+            ?? (group.PackageCount == 0 ? 0 : group.InitialPieces / group.PackageCount));
+        AdjustmentBaseCubicMeters = presentPackages.Sum(package => package.IncomingCubicMeters);
     }
 
     public ClassificationLoad Load { get; }
@@ -21,7 +27,8 @@ public sealed class WasteCorrectionRowViewModel : ObservableObject
     public string LoadNumber => Load.LoadNumber;
     public string SupplierName => Load.SupplierName;
     public DateTime ArrivalDate => Load.ArrivalDate;
-    public decimal AdjustmentBaseCubicMeters => Group.AdjustmentBaseCubicMeters;
+    public int InitialPieces { get; }
+    public decimal AdjustmentBaseCubicMeters { get; }
     public string SelectedOperator
     {
         get => _selectedOperator;
@@ -32,7 +39,7 @@ public sealed class WasteCorrectionRowViewModel : ObservableObject
         get => _discardedWholeBoards;
         set
         {
-            if (!SetProperty(ref _discardedWholeBoards, Math.Clamp(value, 0, Group.InitialPieces))) return;
+            if (!SetProperty(ref _discardedWholeBoards, Math.Clamp(value, 0, InitialPieces))) return;
             NotifyCalculations();
         }
     }
@@ -46,7 +53,8 @@ public sealed class WasteCorrectionRowViewModel : ObservableObject
         }
     }
     private WasteAdjustmentCalculation Calculation =>
-        _calculationService.Calculate(Group, DiscardedWholeBoards, PartialWastePercentage);
+        _calculationService.Calculate(AdjustmentBaseCubicMeters, InitialPieces,
+            DiscardedWholeBoards, PartialWastePercentage);
     public int GoodPieces => Calculation.GoodGroupPieces;
     public decimal CubicMetersAfterWholeBoardWaste => Calculation.CubicMetersAfterWholeBoardWaste;
     public decimal PartialWasteCubicMeters => Calculation.PartialWasteCubicMeters;
@@ -63,7 +71,8 @@ public sealed class WasteCorrectionRowViewModel : ObservableObject
             AdjustmentOperator = operatorName, InitialPieces = result.InitialGroupPieces,
             DiscardedWholeBoards = result.DiscardedWholeBoards, GoodPieces = result.GoodGroupPieces,
             AdjustmentBaseCubicMeters = result.AdjustmentBaseCubicMeters,
-            TheoreticalUsefulCubicMeters = Group.TheoreticalUsefulCubicMeters ?? 0m,
+            // Campo mantenuto per compatibilità: da ora contiene la base fisica della rettifica.
+            TheoreticalUsefulCubicMeters = result.AdjustmentBaseCubicMeters,
             CubicMetersAfterWholeBoardWaste = result.CubicMetersAfterWholeBoardWaste,
             PartialWastePercentage = result.PartialWastePercentage,
             PartialWasteCubicMeters = result.PartialWasteCubicMeters,

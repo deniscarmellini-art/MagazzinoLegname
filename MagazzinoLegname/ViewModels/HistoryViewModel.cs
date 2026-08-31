@@ -89,7 +89,6 @@ public sealed class HistoryViewModel : ObservableObject
             DischargedPackages = packages.Count(item => item.PackageStatus == "Scaricato"),
             ManuallyRemovedPackages = packages.Count(item => item.PackageStatus == "Rimosso manualmente"),
             IncomingCubicMeters = load.Groups.Sum(item => item.IncomingPhysicalCubicMeters),
-            TheoreticalCubicMeters = load.Groups.Sum(item => item.TheoreticalUsefulCubicMeters ?? 0m),
             RealCubicMeters = adjustments.Sum(item => item.RealAvailableCubicMeters),
             DischargedCubicMeters = packages.Sum(item => item.DischargedCubicMeters ?? 0m),
             ManuallyRemovedCubicMeters = packages.Sum(item => item.ManuallyRemovedCubicMeters ?? 0m),
@@ -223,7 +222,7 @@ public sealed class HistoryViewModel : ObservableObject
             yield return new HistoryMovementRow(adjustment.AdjustmentDate, "Rettifica scarti", load.Id,
                 group.GroupId, load.LoadNumber, load.SupplierName, Material(group), group.ConventionalThickness,
                 group.Quality, $"{group.PackageCount} pacchi",
-                adjustment.RealAvailableCubicMeters - adjustment.TheoreticalUsefulCubicMeters,
+                adjustment.RealAvailableCubicMeters - adjustment.AdjustmentBaseCubicMeters,
                 adjustment.AdjustmentOperator, load.DeliveryNoteNumber, BuildAdjustmentDetail(load, group, adjustment));
         }
 
@@ -308,10 +307,10 @@ public sealed class HistoryViewModel : ObservableObject
     private static string BuildEntryDetail(ClassificationLoad load) =>
         $"Numero carico: {load.LoadNumber}\nNumero DDT: {(string.IsNullOrWhiteSpace(load.DeliveryNoteNumber) ? "—" : load.DeliveryNoteNumber)}\nFornitore: {load.SupplierName}\nData arrivo: {load.ArrivalDate:dd/MM/yyyy}\nOperatore: {(string.IsNullOrWhiteSpace(load.ReceiptOperator) ? "—" : load.ReceiptOperator)}\nCertificazione: {load.Certification}\n\n" +
         string.Join("\n\n", load.Groups.Select((group, index) =>
-            $"GRUPPO {index + 1} · Qualità {group.Quality}\nSpessore ingresso / convenzionale / utile: {group.IncomingThickness:N2} / {group.ConventionalThickness:N2} / {group.UsefulThickness:N2}\nLarghezza ingresso / dopo prepiallatura: {group.IncomingWidth:N2} / {group.WidthAfterPlaning:N2}\nLunghezza: {group.IncomingLength:N2}\nPacchi: {group.PackageCount} · Pezzi: {group.InitialPieces}\nMC fisici: {group.IncomingPhysicalCubicMeters:N2} · MC utili teorici: {group.TheoreticalUsefulCubicMeters:N2}\nPrezzo applicato: {group.AppliedPrice:N2} €/m³ · Valore: {group.LineValue:N2} €"));
+            $"GRUPPO {index + 1} · Qualità {group.Quality}\nSpessore ingresso / convenzionale / utile: {group.IncomingThickness:N2} / {group.ConventionalThickness:N2} / {group.UsefulThickness:N2}\nLarghezza ingresso / dopo prepiallatura: {group.IncomingWidth:N2} / {group.WidthAfterPlaning:N2}\nLunghezza: {group.IncomingLength:N2}\nPacchi: {group.PackageCount} · Pezzi: {group.InitialPieces}\nMC fisici: {group.IncomingPhysicalCubicMeters:N2}\nPrezzo applicato: {group.AppliedPrice:N2} €/m³ · Valore: {group.LineValue:N2} €"));
 
     private static string BuildAdjustmentDetail(ClassificationLoad load, MaterialGroupClassification group, WasteAdjustment item) =>
-        $"Carico: {load.LoadNumber}\nGruppo: {Material(group)} · Qualità {group.Quality}\nPezzi iniziali: {item.InitialPieces}\nTavole intere scartate: {item.DiscardedWholeBoards}\nPezzi buoni: {item.GoodPieces}\nScarto tavole: {item.WholeBoardWastePercentage:N2}%\nScarto parziale: {item.PartialWastePercentage:N2}%\nScarto qualità complessivo: {item.TotalClassificationWastePercentage:N2}%\nMC utili teorici: {item.TheoreticalUsefulCubicMeters:N2}\nMC dopo scarto tavole: {item.CubicMetersAfterWholeBoardWaste:N2}\nMC scarto parziale: {item.PartialWasteCubicMeters:N2}\nMC reali disponibili: {item.RealAvailableCubicMeters:N2}\nData/ora: {item.AdjustmentDate:dd/MM/yyyy HH:mm}\nOperatore: {item.AdjustmentOperator}";
+        $"Carico: {load.LoadNumber}\nGruppo: {Material(group)} · Qualità {group.Quality}\nPezzi iniziali: {item.InitialPieces}\nTavole intere scartate: {item.DiscardedWholeBoards}\nPezzi buoni: {item.GoodPieces}\nScarto tavole: {item.WholeBoardWastePercentage:N2}%\nScarto parziale: {item.PartialWastePercentage:N2}%\nScarto qualità complessivo: {item.TotalClassificationWastePercentage:N2}%\nMC fisici base rettifica: {item.AdjustmentBaseCubicMeters:N2}\nMC dopo scarto tavole: {item.CubicMetersAfterWholeBoardWaste:N2}\nMC scarto parziale: {item.PartialWasteCubicMeters:N2}\nMC reali disponibili: {item.RealAvailableCubicMeters:N2}\nData/ora: {item.AdjustmentDate:dd/MM/yyyy HH:mm}\nOperatore: {item.AdjustmentOperator}";
 
     private static void ReplaceOptions(ObservableCollection<string> target, string first, IEnumerable<string> values)
     {
@@ -345,7 +344,6 @@ public sealed class LoadHistorySummary
     public int DischargedPackages { get; init; }
     public int ManuallyRemovedPackages { get; init; }
     public decimal IncomingCubicMeters { get; init; }
-    public decimal TheoreticalCubicMeters { get; init; }
     public decimal RealCubicMeters { get; init; }
     public decimal DischargedCubicMeters { get; init; }
     public decimal ManuallyRemovedCubicMeters { get; init; }
