@@ -32,7 +32,7 @@ public sealed class InventoryPackage
     public decimal? AppliedPrice { get; init; }
     public bool IsSupplementary => PackageType == PackageType.Supplementary;
     public bool IsAccountedPackage => PackageType == PackageType.Official;
-    public decimal? PackageValue => AppliedPrice.HasValue && IsAccountedPackage ? InventoryCubicMeters * AppliedPrice.Value : null;
+    public decimal? PackageValue => AppliedPrice.HasValue && IsAccountedPackage ? IncomingCubicMeters * AppliedPrice.Value : null;
     public decimal? TheoreticalUsefulCubicMeters { get; init; }
     public decimal? LegacyEstimatedCubicMeters { get; init; }
     public InventoryQuantitySource InventoryQuantitySource { get; init; }
@@ -42,7 +42,7 @@ public sealed class InventoryPackage
     public string? LegacyQr { get; init; }
     public Guid? LegacyImportBatchId { get; init; }
     public string PriceDisplay => AppliedPrice.HasValue && IsAccountedPackage ? $"{AppliedPrice:N2} €/m³" : "N/D";
-    public string PackageValueDisplay => PackageValue.HasValue ? $"{PackageValue:N2} €" : "N/D";
+    public string PackageValueDisplay => IsSupplementary ? "—" : PackageValue.HasValue ? $"{PackageValue:N2} €" : "N/D";
     public bool UsesRealCubicMeters { get; init; }
     public bool WasteVerified { get; init; }
     public bool IsPresent { get; set; } = true;
@@ -71,11 +71,11 @@ public sealed class InventoryPackage
     public string PackagePosition => IsSupplementary && SupplementarySequence.HasValue ? $"S{SupplementarySequence.Value:00}" : $"{PackageNumber} / {TotalPackages}";
     public string InventoryCubicMetersDisplay => IsSupplementary ? "—" : InventoryCubicMeters.ToString("N2");
     public string IncomingCubicMetersDisplay => IsSupplementary ? "—" : IncomingCubicMeters.ToString("N2");
-    public string PackageValueExportDisplay => IsSupplementary ? string.Empty : PackageValueDisplay;
+    public string PackageValueExportDisplay => IsSupplementary ? "—" : PackageValueDisplay;
     public string QualityWasteDisplay => QualityWastePercentage.HasValue && IsAccountedPackage
         ? $"{QualityWastePercentage.Value:N2}%" : "—";
     public string OperationalMeasure => $"{ConventionalThickness:N2} × {WidthAfterPlaning:N2} × {IncomingLength:N2}";
-    public string InventoryStatus => IsSupplementary ? "Supplementare · senza MC contabili" : ClassificationStatus switch
+    public string InventoryStatus => IsSupplementary ? IsPresent ? "Presente" : PackageStatus : ClassificationStatus switch
     {
         "Da classificare" => "Da classificare",
         _ when !UsesRealCubicMeters => "Classificato · rettifica da fare",

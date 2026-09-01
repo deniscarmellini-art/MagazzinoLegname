@@ -79,9 +79,8 @@
                     <DataGridTemplateColumn Header="Azioni" Width="115">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <Button Content="Rimuovi pacco" Tag="{Binding}" Click="DeletePackage_Click" Padding="11,6" Margin="5,3">
-                                    <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}"><Style.Triggers><DataTrigger Binding="{Binding IsSupplementary}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Button.Style>
-                                </Button>
+                                <Button Content="Rimuovi pacco" Tag="{Binding}" Click="DeletePackage_Click"
+                                        Style="{StaticResource SecondaryButtonStyle}" Padding="11,6" Margin="5,3"/>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>

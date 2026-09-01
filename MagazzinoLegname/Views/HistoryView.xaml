@@ -144,26 +144,7 @@
                       Background="Transparent" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"/>
 
         <Grid Grid.Row="3">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="0.7*"/><ColumnDefinition Width="1.3*"/></Grid.ColumnDefinitions>
-            <Border Style="{StaticResource CardStyle}" Margin="0,0,9,0" Padding="13">
-                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                    <TextBlock Text="DETTAGLIO MOVIMENTO" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/>
-                    <Grid Grid.Row="1" Margin="0,9,0,8">
-                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                        <StackPanel Margin="0,0,10,7"><TextBlock Text="NUMERO CARICO" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedMovement.LoadNumber, TargetNullValue=—}" FontWeight="Bold"/></StackPanel>
-                        <StackPanel Grid.Column="1" Margin="0,0,0,7"><TextBlock Text="NUMERO DDT" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedMovement.DeliveryNoteNumber, TargetNullValue=—}" FontWeight="Bold"/></StackPanel>
-                        <StackPanel Grid.Row="1" Margin="0,0,10,7"><TextBlock Text="FORNITORE" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedMovement.SupplierName, TargetNullValue=—}" FontWeight="Bold" TextWrapping="Wrap"/></StackPanel>
-                        <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,0,7"><TextBlock Text="DATA / ORA" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedMovement.DateTime, StringFormat=dd/MM/yyyy HH:mm, TargetNullValue=—}" FontWeight="Bold"/></StackPanel>
-                        <StackPanel Grid.Row="2" Margin="0,0,10,0"><TextBlock Text="OPERATORE" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedMovement.Operator, TargetNullValue=—}" FontWeight="Bold"/></StackPanel>
-                        <StackPanel Grid.Row="2" Grid.Column="1"><TextBlock Text="TIPO MOVIMENTO" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedMovement.MovementType, TargetNullValue=—}" FontWeight="Bold"/></StackPanel>
-                    </Grid>
-                    <Border Grid.Row="2" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,8,0,0">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto"><TextBlock Text="{Binding SelectedMovement.DetailText, TargetNullValue=Seleziona un movimento per visualizzarne lo snapshot.}" TextWrapping="Wrap" LineHeight="19"/></ScrollViewer>
-                    </Border>
-                </Grid>
-            </Border>
-            <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="13">
+            <Border Style="{StaticResource CardStyle}" Padding="13">
                 <Grid>
                     <TextBlock Text="Seleziona il numero di un carico per aprirne la storia completa." Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     <Grid Visibility="{Binding IsLoadHistoryVisible, Converter={StaticResource BoolToVisibility}}" Background="{DynamicResource SurfaceBrush}">
@@ -178,7 +159,37 @@
                         </UniformGrid>
                         <TabControl Grid.Row="2" Style="{StaticResource HistoryTabControlStyle}"
                                     ItemContainerStyle="{StaticResource HistoryTabItemStyle}">
-                            <TabItem Header="Cronologia"><DataGrid ItemsSource="{Binding LoadTimeline}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"><DataGrid.Columns><DataGridTextColumn Header="Data/Ora" Width="125" Binding="{Binding DateTime, StringFormat=dd/MM/yyyy HH:mm}"/><DataGridTextColumn Header="Movimento" Width="150" Binding="{Binding MovementType}"/><DataGridTextColumn Header="MC" Width="85" Binding="{Binding CubicMetersDisplay}"/><DataGridTextColumn Header="Operatore" Width="*" Binding="{Binding Operator}"/></DataGrid.Columns></DataGrid></TabItem>
+                            <TabItem Header="Cronologia">
+                                <Grid>
+                                    <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                    <DataGrid ItemsSource="{Binding LoadTimeline}"
+                                              SelectedItem="{Binding SelectedLoadTimelineMovement, Mode=TwoWay}"
+                                              AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
+                                        <DataGrid.Columns><DataGridTextColumn Header="Data/Ora" Width="145" Binding="{Binding DateTime, StringFormat=dd/MM/yyyy HH:mm}"/><DataGridTextColumn Header="Movimento" Width="190" Binding="{Binding MovementType}"/><DataGridTextColumn Header="MC" Width="110" Binding="{Binding CubicMetersDisplay}"/><DataGridTextColumn Header="Operatore" Width="*" Binding="{Binding Operator}"/></DataGrid.Columns>
+                                    </DataGrid>
+                                    <Expander Grid.Row="1" IsExpanded="False" Margin="0,8,0,0"
+                                              Background="{DynamicResource SurfaceHeaderBrush}"
+                                              BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                                              Padding="12,8" Header="Dettaglio movimento">
+                                        <Expander.Style>
+                                            <Style TargetType="Expander">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding SelectedLoadTimelineMovement}" Value="{x:Null}">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Expander.Style>
+                                        <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,9,0,2">
+                                            <ScrollViewer MaxHeight="150" VerticalScrollBarVisibility="Auto">
+                                                <TextBlock Text="{Binding SelectedLoadTimelineMovement.DetailText}"
+                                                           TextWrapping="Wrap" LineHeight="19"/>
+                                            </ScrollViewer>
+                                        </Border>
+                                    </Expander>
+                                </Grid>
+                            </TabItem>
                             <TabItem Header="Pacchi"><DataGrid ItemsSource="{Binding LoadPackages}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"><DataGrid.Columns><DataGridTextColumn Header="Codice pacco" Width="135" Binding="{Binding PackageCode}"/><DataGridTextColumn Header="Pacco" Width="65" Binding="{Binding Position}"/><DataGridTextColumn Header="Qualità" Width="65" Binding="{Binding Quality}"/><DataGridTextColumn Header="Misura" Width="*" Binding="{Binding Measure}"/><DataGridTextColumn Header="Stato" Width="145" Binding="{Binding Status}"/><DataGridTextColumn Header="Data evento" Width="115" Binding="{Binding EventDate, StringFormat=dd/MM/yyyy HH:mm, TargetNullValue=—}"/><DataGridTextColumn Header="MC" Width="75" Binding="{Binding EventCubicMeters, StringFormat=N2, TargetNullValue=—}"/><DataGridTextColumn Header="Motivo" Width="130" Binding="{Binding Reason, TargetNullValue=—}"/></DataGrid.Columns></DataGrid></TabItem>
                             <TabItem Header="Totali"><UniformGrid Columns="3" Margin="12"><StackPanel Margin="6"><TextBlock Text="MC FISICI ENTRATI" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLoadSummary.IncomingCubicMeters, StringFormat=N2}" FontSize="16" FontWeight="Bold"/></StackPanel><StackPanel Margin="6"><TextBlock Text="MC REALI RETTIFICATI" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLoadSummary.RealCubicMeters, StringFormat=N2}" FontSize="16" FontWeight="Bold"/></StackPanel><StackPanel Margin="6"><TextBlock Text="MC SCARICATI" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLoadSummary.DischargedCubicMeters, StringFormat=N2}" FontSize="16" FontWeight="Bold"/></StackPanel><StackPanel Margin="6"><TextBlock Text="MC RIMOSSI" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLoadSummary.ManuallyRemovedCubicMeters, StringFormat=N2}" FontSize="16" FontWeight="Bold"/></StackPanel><StackPanel Margin="6"><TextBlock Text="MC PRESENTI" Style="{StaticResource FieldLabelStyle}"/><TextBlock Text="{Binding SelectedLoadSummary.PresentCubicMeters, StringFormat=N2}" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/></StackPanel></UniformGrid></TabItem>
                         </TabControl>

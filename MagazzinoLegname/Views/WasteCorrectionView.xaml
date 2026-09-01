@@ -68,8 +68,8 @@
     </UserControl.Resources>
     <Grid Margin="24,8,24,24">
         <Grid.RowDefinitions>
-            <RowDefinition Height="55*"/>
-            <RowDefinition Height="45*"/>
+            <RowDefinition Height="47*"/>
+            <RowDefinition Height="53*" MinHeight="370"/>
         </Grid.RowDefinitions>
 
         <Border Grid.Row="0" Style="{StaticResource CardStyle}" Padding="0" Margin="0,0,0,14" ClipToBounds="True">
@@ -183,7 +183,8 @@
                             <TextBlock Text="SCARTO TAVOLE INTERE" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold"/>
                             <StackPanel Grid.Row="2">
                                 <TextBlock Text="TAVOLE INTERE SCARTATE" Style="{StaticResource FieldLabelStyle}"/>
-                                <TextBox Style="{StaticResource NumericTextBoxStyle}" Text="{Binding SelectedGroup.DiscardedWholeBoards, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,0"/>
+                                <TextBox Style="{StaticResource NumericTextBoxStyle}" Height="36" Padding="8,4"
+                                         Text="{Binding SelectedGroup.DiscardedWholeBoards, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,0"/>
                             </StackPanel>
                             <Grid Grid.Row="4">
                                 <Grid.ColumnDefinitions>
@@ -221,7 +222,9 @@
                             <TextBlock Text="SCARTO PARZIALE E RISULTATO" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold"/>
                             <StackPanel Grid.Row="2">
                                 <TextBlock Text="SCARTO PARZIALE %" Style="{StaticResource FieldLabelStyle}"/>
-                                <TextBox Style="{StaticResource NumericTextBoxStyle}" Text="{Binding SelectedGroup.PartialWastePercentage, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,0"/>
+                                <TextBox Style="{StaticResource NumericTextBoxStyle}" Height="36" Padding="8,4"
+                                         Text="{Binding SelectedGroup.PartialWastePercentageText, UpdateSourceTrigger=PropertyChanged}"
+                                         LostFocus="PartialWastePercentage_LostFocus" Margin="0,4,0,0"/>
                             </StackPanel>
                             <StackPanel Grid.Row="4">
                                 <TextBlock Text="MC SCARTO PARZIALE" Style="{StaticResource FieldLabelStyle}"/>

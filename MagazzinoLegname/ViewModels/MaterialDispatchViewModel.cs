@@ -13,6 +13,7 @@ public sealed class MaterialDispatchViewModel : ObservableObject
     private PackageLookupResult? _lookupResult;
     private string _feedbackMessage = "Pronto per la scansione";
     private bool _isSuccessFeedback;
+    private bool _scanInProgress;
 
     public MaterialDispatchViewModel()
     {
@@ -49,11 +50,24 @@ public sealed class MaterialDispatchViewModel : ObservableObject
         ? string.Empty
         : $"Scaricato il {movement.DischargeDate:dd/MM/yyyy HH:mm} da {movement.DischargeOperator} · {movement.DischargedCubicMeters:N6} m³";
 
-    public void Scan()
+    public PackageLookupResult Scan()
     {
-        LookupResult = _service.Lookup(QrInput);
-        FeedbackMessage = LookupResult.Message;
-        IsSuccessFeedback = LookupResult.CanDischarge;
+        if (_scanInProgress)
+            return new(PackageLookupStatus.InvalidQr, "Scansione già in elaborazione.");
+        _scanInProgress = true;
+        try
+        {
+            var result = _service.Lookup(QrInput);
+            FeedbackMessage = result.Message;
+            IsSuccessFeedback = result.CanDischarge;
+            LookupResult = result.CanDischarge ? result : null;
+            if (!result.CanDischarge) QrInput = string.Empty;
+            return result;
+        }
+        finally
+        {
+            _scanInProgress = false;
+        }
     }
 
     public bool ConfirmDischarge()

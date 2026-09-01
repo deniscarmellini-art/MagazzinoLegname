@@ -88,13 +88,18 @@ public sealed class DashboardViewModel : ObservableObject
     public string InventoryValueDisplay => _allPackages.Count(p => p.IsAccountedPackage) == 0 || PackagesWithoutPrice == _allPackages.Count(p => p.IsAccountedPackage) ? "N/D"
         : InventoryValue.ToString("N0") + " €" + (PackagesWithoutPrice > 0 ? " · PARZIALE" : "");
 
+    public void Refresh() => Reload();
+
     private void Reload()
     {
         _allPackages = _projection.BuildInventory();
+        var accountedPackages = _allPackages.Where(package => package.IsAccountedPackage).ToArray();
         PresentPackages = _allPackages.Count;
-        InventoryCubicMeters = _allPackages.Sum(p => p.InventoryCubicMeters);
-        CubicMetersToConsolidate = _allPackages.Where(p => !p.WasteVerified).Sum(p => p.InventoryCubicMeters);
-        RealCubicMeters = _allPackages.Where(p => p.WasteVerified).Sum(p => p.InventoryCubicMeters);
+        InventoryCubicMeters = accountedPackages.Sum(package => package.InventoryCubicMeters);
+        CubicMetersToConsolidate = accountedPackages.Where(package => !package.WasteVerified)
+            .Sum(package => package.InventoryCubicMeters);
+        RealCubicMeters = accountedPackages.Where(package => package.WasteVerified)
+            .Sum(package => package.InventoryCubicMeters);
         InventoryValue = _allPackages.Where(p => p.IsAccountedPackage).Sum(p => p.PackageValue ?? 0m);
         PackagesWithoutPrice = _allPackages.Count(p => p.IsAccountedPackage && !p.AppliedPrice.HasValue);
         LoadsToClassify = _allPackages

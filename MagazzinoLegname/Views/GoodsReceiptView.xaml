@@ -57,6 +57,25 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <Style x:Key="CompactPackageInputStyle" TargetType="TextBox" BasedOn="{StaticResource GridInputStyle}">
+            <Setter Property="Width" Value="112"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="Padding" Value="9,3"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+        <Style x:Key="CompactPackageDisplayStyle" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style x:Key="ReceiptHeaderLabelStyle" TargetType="TextBlock" BasedOn="{StaticResource FieldLabelStyle}">
+            <Setter Property="Margin" Value="2,0,0,7"/>
+        </Style>
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -68,9 +87,9 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <Border Grid.Row="0" Style="{StaticResource CardStyle}" Margin="0,0,0,16">
+            <Border Grid.Row="0" Style="{StaticResource CardStyle}" Padding="22,20" Margin="0,0,0,16">
                 <StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
                         <Border Width="36" Height="36" CornerRadius="10" Background="{DynamicResource AccentSoftBrush}" Margin="0,0,11,0">
                             <TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" Foreground="{DynamicResource AccentBrush}" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
@@ -81,45 +100,45 @@
                     </StackPanel>
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1.05*"/><ColumnDefinition Width="1.55*"/>
-                            <ColumnDefinition Width=".8*"/><ColumnDefinition Width="1.1*"/>
-                            <ColumnDefinition Width="1.25*"/><ColumnDefinition Width=".75*"/>
+                            <ColumnDefinition Width="1*"/><ColumnDefinition Width="1.8*"/>
+                            <ColumnDefinition Width=".9*"/><ColumnDefinition Width="1.25*"/>
+                            <ColumnDefinition Width="1.4*"/><ColumnDefinition Width=".85*"/>
                         </Grid.ColumnDefinitions>
-                        <StackPanel Margin="0,0,12,0">
-                            <TextBlock Text="DATA ENTRATA" Style="{StaticResource FieldLabelStyle}"/>
+                        <StackPanel Margin="0,0,16,0">
+                            <TextBlock Text="DATA ENTRATA" Style="{StaticResource ReceiptHeaderLabelStyle}"/>
                             <DatePicker SelectedDate="{Binding EntryDate, UpdateSourceTrigger=PropertyChanged}"
                                         Language="it-IT" SelectedDateFormat="Short"/>
                         </StackPanel>
-                        <StackPanel Grid.Column="1" Margin="0,0,12,0">
-                            <TextBlock Text="FORNITORE" Style="{StaticResource FieldLabelStyle}"/>
+                        <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                            <TextBlock Text="FORNITORE" Style="{StaticResource ReceiptHeaderLabelStyle}"/>
                             <ComboBox ItemsSource="{Binding Suppliers}" SelectedItem="{Binding SelectedSupplier}"
                                       DisplayMemberPath="Name"/>
                         </StackPanel>
-                        <StackPanel Grid.Column="2" Margin="0,0,12,0">
-                            <TextBlock Text="NUMERO CARICO" Style="{StaticResource FieldLabelStyle}"/>
+                        <StackPanel Grid.Column="2" Margin="0,0,16,0">
+                            <TextBlock Text="NUMERO CARICO" Style="{StaticResource ReceiptHeaderLabelStyle}"/>
                             <Border Style="{StaticResource HeaderFieldBorderStyle}">
-                                <TextBlock Text="{Binding DisplayLoadNumber, Mode=OneWay}" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold" Margin="12,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding DisplayLoadNumber, Mode=OneWay}" Foreground="{DynamicResource PrimaryTextBrush}" FontWeight="Bold" Margin="12,0" VerticalAlignment="Center"/>
                             </Border>
                         </StackPanel>
-                        <StackPanel Grid.Column="3" Margin="0,0,12,0">
-                            <TextBlock Text="NUMERO DDT" Style="{StaticResource FieldLabelStyle}"/>
+                        <StackPanel Grid.Column="3" Margin="0,0,16,0">
+                            <TextBlock Text="NUMERO DDT" Style="{StaticResource ReceiptHeaderLabelStyle}"/>
                             <Border Style="{StaticResource HeaderFieldBorderStyle}">
                                 <TextBox Style="{StaticResource HeaderFieldTextBoxStyle}" Text="{Binding DeliveryNoteNumber, UpdateSourceTrigger=PropertyChanged}"/>
                             </Border>
                         </StackPanel>
-                        <StackPanel Grid.Column="4" Margin="0,0,12,0">
-                            <TextBlock Text="OPERATORE" Style="{StaticResource FieldLabelStyle}"/>
+                        <StackPanel Grid.Column="4" Margin="0,0,16,0">
+                            <TextBlock Text="OPERATORE" Style="{StaticResource ReceiptHeaderLabelStyle}"/>
                             <ComboBox ItemsSource="{Binding Operators}" SelectedItem="{Binding SelectedOperator}"/>
                         </StackPanel>
                         <StackPanel Grid.Column="5">
-                            <TextBlock Text="PACCHI PREVISTI" Style="{StaticResource FieldLabelStyle}"/>
+                            <TextBlock Text="PACCHI PREVISTI" Style="{StaticResource ReceiptHeaderLabelStyle}"/>
                             <Border Style="{StaticResource HeaderFieldBorderStyle}">
                                 <TextBox Style="{StaticResource NumericHeaderFieldTextBoxStyle}" Text="{Binding ExpectedPackages, UpdateSourceTrigger=PropertyChanged}"/>
                             </Border>
                         </StackPanel>
                     </Grid>
                     <Border Background="#101820" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
-                            CornerRadius="9" Padding="11,8" Margin="0,14,0,0">
+                            CornerRadius="9" Padding="11,8" Margin="0,18,0,0">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" Foreground="{DynamicResource AccentBrush}" Margin="0,0,8,0"/>
                             <TextBlock Text="{Binding SupplierProcessingLabel}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11"/>
@@ -167,12 +186,47 @@
 
                     <DataGrid Grid.Row="1" ItemsSource="{Binding Lines}" SelectedItem="{Binding SelectedLine}"
                               AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
-                              AlternationCount="2" MinHeight="170" MaxHeight="310"
+                              AlternationCount="2" MinHeight="145" MaxHeight="310"
                               HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                               FrozenColumnCount="2" SelectionUnit="FullRow">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="N° pacchi" Width="0.9*" MinWidth="88" Binding="{Binding PackageCountInput, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" ElementStyle="{StaticResource GridDisplayTextStyle}" EditingElementStyle="{StaticResource GridInputStyle}"/>
-                            <DataGridTextColumn Header="Pezzi / pacco" Width="1.0*" MinWidth="98" Binding="{Binding PiecesPerPackageInput, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" ElementStyle="{StaticResource GridDisplayTextStyle}" EditingElementStyle="{StaticResource GridInputStyle}"/>
+                            <DataGridTemplateColumn Header="N° pacchi" Width="120" MinWidth="110">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Width="112" Height="34" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                Background="{DynamicResource SurfaceRaisedBrush}"
+                                                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6"
+                                                Padding="9,3">
+                                            <TextBlock Text="{Binding PackageCountInput, Mode=OneWay}" Style="{StaticResource CompactPackageDisplayStyle}"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding PackageCountInput, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
+                                                 Style="{StaticResource CompactPackageInputStyle}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Pezzi / pacco" Width="130" MinWidth="120">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Width="122" Height="34" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                Background="{DynamicResource SurfaceRaisedBrush}"
+                                                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6"
+                                                Padding="9,3">
+                                            <TextBlock Text="{Binding PiecesPerPackageInput, Mode=OneWay}" Style="{StaticResource CompactPackageDisplayStyle}"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Width="122"
+                                                 Text="{Binding PiecesPerPackageInput, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
+                                                 Style="{StaticResource CompactPackageInputStyle}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Spessore (mm)" Width="1.15*" MinWidth="112" Binding="{Binding IncomingThickness, UpdateSourceTrigger=PropertyChanged, StringFormat=N2, ValidatesOnDataErrors=True}" ElementStyle="{StaticResource GridDisplayTextStyle}" EditingElementStyle="{StaticResource GridInputStyle}"/>
                             <DataGridTextColumn Header="Larghezza (mm)" Width="1.15*" MinWidth="112" Binding="{Binding IncomingWidth, UpdateSourceTrigger=PropertyChanged, StringFormat=N2, ValidatesOnDataErrors=True}" ElementStyle="{StaticResource GridDisplayTextStyle}" EditingElementStyle="{StaticResource GridInputStyle}"/>
                             <DataGridTextColumn Header="Dopo prepiall. (mm)" Width="1.2*" MinWidth="128" IsReadOnly="True" Binding="{Binding WidthAfterPlaning, StringFormat=N2}" ElementStyle="{StaticResource GridDisplayTextStyle}"/>
@@ -218,9 +272,9 @@
                 </Grid>
             </Border>
 
-            <Border Grid.Row="2" Style="{StaticResource CardStyle}" Margin="0,0,0,16">
+            <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="20,14" Margin="0,0,0,16">
                 <StackPanel>
-                    <TextBlock Text="RIEPILOGO CARICO" Foreground="{DynamicResource PrimaryTextBrush}" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,13"/>
+                    <TextBlock Text="RIEPILOGO CARICO" Foreground="{DynamicResource PrimaryTextBrush}" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,9"/>
                     <UniformGrid Rows="1" HorizontalAlignment="Stretch">
                         <UniformGrid.Resources>
                             <Style TargetType="StackPanel">

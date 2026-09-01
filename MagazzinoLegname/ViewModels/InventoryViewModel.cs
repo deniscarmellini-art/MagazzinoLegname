@@ -54,7 +54,8 @@ public sealed class InventoryViewModel : ObservableObject
 
     public void RemovePackage(InventoryPackage package, string operatorName, string reason, string? note)
     {
-        if (package.IsSupplementary) throw new InvalidOperationException("I pacchi supplementari devono uscire tramite Scarico supplementare.");
+        if (package.IsSupplementary && reason == "Reso")
+            throw new InvalidOperationException("Un pacco supplementare non può generare un reso con MC.");
         if (reason == "Reso")
             SupplierReturnService.Shared.ReturnPackages(package.LoadId, [package.PackageCode], operatorName,
                 "Reso a fornitore", note);

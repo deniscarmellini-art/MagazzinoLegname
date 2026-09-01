@@ -13,6 +13,9 @@ public partial class WasteCorrectionView : UserControl
         DataContext = new WasteCorrectionViewModel();
     }
 
+    private void PartialWastePercentage_LostFocus(object sender, RoutedEventArgs e) =>
+        ViewModel.SelectedGroup?.CommitPartialWastePercentageText();
+
     private void Confirm_Click(object sender, RoutedEventArgs e)
     {
         if (!ViewModel.ConfirmSelected()) return;

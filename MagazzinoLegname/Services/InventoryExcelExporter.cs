@@ -63,7 +63,7 @@ public sealed class InventoryExcelExporter
                 TextCell(package.IsSupplementary ? "—" : package.UsesRealCubicMeters ? "Rettificato" : "Da rettificare"),
                 package.IsSupplementary ? TextCell(string.Empty) : NumberCell(package.IncomingCubicMeters, DecimalStyle),
                 package.IsSupplementary ? TextCell(string.Empty) : NumberCell(package.InventoryCubicMeters, DecimalStyle),
-                package.PackageValue.HasValue ? NumberCell(package.PackageValue.Value, CurrencyStyle) : TextCell(package.IsSupplementary ? string.Empty : "N/D"));
+                package.PackageValue.HasValue ? NumberCell(package.PackageValue.Value, CurrencyStyle) : TextCell(package.IsSupplementary ? "—" : "N/D"));
             sheetData.Append(row);
             rowIndex++;
         }

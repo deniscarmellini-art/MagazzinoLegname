@@ -6,10 +6,16 @@ namespace MagazzinoLegname.Views;
 
 public partial class ManualPackageRemovalWindow : Window
 {
-    public ManualPackageRemovalWindow(string packageCode)
+    public ManualPackageRemovalWindow(string packageCode, bool isSupplementary = false)
     {
         InitializeComponent();
         OperatorCombo.ItemsSource = OperatorCatalogService.Shared.ActiveOperatorNames;
+        if (isSupplementary)
+        {
+            var returnItem = ReasonCombo.Items.OfType<ComboBoxItem>()
+                .FirstOrDefault(item => Equals(item.Content, "Reso"));
+            if (returnItem is not null) ReasonCombo.Items.Remove(returnItem);
+        }
         PackageText.Text = $"Pacco {packageCode} · il record resterà consultabile nello Storico.";
     }
 

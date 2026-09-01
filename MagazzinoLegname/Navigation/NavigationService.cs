@@ -3,6 +3,11 @@ using MagazzinoLegname.Views;
 
 namespace MagazzinoLegname.Navigation;
 
+public interface INavigationAware
+{
+    void OnNavigatedTo();
+}
+
 public sealed class NavigationService
 {
     private readonly Dictionary<PageKey, Func<UserControl>> _pageFactories = new()
@@ -29,6 +34,7 @@ public sealed class NavigationService
             page = _pageFactories[pageKey]();
             _pages[pageKey] = page;
         }
+        if (page is INavigationAware navigationAware) navigationAware.OnNavigatedTo();
         PageChanged?.Invoke(this, page);
     }
 }

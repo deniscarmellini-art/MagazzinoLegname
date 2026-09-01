@@ -44,7 +44,7 @@ public partial class InventoryView : UserControl
     private void DeletePackage_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: InventoryPackage package }) return;
-        var dialog = new ManualPackageRemovalWindow(package.PackageCode)
+        var dialog = new ManualPackageRemovalWindow(package.PackageCode, package.IsSupplementary)
         {
             Owner = Window.GetWindow(this)
         };

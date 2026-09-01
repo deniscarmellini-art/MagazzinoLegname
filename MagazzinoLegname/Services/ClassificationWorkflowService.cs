@@ -25,6 +25,7 @@ public sealed class ClassificationWorkflowService
         WasteAdjustmentHistory.Add(adjustment);
         group.MarkWasteAsVerified();
         WorkflowChanged?.Invoke(this, EventArgs.Empty);
+        InventoryProjectionService.Shared.NotifyProjectionChanged();
     }
 
     public void NotifyClassificationChanged() => WorkflowChanged?.Invoke(this, EventArgs.Empty);

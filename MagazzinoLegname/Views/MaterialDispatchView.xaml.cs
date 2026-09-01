@@ -18,7 +18,11 @@ public partial class MaterialDispatchView : UserControl
     private void QrInput_KeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key != Key.Enter) return;
-        ViewModel.Scan(); e.Handled = true;
+        e.Handled = true;
+        var result = ViewModel.Scan();
+        if (result.CanDischarge) return;
+        MessageBox.Show(result.Message, "Scarico materiale", MessageBoxButton.OK, MessageBoxImage.Warning);
+        FocusScanner();
     }
     private void Confirm_Click(object sender, RoutedEventArgs e)
     {

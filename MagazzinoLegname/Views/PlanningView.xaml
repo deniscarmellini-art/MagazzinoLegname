@@ -14,7 +14,7 @@
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
             <Setter Property="TextAlignment" Value="Center"/>
             <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}"/>
-            <Setter Property="Padding" Value="2,4"/>
+            <Setter Property="Padding" Value="2,3"/>
         </Style>
         <Style x:Key="PlanningSectionTitleStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="13"/>
@@ -51,7 +51,7 @@
                 <TextBlock Grid.Column="2" Text="La data selezionata viene allineata al lunedì · B deve essere successiva ad A" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11" VerticalAlignment="Bottom" Margin="16,0"/>
             </Grid>
 
-            <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="0" Margin="0,0,0,15" ClipToBounds="True">
+            <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="0" Margin="0,0,0,10" ClipToBounds="True">
                 <Grid>
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <Border Style="{StaticResource PlanningTableTitleStyle}">
@@ -73,13 +73,16 @@
                         </Grid>
                     </Border>
 
-                    <Grid Grid.Row="1">
+                    <ScrollViewer Grid.Row="1" MaxHeight="274"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                    <Grid>
                         <Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                             <Grid>
                                 <Grid.RowDefinitions><RowDefinition Height="70"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                                 <Border Background="{DynamicResource SurfaceRaisedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,1" Padding="14"><TextBlock Text="FORNITORE" FontWeight="Bold" VerticalAlignment="Center"/></Border>
                                 <ItemsControl Grid.Row="1" ItemsSource="{Binding ActiveSupplierNames}">
-                                    <ItemsControl.ItemTemplate><DataTemplate><Border Height="38" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,1" Padding="10,0"><TextBlock Text="{Binding}" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/></Border></DataTemplate></ItemsControl.ItemTemplate>
+                                    <ItemsControl.ItemTemplate><DataTemplate><Border Height="34" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,1" Padding="10,0"><TextBlock Text="{Binding}" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/></Border></DataTemplate></ItemsControl.ItemTemplate>
                                 </ItemsControl>
                             </Grid>
 
@@ -98,9 +101,9 @@
                                             <ItemsControl Grid.Row="2" ItemsSource="{Binding SupplierRows}">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
-                                                        <ItemsControl ItemsSource="{Binding Cells}" Height="38">
+                                                        <ItemsControl ItemsSource="{Binding Cells}" Height="34">
                                                             <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                                                            <ItemsControl.ItemTemplate><DataTemplate><Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,1" Padding="2"><ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding Selection, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsEditable}" Height="32" Padding="5,3" FontSize="11"/></Border></DataTemplate></ItemsControl.ItemTemplate>
+                                                            <ItemsControl.ItemTemplate><DataTemplate><Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,1" Padding="2"><ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding Selection, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsEditable}" Height="28" Padding="5,2" FontSize="11"/></Border></DataTemplate></ItemsControl.ItemTemplate>
                                                         </ItemsControl>
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>
@@ -110,6 +113,7 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                     </Grid>
+                    </ScrollViewer>
                 </Grid>
             </Border>
 
@@ -130,19 +134,19 @@
                     <ItemsControl Grid.Row="2" ItemsSource="{Binding ForecastRows}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Grid MinHeight="60">
+                                <Grid Height="50">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="125"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,1"><TextBlock Text="{Binding MaterialLabel}" FontSize="17" FontWeight="ExtraBold" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
                                     <ItemsControl Grid.Column="1" ItemsSource="{Binding Weeks}">
                                         <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,1" Padding="6,4">
+                                                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,1" Padding="6,2">
                                                     <Grid>
                                                         <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
                                                         <StackPanel><TextBlock Text="INIZIALE" Style="{StaticResource PlanningCaptionStyle}"/><TextBlock Text="{Binding OpeningBalance, StringFormat=N2}" Style="{StaticResource PlanningValueStyle}"/></StackPanel>
                                                         <StackPanel Grid.Column="1"><TextBlock Text="ARRIVI" Style="{StaticResource PlanningCaptionStyle}"/><TextBlock Text="{Binding ExpectedArrivals, StringFormat=N2}" Style="{StaticResource PlanningValueStyle}" ToolTip="{Binding ExpectedLoadCount, StringFormat={}{0} carichi previsti}"/></StackPanel>
-                                                        <StackPanel Grid.Column="2" Margin="4,0"><TextBlock Text="CONSUMO" Style="{StaticResource PlanningCaptionStyle}"/><TextBox Style="{StaticResource NumericTextBoxStyle}" Text="{Binding Consumption.CubicMeters, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}" Height="28" Padding="5,2" FontSize="12" TextAlignment="Center" Margin="0,2,0,0"/></StackPanel>
+                                                        <StackPanel Grid.Column="2" Margin="4,0"><TextBlock Text="CONSUMO" Style="{StaticResource PlanningCaptionStyle}"/><TextBox Style="{StaticResource NumericTextBoxStyle}" Text="{Binding Consumption.CubicMeters, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}" Height="26" Padding="5,1" FontSize="12" TextAlignment="Center" Margin="0,2,0,0"/></StackPanel>
                                                         <StackPanel Grid.Column="3"><TextBlock Text="FINALE" Style="{StaticResource PlanningCaptionStyle}"/><TextBlock Text="{Binding ClosingBalance, StringFormat=N2}"><TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource PlanningValueStyle}"><Style.Triggers><DataTrigger Binding="{Binding IsNegative}" Value="True"><Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock></StackPanel>
                                                     </Grid>
                                                 </Border>

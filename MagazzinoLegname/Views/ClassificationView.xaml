@@ -102,19 +102,19 @@
                         <DataGridTemplateColumn Header="Etichette e azioni" Width="520">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="5,2">
-                                        <Button Content="Avvia e stampa" Tag="{Binding}" Click="StartOfficialLabels_Click" Padding="10,6" Margin="0,0,6,0" ToolTip="Stampa le etichette ufficiali P01...Pxx al primo avvio">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="4,2">
+                                        <Button Content="Avvia e stampa" Tag="{Binding}" Click="StartOfficialLabels_Click" Padding="8,5" Margin="0,0,5,0" ToolTip="Stampa le etichette ufficiali P01...Pxx al primo avvio">
                                             <Button.Style><Style TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}"><Style.Triggers><DataTrigger Binding="{Binding OfficialLabelsPrinted}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding IsClassified}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Button.Style>
                                         </Button>
-                                        <Button Content="Ristampa" Tag="{Binding}" Click="ReprintOfficialLabels_Click" Style="{StaticResource SecondaryButtonStyle}" Padding="10,6" Margin="0,0,6,0" ToolTip="Ristampa le etichette ufficiali senza creare pacchi"/>
-                                        <Button Content="+ Supplementare" Tag="{Binding}" Click="AddSupplementaryLabel_Click" Padding="10,6" Margin="0,0,6,0" ToolTip="Crea e stampa una sola etichetta Sxx senza MC contabili">
+                                        <Button Content="Ristampa" Tag="{Binding}" Click="ReprintOfficialLabels_Click" Style="{StaticResource SecondaryButtonStyle}" Padding="8,5" Margin="0,0,5,0" ToolTip="Ristampa le etichette ufficiali senza creare pacchi"/>
+                                        <Button Content="+ Supplementare" Tag="{Binding}" Click="AddSupplementaryLabel_Click" Padding="8,5" Margin="0,0,5,0" ToolTip="Crea e stampa una sola etichetta Sxx senza MC contabili">
                                             <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}"><Style.Triggers><DataTrigger Binding="{Binding IsClassified}" Value="True"><Setter Property="IsEnabled" Value="False"/></DataTrigger></Style.Triggers></Style></Button.Style>
                                         </Button>
-                                        <Button Content="Ristampa suppl." Tag="{Binding}" Click="ReprintSupplementaryLabels_Click" Style="{StaticResource SecondaryButtonStyle}" Padding="10,6" Margin="0,0,6,0" ToolTip="Ristampa le supplementari già create senza generarne di nuove"/>
-                                        <Button Content="Classificato" Tag="{Binding}" Click="MarkClassified_Click" Padding="10,6">
+                                        <Button Content="Ristampa supp." Tag="{Binding}" Click="ReprintSupplementaryLabels_Click" Style="{StaticResource SecondaryButtonStyle}" Padding="8,5" Margin="0,0,5,0" ToolTip="Ristampa le supplementari già create senza generarne di nuove"/>
+                                        <Button Content="Segna classificato" Tag="{Binding}" Click="MarkClassified_Click" Padding="8,5">
                                             <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}"><Style.Triggers><DataTrigger Binding="{Binding IsClassified}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Button.Style>
                                         </Button>
-                                        <Button Content="↶" Tag="{Binding}" Click="UndoClassification_Click" Padding="10,6" ToolTip="Riporta il gruppo allo stato Da classificare">
+                                        <Button Content="↶" Tag="{Binding}" Click="UndoClassification_Click" Padding="8,5" ToolTip="Riporta il gruppo allo stato Da classificare">
                                             <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding CanUndoClassification}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Button.Style>
                                         </Button>
                                     </StackPanel>

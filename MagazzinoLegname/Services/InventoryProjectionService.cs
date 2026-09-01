@@ -18,6 +18,8 @@ public sealed class InventoryProjectionService
     public ObservableCollection<SupplierReturnMovement> SupplierReturnMovements { get; } = [];
     public event EventHandler? InventoryChanged;
 
+    public void NotifyProjectionChanged() => InventoryChanged?.Invoke(this, EventArgs.Empty);
+
     public IReadOnlyList<InventoryPackage> BuildInventory(bool includeDischarged = false)
     {
         lock (_sync) return BuildInventoryCore(includeDischarged);
@@ -67,6 +69,8 @@ public sealed class InventoryProjectionService
                 PreviousStatus = "Presente", NextStatus = "Scaricato"
             };
             DischargeMovements.Add(movement);
+            PackageTerminalStateStore.Shared.Record(package.PackageCode,
+                PackageTerminalState.Discharged, movement.DischargeDate, movement.DischargeOperator);
             InventoryChanged?.Invoke(this, EventArgs.Empty);
             return movement;
         }
@@ -90,6 +94,8 @@ public sealed class InventoryProjectionService
                 ExitDate = DateTime.Now, ExitOperator = operatorName
             };
             SupplementaryExitMovements.Add(movement);
+            PackageTerminalStateStore.Shared.Record(package.PackageCode,
+                PackageTerminalState.SupplementaryExited, movement.ExitDate, movement.ExitOperator);
             InventoryChanged?.Invoke(this, EventArgs.Empty);
             return movement;
         }
@@ -114,10 +120,12 @@ public sealed class InventoryProjectionService
                 LoadId = package.LoadId, MaterialGroupId = package.MaterialGroupId,
                 LoadNumber = package.LoadNumber, SupplierName = package.SupplierName,
                 RemovalDate = DateTime.Now, RemovalOperator = operatorName,
-                RemovedCubicMeters = package.InventoryCubicMeters,
+                RemovedCubicMeters = package.IsSupplementary ? null : package.InventoryCubicMeters,
                 Reason = reason, Note = note?.Trim() ?? string.Empty
             };
             ManualRemovalMovements.Add(movement);
+            PackageTerminalStateStore.Shared.Record(package.PackageCode,
+                PackageTerminalState.ManuallyRemoved, movement.RemovalDate, movement.RemovalOperator);
             InventoryChanged?.Invoke(this, EventArgs.Empty);
             return movement;
         }
@@ -149,7 +157,12 @@ public sealed class InventoryProjectionService
                     RemovedInventoryCubicMeters = package.InventoryCubicMeters, Mode = mode
                 };
             }).ToArray();
-            foreach (var movement in movements) SupplierReturnMovements.Add(movement);
+            foreach (var movement in movements)
+            {
+                SupplierReturnMovements.Add(movement);
+                PackageTerminalStateStore.Shared.Record(movement.PackageCode,
+                    PackageTerminalState.Returned, movement.ReturnDate, movement.ReturnOperator);
+            }
             InventoryChanged?.Invoke(this, EventArgs.Empty);
             return new(operationId, mode, movements.Length,
                 movements.Sum(item => item.ReturnedPhysicalCubicMeters),
@@ -188,7 +201,7 @@ public sealed class InventoryProjectionService
                 var returnsToSubtract = adjustment is null ? returns
                     : returns.Where(item => item.ReturnDate > adjustment.AdjustmentDate).ToList();
                 var residual = originalGroupBalance - movementsToSubtract.Sum(item => item.DischargedCubicMeters)
-                    - removalsToSubtract.Sum(item => item.RemovedCubicMeters)
+                    - removalsToSubtract.Sum(item => item.RemovedCubicMeters ?? 0m)
                     - returnsToSubtract.Sum(item => item.RemovedInventoryCubicMeters);
                 if (presentCodes.Count == 0) residual = 0m;
                 residual = Math.Max(0m, residual);
@@ -279,7 +292,9 @@ public sealed class InventoryProjectionService
         {
             var exit = SupplementaryExitMovements.LastOrDefault(item =>
                 item.PackageCode.Equals(supplementary.PackageCode, StringComparison.OrdinalIgnoreCase));
-            var isPresent = exit is null;
+            var removal = ManualRemovalMovements.LastOrDefault(item =>
+                item.PackageCode.Equals(supplementary.PackageCode, StringComparison.OrdinalIgnoreCase));
+            var isPresent = exit is null && removal is null;
             if (!includeDischarged && !isPresent) continue;
             packages.Add(new InventoryPackage
             {
@@ -313,9 +328,14 @@ public sealed class InventoryProjectionService
                 UsesRealCubicMeters = true,
                 WasteVerified = true,
                 IsPresent = isPresent,
-                PackageStatus = isPresent ? "Presente" : "Uscita supplementare",
+                PackageStatus = isPresent ? "Presente" : removal is not null ? "Rimosso manualmente" : "Uscita supplementare",
                 SupplementaryExitDate = exit?.ExitDate,
-                SupplementaryExitOperator = exit?.ExitOperator
+                SupplementaryExitOperator = exit?.ExitOperator,
+                ManualRemovalDate = removal?.RemovalDate,
+                ManualRemovalOperator = removal?.RemovalOperator,
+                ManuallyRemovedCubicMeters = removal?.RemovedCubicMeters,
+                ManualRemovalReason = removal?.Reason,
+                ManualRemovalNote = removal?.Note
             });
         }
     }
@@ -335,6 +355,7 @@ public sealed class InventoryProjectionService
         lock (_sync)
         {
             DischargeMovements.Clear(); SupplementaryExitMovements.Clear(); ManualRemovalMovements.Clear(); SupplierReturnMovements.Clear(); _packageIds.Clear();
+            PackageTerminalStateStore.Shared.ResetTestData();
             InventoryChanged?.Invoke(this, EventArgs.Empty);
         }
     }

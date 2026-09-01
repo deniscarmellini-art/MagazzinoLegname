@@ -1,6 +1,8 @@
 using MagazzinoLegname.Infrastructure;
 using MagazzinoLegname.Models;
 using MagazzinoLegname.Services;
+using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace MagazzinoLegname.ViewModels;
 
@@ -8,6 +10,7 @@ public sealed class WasteCorrectionRowViewModel : ObservableObject
 {
     private int _discardedWholeBoards;
     private decimal _partialWastePercentage;
+    private string _partialWastePercentageText = "0";
     private string _selectedOperator = string.Empty;
     private readonly WasteAdjustmentCalculationService _calculationService = new();
 
@@ -51,6 +54,38 @@ public sealed class WasteCorrectionRowViewModel : ObservableObject
             if (!SetProperty(ref _partialWastePercentage, Math.Clamp(value, 0m, 100m))) return;
             NotifyCalculations();
         }
+    }
+    public string PartialWastePercentageText
+    {
+        get => _partialWastePercentageText;
+        set
+        {
+            var normalized = (value ?? string.Empty).Replace('.', ',');
+            if (!Regex.IsMatch(normalized, @"^\d{0,3}(,\d?)?$") || !IsWithinPercentageRange(normalized))
+            {
+                OnPropertyChanged();
+                return;
+            }
+
+            if (!SetProperty(ref _partialWastePercentageText, normalized)) return;
+            if (normalized.Length == 0 || normalized.EndsWith(',')) return;
+            if (!decimal.TryParse(normalized, NumberStyles.Number, CultureInfo.GetCultureInfo("it-IT"), out var parsed)) return;
+            PartialWastePercentage = parsed;
+        }
+    }
+
+    public void CommitPartialWastePercentageText()
+    {
+        var formatted = PartialWastePercentage.ToString("0.#", CultureInfo.GetCultureInfo("it-IT"));
+        SetProperty(ref _partialWastePercentageText, formatted, nameof(PartialWastePercentageText));
+    }
+
+    private static bool IsWithinPercentageRange(string text)
+    {
+        if (text.Length == 0 || text == ",") return true;
+        var valueToParse = text.EndsWith(',') ? text[..^1] : text;
+        return valueToParse.Length == 0 || decimal.TryParse(valueToParse, NumberStyles.Number,
+            CultureInfo.GetCultureInfo("it-IT"), out var value) && value is >= 0m and <= 100m;
     }
     private WasteAdjustmentCalculation Calculation =>
         _calculationService.Calculate(AdjustmentBaseCubicMeters, InitialPieces,

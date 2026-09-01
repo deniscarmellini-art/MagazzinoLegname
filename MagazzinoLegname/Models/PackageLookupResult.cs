@@ -7,7 +7,10 @@ public enum PackageLookupStatus
     NotFound,
     NotClassified,
     WasteAdjustmentRequired,
-    AlreadyDischarged
+    AlreadyDischarged,
+    Returned,
+    ManuallyRemoved,
+    SupplementaryAlreadyExited
 }
 
 public sealed record PackageLookupResult(PackageLookupStatus Status, string Message,

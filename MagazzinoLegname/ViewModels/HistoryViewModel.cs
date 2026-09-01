@@ -21,6 +21,7 @@ public sealed class HistoryViewModel : ObservableObject
     private string _searchText = string.Empty;
     private string _quickFilter = "Tutti";
     private HistoryMovementRow? _selectedMovement;
+    private HistoryMovementRow? _selectedLoadTimelineMovement;
     private LoadHistorySummary? _selectedLoadSummary;
 
     public HistoryViewModel()
@@ -51,11 +52,13 @@ public sealed class HistoryViewModel : ObservableObject
     public string SearchText { get => _searchText; set { if (SetProperty(ref _searchText, value)) ApplyFilters(); } }
     public string QuickFilter { get => _quickFilter; set { if (SetProperty(ref _quickFilter, value)) ApplyFilters(); } }
     public HistoryMovementRow? SelectedMovement { get => _selectedMovement; set => SetProperty(ref _selectedMovement, value); }
+    public HistoryMovementRow? SelectedLoadTimelineMovement { get => _selectedLoadTimelineMovement; set => SetProperty(ref _selectedLoadTimelineMovement, value); }
     public LoadHistorySummary? SelectedLoadSummary { get => _selectedLoadSummary; private set { SetProperty(ref _selectedLoadSummary, value); OnPropertyChanged(nameof(IsLoadHistoryVisible)); } }
     public bool IsLoadHistoryVisible => SelectedLoadSummary is not null;
 
     public void SelectLoad(Guid loadId)
     {
+        SelectedLoadTimelineMovement = null;
         var load = _workflow.Loads.FirstOrDefault(item => item.Id == loadId);
         if (load is null)
         {
@@ -96,7 +99,11 @@ public sealed class HistoryViewModel : ObservableObject
         };
     }
 
-    public void CloseLoadHistory() => SelectedLoadSummary = null;
+    public void CloseLoadHistory()
+    {
+        SelectedLoadTimelineMovement = null;
+        SelectedLoadSummary = null;
+    }
 
     private void Reload()
     {
@@ -254,8 +261,9 @@ public sealed class HistoryViewModel : ObservableObject
             if (load is null || group is null) continue;
             yield return new HistoryMovementRow(removal.RemovalDate, "Rimozione manuale", load.Id, group.GroupId,
                 load.LoadNumber, load.SupplierName, Material(group), group.ConventionalThickness, group.Quality,
-                removal.PackageCode, -removal.RemovedCubicMeters, removal.RemovalOperator, load.DeliveryNoteNumber,
-                $"Codice pacco: {removal.PackageCode}\nCarico: {load.LoadNumber}\nFornitore: {load.SupplierName}\nMateriale: {Material(group)}\nQualità: {group.Quality}\nMC rimossi: {removal.RemovedCubicMeters:N2}\nData/ora: {removal.RemovalDate:dd/MM/yyyy HH:mm}\nOperatore: {removal.RemovalOperator}\nMotivo: {removal.Reason}\nNota: {(string.IsNullOrWhiteSpace(removal.Note) ? "—" : removal.Note)}");
+                removal.PackageCode, removal.RemovedCubicMeters.HasValue ? -removal.RemovedCubicMeters.Value : null,
+                removal.RemovalOperator, load.DeliveryNoteNumber,
+                $"Codice pacco: {removal.PackageCode}\nCarico: {load.LoadNumber}\nFornitore: {load.SupplierName}\nMateriale: {Material(group)}\nQualità: {group.Quality}\nMC rimossi: {(removal.RemovedCubicMeters.HasValue ? $"{removal.RemovedCubicMeters.Value:N2}" : "—")}\nData/ora: {removal.RemovalDate:dd/MM/yyyy HH:mm}\nOperatore: {removal.RemovalOperator}\nMotivo: {removal.Reason}\nNota: {(string.IsNullOrWhiteSpace(removal.Note) ? "—" : removal.Note)}");
         }
 
         foreach (var returnGroup in inventory.SupplierReturnMovements
@@ -337,12 +345,12 @@ public sealed class HistoryViewModel : ObservableObject
 
 public sealed record HistoryMovementRow(DateTime? DateTime, string MovementType, Guid LoadId,
     Guid? MaterialGroupId, string LoadNumber, string SupplierName, string Material,
-    decimal? ConventionalThickness, string? Quality, string PackageDisplay, decimal CubicMeters,
+    decimal? ConventionalThickness, string? Quality, string PackageDisplay, decimal? CubicMeters,
     string Operator, string DeliveryNoteNumber, string DetailText,
     IReadOnlyCollection<decimal>? RelatedThicknesses = null,
     IReadOnlyCollection<string>? RelatedQualities = null)
 {
-    public string CubicMetersDisplay => CubicMeters == 0m ? "—" : $"{CubicMeters:+0.00;-0.00;0.00}";
+    public string CubicMetersDisplay => !CubicMeters.HasValue || CubicMeters == 0m ? "—" : $"{CubicMeters:+0.00;-0.00;0.00}";
 }
 
 public sealed class LoadHistorySummary
