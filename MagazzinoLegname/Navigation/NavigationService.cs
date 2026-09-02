@@ -17,6 +17,7 @@ public sealed class NavigationService
         [PageKey.Classification] = () => new ClassificationView(),
         [PageKey.WasteCorrection] = () => new WasteCorrectionView(),
         [PageKey.MaterialDispatch] = () => new MaterialDispatchView(),
+        [PageKey.Consumables] = () => new ConsumablesView(),
         [PageKey.Inventory] = () => new InventoryView(),
         [PageKey.Planning] = () => new PlanningView(),
         [PageKey.History] = () => new HistoryView(),

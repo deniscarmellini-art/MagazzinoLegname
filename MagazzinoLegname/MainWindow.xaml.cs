@@ -42,6 +42,7 @@ public partial class MainWindow : Window
             PageKey.Classification => ("Classificazione", "Classificazione dei gruppi omogenei ricevuti e assegnazione dell'operatore."),
             PageKey.WasteCorrection => ("Rettifica scarti", "Consuntivo per gruppo materiale classificato; verifica degli scarti e aggiornamento della giacenza reale."),
             PageKey.MaterialDispatch => ("Scarico materiale", "Lettura e verifica dei pacchi da rimuovere dalla disponibilità di magazzino."),
+            PageKey.Consumables => ("Materiali di consumo", "Rilevazioni periodiche, scorte minime e ordini dei materiali di consumo."),
             PageKey.Inventory => ("Disponibilità Magazzino", "Pacchi fisicamente presenti, quantità consolidate e giacenza disponibile."),
             PageKey.Planning => ("Pianificazione", "Arrivi previsti e proiezione settimanale delle giacenze."),
             PageKey.History => ("Storico", "Registro permanente di entrate, classificazioni, rettifiche, scarichi e rimozioni manuali."),
@@ -60,6 +61,7 @@ public partial class MainWindow : Window
             "Classificazione" => PageKey.Classification,
             "Rettifica scarti" => PageKey.WasteCorrection,
             "Scarico materiale" => PageKey.MaterialDispatch,
+            "Materiali di consumo" => PageKey.Consumables,
             "Giacenze" => PageKey.Inventory,
             "Pianificazione" => PageKey.Planning,
             "Storico" => PageKey.History,
@@ -68,6 +70,6 @@ public partial class MainWindow : Window
             _ => default
         };
         return label is "Dashboard" or "Entrata merce" or "Classificazione" or "Rettifica scarti"
-            or "Scarico materiale" or "Giacenze" or "Pianificazione" or "Storico" or "Statistiche" or "Impostazioni";
+            or "Scarico materiale" or "Materiali di consumo" or "Giacenze" or "Pianificazione" or "Storico" or "Statistiche" or "Impostazioni";
     }
 }

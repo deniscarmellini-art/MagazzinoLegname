@@ -21,6 +21,9 @@ public sealed class SettingsViewModel : ObservableObject
     private LegacyInitialInventoryImportResult? _legacyImportResult;
     private LegacyClosedHistoryImportPlan? _legacyClosedHistoryPlan;
     private LegacyClosedHistoryImportResult? _legacyClosedHistoryResult;
+    private ConsumableItem? _selectedConsumable;
+    private string? _consumablesLegacyFilePath;
+    private ConsumablesLegacyImportPlan? _consumablesImportPlan;
 
     public SettingsViewModel()
     {
@@ -36,12 +39,22 @@ public sealed class SettingsViewModel : ObservableObject
     public GeneralSettings GeneralSettings { get; } = GeneralSettingsService.Shared.Settings;
     public PlanningSettings PlanningSettings { get; } = PlanningSettingsService.Shared.Settings;
     public ObservableCollection<Operator> Operators => OperatorCatalogService.Shared.Operators;
-    public string SelectedSection { get => _selectedSection; set { if (SetProperty(ref _selectedSection, value)) { OnPropertyChanged(nameof(IsSuppliersSection)); OnPropertyChanged(nameof(IsMaterialParametersSection)); OnPropertyChanged(nameof(IsPlanningParametersSection)); OnPropertyChanged(nameof(IsOperatorsSection)); OnPropertyChanged(nameof(IsLegacyImportSection)); } } }
+    public string SelectedSection { get => _selectedSection; set { if (SetProperty(ref _selectedSection, value)) { OnPropertyChanged(nameof(IsSuppliersSection)); OnPropertyChanged(nameof(IsMaterialParametersSection)); OnPropertyChanged(nameof(IsPlanningParametersSection)); OnPropertyChanged(nameof(IsOperatorsSection)); OnPropertyChanged(nameof(IsConsumablesSection)); OnPropertyChanged(nameof(IsLegacyImportSection)); } } }
     public bool IsSuppliersSection => SelectedSection == "Suppliers";
     public bool IsMaterialParametersSection => SelectedSection == "MaterialParameters";
     public bool IsPlanningParametersSection => SelectedSection == "PlanningParameters";
     public bool IsOperatorsSection => SelectedSection == "Operators";
+    public bool IsConsumablesSection => SelectedSection == "Consumables";
     public bool IsLegacyImportSection => SelectedSection == "LegacyImport";
+    public ObservableCollection<ConsumableItem> ConsumableItems => ConsumablesStore.Shared.Items;
+    public ConsumableItem? SelectedConsumable { get => _selectedConsumable; set => SetProperty(ref _selectedConsumable, value); }
+    public Array ConsumptionPeriods => Enum.GetValues<ConsumptionPeriod>();
+    public IReadOnlyList<string> ConsumableUnits { get; } = ["kg", "L", "scatole", "fogli", "nr"];
+    public IEnumerable<string> ConsumableSuppliers => ConsumableItems.Select(item => item.SupplierName).Where(value => !string.IsNullOrWhiteSpace(value)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(value => value);
+    public IEnumerable<string> ConsumableDepartments => ConsumableItems.Select(item => item.Department).Where(value => !string.IsNullOrWhiteSpace(value)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(value => value);
+    public string? ConsumablesLegacyFilePath { get => _consumablesLegacyFilePath; set => SetProperty(ref _consumablesLegacyFilePath, value); }
+    public ConsumablesLegacyImportPlan? ConsumablesImportPlan { get => _consumablesImportPlan; private set { SetProperty(ref _consumablesImportPlan, value); OnPropertyChanged(nameof(HasConsumablesImportPlan)); } }
+    public bool HasConsumablesImportPlan => ConsumablesImportPlan is not null;
     public string? LegacyFilePath { get => _legacyFilePath; set { if (SetProperty(ref _legacyFilePath, value)) OnPropertyChanged(nameof(CanAnalyzeLegacy)); } }
     public LegacyImportReport? LegacyReport { get => _legacyReport; private set { if (SetProperty(ref _legacyReport, value)) OnPropertyChanged(nameof(HasLegacyReport)); } }
     public bool HasLegacyReport => LegacyReport is not null;
@@ -77,7 +90,14 @@ public sealed class SettingsViewModel : ObservableObject
     public void ShowMaterialParameters() { IsHistoryVisible = false; SelectedSection = "MaterialParameters"; }
     public void ShowPlanningParameters() { IsHistoryVisible = false; SelectedSection = "PlanningParameters"; }
     public void ShowOperators() { IsHistoryVisible = false; SelectedSection = "Operators"; }
+    public void ShowConsumables() { IsHistoryVisible = false; SelectedSection = "Consumables"; SelectedConsumable ??= ConsumableItems.FirstOrDefault(); }
     public void ShowLegacyImport() { IsHistoryVisible = false; SelectedSection = "LegacyImport"; }
+    public ConsumableItem AddConsumable() { var item = ConsumablesStore.Shared.AddItem(); SelectedConsumable = item; return item; }
+    public void SaveConsumables() { if (SelectedConsumable is null) return; if (string.IsNullOrWhiteSpace(SelectedConsumable.ProductName)) throw new InvalidOperationException("Il nome prodotto è obbligatorio."); if (SelectedConsumable.QuantityPerUnit is <= 0) throw new InvalidOperationException("Qtà per UDM deve essere maggiore di zero quando valorizzata."); if (ConsumableItems.Any(item => item != SelectedConsumable && item.InternalCode.Equals(SelectedConsumable.InternalCode, StringComparison.OrdinalIgnoreCase))) throw new InvalidOperationException("Il codice articolo deve essere univoco."); ConsumablesStore.Shared.NotifyChanged(); OnPropertyChanged(nameof(ConsumableSuppliers)); OnPropertyChanged(nameof(ConsumableDepartments)); }
+    public void SelectConsumable(ConsumableItem item) => SelectedConsumable = item;
+    public void ToggleConsumable() { if (SelectedConsumable is null) return; SelectedConsumable.IsActive = !SelectedConsumable.IsActive; ConsumablesStore.Shared.NotifyChanged(); }
+    public void AnalyzeConsumablesLegacy() { if (string.IsNullOrWhiteSpace(ConsumablesLegacyFilePath)) throw new InvalidOperationException("Selezionare il file Excel."); ConsumablesImportPlan = new ConsumablesLegacyExcelImporter().Analyze(ConsumablesLegacyFilePath); }
+    public ConsumablesLegacyImportResult ImportConsumablesLegacy() { if (ConsumablesImportPlan is null) throw new InvalidOperationException("Analizzare prima il file Excel."); var result = new ConsumablesLegacyExcelImporter().Commit(ConsumablesImportPlan); ConsumablesImportPlan = null; return result; }
     public async Task AnalyzeLegacyAsync()
     {
         if (!CanAnalyzeLegacy) return;
