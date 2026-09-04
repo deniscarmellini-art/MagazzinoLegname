@@ -14,6 +14,7 @@ public sealed class ConsumablesViewModel : ObservableObject
     private string _selectedOperator = string.Empty;
     private DateTime? _historyFrom = DateTime.Today.AddYears(-1), _historyTo = DateTime.Today;
     private string _historyProduct = "Tutti", _historySupplier = "Tutti", _historyDepartment = "Tutti";
+    private bool _isReloading;
 
     public ConsumablesViewModel()
     {
@@ -34,16 +35,16 @@ public sealed class ConsumablesViewModel : ObservableObject
     public Array OrderStatuses => Enum.GetValues<ConsumableOrderStatus>();
 
     public string SearchText { get => _searchText; set { if (SetProperty(ref _searchText, value)) ApplySituationFilters(); } }
-    public string SelectedSupplier { get => _selectedSupplier; set { if (SetProperty(ref _selectedSupplier, value)) ApplySituationFilters(); } }
-    public string SelectedDepartment { get => _selectedDepartment; set { if (SetProperty(ref _selectedDepartment, value)) ApplySituationFilters(); } }
-    public string SelectedStatus { get => _selectedStatus; set { if (SetProperty(ref _selectedStatus, value)) ApplySituationFilters(); } }
+    public string SelectedSupplier { get => _selectedSupplier; set { if (SetProperty(ref _selectedSupplier, NormalizeFilter(value)) && !_isReloading) ApplySituationFilters(); } }
+    public string SelectedDepartment { get => _selectedDepartment; set { if (SetProperty(ref _selectedDepartment, NormalizeFilter(value)) && !_isReloading) ApplySituationFilters(); } }
+    public string SelectedStatus { get => _selectedStatus; set { if (SetProperty(ref _selectedStatus, NormalizeFilter(value)) && !_isReloading) ApplySituationFilters(); } }
     public DateTime InventoryDate { get => _inventoryDate; set => SetProperty(ref _inventoryDate, value); }
     public string SelectedOperator { get => _selectedOperator; set => SetProperty(ref _selectedOperator, value); }
     public DateTime? HistoryFrom { get => _historyFrom; set { if (SetProperty(ref _historyFrom, value)) ApplyHistoryFilters(); } }
     public DateTime? HistoryTo { get => _historyTo; set { if (SetProperty(ref _historyTo, value)) ApplyHistoryFilters(); } }
-    public string HistoryProduct { get => _historyProduct; set { if (SetProperty(ref _historyProduct, value)) ApplyHistoryFilters(); } }
-    public string HistorySupplier { get => _historySupplier; set { if (SetProperty(ref _historySupplier, value)) ApplyHistoryFilters(); } }
-    public string HistoryDepartment { get => _historyDepartment; set { if (SetProperty(ref _historyDepartment, value)) ApplyHistoryFilters(); } }
+    public string HistoryProduct { get => _historyProduct; set { if (SetProperty(ref _historyProduct, NormalizeFilter(value)) && !_isReloading) ApplyHistoryFilters(); } }
+    public string HistorySupplier { get => _historySupplier; set { if (SetProperty(ref _historySupplier, NormalizeFilter(value)) && !_isReloading) ApplyHistoryFilters(); } }
+    public string HistoryDepartment { get => _historyDepartment; set { if (SetProperty(ref _historyDepartment, NormalizeFilter(value)) && !_isReloading) ApplyHistoryFilters(); } }
 
     public int ActiveItems => _store.Items.Count(item => item.IsActive);
     public int BelowMinimum => _store.Items.Count(item => item.IsActive && _store.StatusFor(item) is ConsumableStockStatus.ToOrder or ConsumableStockStatus.BelowMinimumOrdered);
@@ -72,9 +73,21 @@ public sealed class ConsumablesViewModel : ObservableObject
 
     public void Reload()
     {
+        var selectedSupplier = NormalizeFilter(SelectedSupplier);
+        var selectedDepartment = NormalizeFilter(SelectedDepartment);
+        var historyProduct = NormalizeFilter(HistoryProduct);
+        var historySupplier = NormalizeFilter(HistorySupplier);
+        var historyDepartment = NormalizeFilter(HistoryDepartment);
+        _isReloading = true;
         ReplaceOptions(Suppliers, "Tutti", _store.Items.Select(item => item.SupplierName));
         ReplaceOptions(Departments, "Tutti", _store.Items.Select(item => item.Department));
         ReplaceOptions(Products, "Tutti", _store.Items.Select(item => item.ProductName));
+        SelectedSupplier = RestoreFilter(Suppliers, selectedSupplier);
+        SelectedDepartment = RestoreFilter(Departments, selectedDepartment);
+        HistoryProduct = RestoreFilter(Products, historyProduct);
+        HistorySupplier = RestoreFilter(Suppliers, historySupplier);
+        HistoryDepartment = RestoreFilter(Departments, historyDepartment);
+        _isReloading = false;
         ApplySituationFilters();
         InventoryRows.Clear();
         foreach (var item in _store.Items.Where(item => item.IsActive).OrderBy(item => item.ProductName))
@@ -116,6 +129,10 @@ public sealed class ConsumablesViewModel : ObservableObject
         target.Clear(); target.Add(all);
         foreach (var value in values.Where(value => !string.IsNullOrWhiteSpace(value)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(value => value)) target.Add(value);
     }
+
+    private static string NormalizeFilter(string? value) => string.IsNullOrWhiteSpace(value) ? "Tutti" : value;
+    private static string RestoreFilter(IEnumerable<string> options, string previous) =>
+        options.Contains(previous, StringComparer.OrdinalIgnoreCase) ? previous : "Tutti";
 }
 
 public sealed record ConsumableSituationRow(ConsumableItem Item, ConsumableInventoryReading? LatestReading,
