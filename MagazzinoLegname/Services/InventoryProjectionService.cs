@@ -248,7 +248,7 @@ public sealed class InventoryProjectionService
                         IncomingCubicMeters = incomingShares[index], ProcessingWastePercentage = group.ProcessingWastePercentage,
                         QualityWastePercentage = adjustment?.TotalClassificationWastePercentage,
                         InventoryCubicMeters = isPresent ? shareByCode[code] : 0m,
-                        AppliedPrice = group.AppliedPrice, TheoreticalUsefulCubicMeters = group.TheoreticalUsefulCubicMeters,
+                        AppliedPrice = legacyPackage?.AppliedPrice ?? group.AppliedPrice, TheoreticalUsefulCubicMeters = group.TheoreticalUsefulCubicMeters,
                         LegacyEstimatedCubicMeters = legacyPackage?.LegacyEstimatedCubicMeters,
                         InventoryQuantitySource = group.WasteVerified ? InventoryQuantitySource.RealAfterAdjustment
                             : group.IsLegacyImport && group.WasClassifiedAtLegacyImport ? InventoryQuantitySource.LegacyEstimate

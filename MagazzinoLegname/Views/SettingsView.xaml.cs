@@ -34,6 +34,12 @@ public partial class SettingsView : UserControl
     private void ConsumablesSection_Click(object sender, RoutedEventArgs e) => ViewModel.ShowConsumables();
     private void LegacyImportSection_Click(object sender, RoutedEventArgs e) => ViewModel.ShowLegacyImport();
     private void AddConsumable_Click(object sender, RoutedEventArgs e) => ViewModel.AddConsumable();
+    private void ConsumablesGrid_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (sender is DataGrid grid && ItemsControl.ContainerFromElement(grid, e.OriginalSource as DependencyObject) is DataGridRow { Item: Models.ConsumableItem item })
+            ViewModel.SelectConsumable(item);
+    }
+    private void CloseConsumableEditor_Click(object sender, RoutedEventArgs e) => ViewModel.CloseConsumableEditor();
     private void SaveConsumable_Click(object sender, RoutedEventArgs e)
     {
         try { ViewModel.SaveConsumables(); MessageBox.Show("Articolo aggiornato in memoria.", "Materiali di consumo", MessageBoxButton.OK, MessageBoxImage.Information); }
@@ -97,7 +103,9 @@ public partial class SettingsView : UserControl
         var message = $"TEST TEMPORANEO IN MEMORIA\n\n" +
             $"Pacchi: {plan.PackageCount:N0}\nCarichi: {plan.LoadCount:N0}\nClassificati: {plan.ClassifiedCount:N0}\nDa classificare: {plan.ToClassifyCount:N0}\n" +
             $"Gruppi materiale: {plan.MaterialGroupCount:N0}\nGruppi classificati da rettificare: {plan.ClassifiedMaterialGroups:N0}\nGruppi da classificare: {plan.MaterialGroupsToClassify:N0}\n" +
-            $"MC fisici: {plan.PhysicalCubicMeters:N5}\nMC disponibili legacy: {plan.LegacyAvailableCubicMeters:N5}\nPrezzi mancanti: {plan.MissingPrices:N0}\n" +
+            $"MC fisici: {plan.PhysicalCubicMeters:N5}\nMC disponibili legacy: {plan.LegacyAvailableCubicMeters:N5}\n" +
+            $"Pacchi con prezzo: {plan.PackagesWithPrice:N0}\nPacchi senza prezzo: {plan.MissingPrices:N0}\nPrezzi non validi: {plan.InvalidPrices:N0}\n" +
+            $"MC fisici valorizzati: {plan.PricedPhysicalCubicMeters:N5}\nValore totale importabile: {plan.ImportableValue:N2} €\n" +
             $"Fingerprint: {plan.FileFingerprint}\n\nI dati saranno persi alla chiusura dell'applicazione. Procedere?";
         if (MessageBox.Show(message, "Conferma importazione giacenza iniziale", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes) return;
         try

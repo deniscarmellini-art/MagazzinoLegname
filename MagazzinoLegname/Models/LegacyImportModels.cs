@@ -34,6 +34,9 @@ public sealed class LegacyStagingRow
     public DateTime? ClassificationDate { get; init; }
     public string? Qr { get; init; }
     public string? Year { get; init; }
+    public string? HistoricalPriceRaw { get; init; }
+    public decimal? AppliedPrice { get; init; }
+    public bool HasInvalidHistoricalPrice { get; init; }
     public decimal? RecalculatedPhysicalCubicMeters { get; set; }
     public decimal? CubicMetersDifference { get; set; }
     public bool? IsClassified { get; set; }
@@ -92,6 +95,11 @@ public sealed class LegacyImportReport
     public decimal ExcelCubicMeters => Rows.Where(x => !x.IsExcluded).Sum(x => x.ExcelCubicMeters ?? 0m);
     public decimal CubicMetersDifference => Rows.Where(x => !x.IsExcluded).Sum(x => x.CubicMetersDifference ?? 0m);
     public decimal CurrentLegacyEstimatedCubicMeters => Rows.Where(x => !x.IsExcluded && x.Category == LegacyRowCategory.InitialInventory).Sum(x => x.LegacyEstimatedCubicMeters ?? 0m);
+    public int CurrentPackagesWithPrice => Rows.Count(x => !x.IsExcluded && x.Category == LegacyRowCategory.InitialInventory && x.AppliedPrice.HasValue);
+    public int CurrentPackagesWithoutPrice => Rows.Count(x => !x.IsExcluded && x.Category == LegacyRowCategory.InitialInventory && !x.AppliedPrice.HasValue);
+    public int CurrentInvalidPrices => Rows.Count(x => !x.IsExcluded && x.Category == LegacyRowCategory.InitialInventory && x.HasInvalidHistoricalPrice);
+    public decimal CurrentPricedPhysicalCubicMeters => Rows.Where(x => !x.IsExcluded && x.Category == LegacyRowCategory.InitialInventory && x.AppliedPrice.HasValue).Sum(x => x.RecalculatedPhysicalCubicMeters ?? 0m);
+    public decimal CurrentImportableValue => Rows.Where(x => !x.IsExcluded && x.Category == LegacyRowCategory.InitialInventory && x.AppliedPrice.HasValue).Sum(x => (x.RecalculatedPhysicalCubicMeters ?? 0m) * x.AppliedPrice!.Value);
     public int DistinctSuppliers => Rows.Select(x => x.SupplierOriginal?.Trim()).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Count();
     public int AvailableSheetRows { get; init; }
     public int MatchingAvailableRows { get; init; }

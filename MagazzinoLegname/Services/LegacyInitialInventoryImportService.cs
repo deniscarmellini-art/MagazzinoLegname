@@ -21,7 +21,6 @@ public sealed class LegacyInitialInventoryImportService
         if (report.MissingFromAvailableSheet != 0 || report.ExtraInAvailableSheet != 0 || report.CurrentInventoryRows != report.AvailableSheetRows || report.MatchingAvailableRows != report.CurrentInventoryRows)
             throw new InvalidOperationException("La quadratura con Materiale Disponibile non è corretta.");
         var rows = report.Rows.Where(x => !x.IsExcluded && x.Category == LegacyRowCategory.InitialInventory).ToArray();
-        if (report.Rows.Any(x => x.IsExcluded && x.Category == LegacyRowCategory.InitialInventory)) throw new InvalidOperationException("La giacenza contiene anomalie bloccanti.");
         if (rows.Any(x => x.QualityNormalized is not ("C" or "VISTA"))) throw new InvalidOperationException("La giacenza contiene qualità non importabili automaticamente.");
         var fingerprint = Fingerprint(report.FilePath);
         var collisions = new List<string>();
@@ -118,7 +117,8 @@ public sealed class LegacyInitialInventoryImportService
             Status = row.IsClassified == true ? "Classificato" : "Da classificare", LegacyPackageLabel = row.PackageLabel,
             LegacyExcelRow = row.ExcelRow, LegacyQr = row.Qr, LegacyIdentifier = LegacyKey(plan.FileFingerprint, row),
             LegacyEstimatedCubicMeters = row.LegacyEstimatedCubicMeters, LegacyImportBatchId = plan.BatchId,
-            LegacyPackageNumber = row.PackageNumber, LegacyTotalPackages = row.TotalPackages
+            LegacyPackageNumber = row.PackageNumber, LegacyTotalPackages = row.TotalPackages,
+            AppliedPrice = row.AppliedPrice
         };
     private sealed record LegacyMaterialGroupKey(decimal Thickness, decimal Width, decimal Length, string Quality, bool IsClassified, string Certification);
     private static IReadOnlyList<LegacyMaterialGroupPreview> BuildMaterialGroupPreviews(IReadOnlyList<LegacyStagingRow> rows)

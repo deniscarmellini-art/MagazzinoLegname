@@ -58,7 +58,8 @@ public sealed class ConsumablesStore
     public ConsumableStockStatus StatusFor(ConsumableItem item)
     {
         var latest = LatestReading(item.Id);
-        if (item.NeedsVerification || latest is null || !item.MinimumStock.HasValue || string.IsNullOrWhiteSpace(item.UnitOfMeasure)) return ConsumableStockStatus.ToVerify;
+        if (latest is null || !item.MinimumStock.HasValue) return ConsumableStockStatus.ToVerify;
+        if (latest.CountedUnits.HasValue && latest.QuantityPerUnitSnapshot is not > 0) return ConsumableStockStatus.ToVerify;
         var ordered = OrderFor(item.Id).IsOpen;
         if (latest.Quantity < item.MinimumStock.Value) return ordered ? ConsumableStockStatus.BelowMinimumOrdered : ConsumableStockStatus.ToOrder;
         return ordered ? ConsumableStockStatus.Ordered : ConsumableStockStatus.Ok;

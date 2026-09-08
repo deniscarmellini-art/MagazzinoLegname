@@ -70,6 +70,8 @@ public sealed partial class LegacyImportAnalyzer
     private static void AnalyzeRow(LegacyStagingRow row)
     {
         row.Category = !string.IsNullOrWhiteSpace(row.FinishedRawValue) ? LegacyRowCategory.ClosedHistory : LegacyRowCategory.InitialInventory;
+        if (row.Category == LegacyRowCategory.InitialInventory && row.HasInvalidHistoricalPrice)
+            Add(row, "Prezzo", $"Prezzo storico non valido: {row.HistoricalPriceRaw}", LegacyIssueSeverity.Warning, "Correggere la colonna X (PREZZO); il pacco sarà importato con valore N/D.");
         if (row.Category == LegacyRowCategory.ClosedHistory && !row.FinishedOn.HasValue)
             Add(row, "Chiusura legacy", $"Chiusura legacy senza data: {row.FinishedRawValue}", LegacyIssueSeverity.Warning, "Conservare il valore originale come informazione storica.");
         row.QualityNormalized = row.QualityOriginal?.Trim() switch { { } q when q.Equals("c", StringComparison.OrdinalIgnoreCase) => "C", { } q when q.Equals("vista", StringComparison.OrdinalIgnoreCase) => "VISTA", { } q => q, _ => null };

@@ -10,7 +10,7 @@ namespace MagazzinoLegname.Services;
 
 public sealed class LegacyExcelReader
 {
-    private static readonly string[] RelevantHeaders = ["Fornitore", "Data", "Carico", "Numero Etichetta", "Pezzi", "A", "B", "C", "Finito il", "Qualità", "B reale", "Tipo", "Metri Lineari", "Metri Cubi", "Metri Cubi Stimati", "Classificato", "Data classificazione", "qr", "Anno"];
+    private static readonly string[] RelevantHeaders = ["Fornitore", "Data", "Carico", "Numero Etichetta", "Pezzi", "A", "B", "C", "Finito il", "Qualità", "B reale", "Tipo", "Metri Lineari", "Metri Cubi", "Metri Cubi Stimati", "Classificato", "Data classificazione", "qr", "Anno", "Prezzo"];
 
     public LegacyWorkbookData Read(string filePath)
     {
@@ -46,6 +46,8 @@ public sealed class LegacyExcelReader
         {
             if (IsBlankRow(workbook, row)) continue;
             var excelRow = (int)(row.RowIndex?.Value ?? 0);
+            var historicalPriceRaw = PriceText(workbook, row, columns);
+            var historicalPrice = ParseHistoricalPrice(historicalPriceRaw);
             result.Add(new LegacyStagingRow
             {
                 ExcelRow = excelRow, SupplierOriginal = NullIfBlank(Text(workbook, row, columns, "Fornitore")), Date = Date(workbook, row, columns, "Data"), LoadNumber = NullIfBlank(Text(workbook, row, columns, "Carico")),
@@ -53,7 +55,9 @@ public sealed class LegacyExcelReader
                 InputLength = Decimal(workbook, row, columns, "C"), FinishedRawValue = NullIfBlank(Text(workbook, row, columns, "Finito il")), FinishedOn = Date(workbook, row, columns, "Finito il"), QualityOriginal = NullIfBlank(Text(workbook, row, columns, "Qualità")), RealWidth = Decimal(workbook, row, columns, "B reale"),
                 Certification = NullIfBlank(Text(workbook, row, columns, "Tipo")), LinearMeters = Decimal(workbook, row, columns, "Metri Lineari"), ExcelCubicMeters = Decimal(workbook, row, columns, "Metri Cubi"),
                 LegacyEstimatedCubicMeters = Decimal(workbook, row, columns, "Metri Cubi Stimati"), ClassifiedOriginal = NullIfBlank(Text(workbook, row, columns, "Classificato")), ClassificationDate = Date(workbook, row, columns, "Data classificazione"),
-                Qr = NullIfBlank(Text(workbook, row, columns, "qr")), Year = NullIfBlank(Text(workbook, row, columns, "Anno"))
+                Qr = NullIfBlank(Text(workbook, row, columns, "qr")), Year = NullIfBlank(Text(workbook, row, columns, "Anno")),
+                HistoricalPriceRaw = NullIfBlank(historicalPriceRaw), AppliedPrice = historicalPrice,
+                HasInvalidHistoricalPrice = !string.IsNullOrWhiteSpace(historicalPriceRaw) && !historicalPrice.HasValue
             });
         }
         return result;
@@ -101,6 +105,19 @@ public sealed class LegacyExcelReader
     {
         var text = Text(workbook, row, columns, name).Replace(" ", "");
         return decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var number) || decimal.TryParse(text, NumberStyles.Any, CultureInfo.GetCultureInfo("it-IT"), out number) ? number : null;
+    }
+    private static string PriceText(WorkbookPart workbook, Row row, Dictionary<string, int> columns)
+    {
+        if (columns.ContainsKey("Prezzo")) return Text(workbook, row, columns, "Prezzo");
+        var cell = row.Elements<Cell>().FirstOrDefault(x => ColumnIndex(x.CellReference?.Value) == 24); // X
+        return cell is null ? "" : CellText(workbook, cell).Trim();
+    }
+    private static decimal? ParseHistoricalPrice(string text)
+    {
+        text = text.Trim().Replace(" ", "");
+        if (text.Length == 0) return null;
+        var culture = text.Contains(',') ? CultureInfo.GetCultureInfo("it-IT") : CultureInfo.InvariantCulture;
+        return decimal.TryParse(text, NumberStyles.Number, culture, out var value) && value > 0m ? value : null;
     }
     private static DateTime? Date(WorkbookPart workbook, Row row, Dictionary<string, int> columns, string name)
     {

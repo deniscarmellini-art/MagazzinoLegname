@@ -25,7 +25,11 @@ public sealed class LegacyInitialInventoryImportPlan
     public int ToClassifyCount => Rows.Count(x => x.IsClassified != true);
     public decimal PhysicalCubicMeters => Rows.Sum(x => x.RecalculatedPhysicalCubicMeters ?? 0m);
     public decimal LegacyAvailableCubicMeters => Rows.Sum(x => x.LegacyEstimatedCubicMeters ?? 0m);
-    public int MissingPrices => Rows.Count;
+    public int PackagesWithPrice => Rows.Count(x => x.AppliedPrice.HasValue);
+    public int MissingPrices => Rows.Count(x => !x.AppliedPrice.HasValue);
+    public int InvalidPrices => Rows.Count(x => x.HasInvalidHistoricalPrice);
+    public decimal PricedPhysicalCubicMeters => Rows.Where(x => x.AppliedPrice.HasValue).Sum(x => x.RecalculatedPhysicalCubicMeters ?? 0m);
+    public decimal ImportableValue => Rows.Where(x => x.AppliedPrice.HasValue).Sum(x => (x.RecalculatedPhysicalCubicMeters ?? 0m) * x.AppliedPrice!.Value);
     public int MaterialGroupCount => MaterialGroups.Count;
     public int ClassifiedMaterialGroups => MaterialGroups.Count(x => x.ClassificationStatus == "Classificato");
     public int MaterialGroupsToClassify => MaterialGroups.Count(x => x.ClassificationStatus == "Da classificare");

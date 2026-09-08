@@ -148,6 +148,7 @@ public sealed record ConsumableSituationRow(ConsumableItem Item, ConsumableInven
     public string ConsumptionDisplay => string.IsNullOrWhiteSpace(Item.ConsumptionAverageText) ? "—" : Item.ConsumptionAverageText;
     public string LeadTimeDisplay => Item.LeadTimeDays.HasValue ? $"{Item.LeadTimeDays} gg" : "—";
     public string OrderedDisplay => Order.IsOpen ? $"{Order.Quantity:N2} {Item.UnitOfMeasure}" : "—";
+    public bool HasAnagraphicWarning => Item.NeedsVerification;
     public string StatusDisplay => Status switch { ConsumableStockStatus.Ok => "OK", ConsumableStockStatus.ToOrder => "Da ordinare", ConsumableStockStatus.BelowMinimumOrdered => "Sotto scorta · in ordine", ConsumableStockStatus.Ordered => "In ordine", _ => "Da verificare" };
 }
 

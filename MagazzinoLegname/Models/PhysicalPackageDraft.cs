@@ -24,6 +24,7 @@ public sealed record PhysicalPackageDraft(
     public PackageType PackageType { get; init; } = PackageType.Official;
     public int? SupplementarySequence { get; init; }
     public decimal? LegacyEstimatedCubicMeters { get; init; }
+    public decimal? AppliedPrice { get; init; }
     public Guid? LegacyImportBatchId { get; init; }
     public int? LegacyPackageNumber { get; init; }
     public int? LegacyTotalPackages { get; init; }

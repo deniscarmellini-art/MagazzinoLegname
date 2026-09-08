@@ -7,24 +7,9 @@ public sealed class SupplierCatalogService
 {
     private static readonly Lazy<SupplierCatalogService> SharedInstance = new(() => new SupplierCatalogService());
     private readonly ObservableCollection<SupplierPrice> _prices = [];
-
     private SupplierCatalogService()
     {
-        var alpina = new Supplier(Guid.NewGuid(), "Segheria Alpina S.r.l.", true, "SEG");
-        var nord = new Supplier(Guid.NewGuid(), "Legnami Nord S.p.A.", true, "LEG");
-        var bosco = new Supplier(Guid.NewGuid(), "Bosco & Tavole S.r.l.", true, "BET");
-        alpina.VatNumber = "IT02345670211"; alpina.Address = "Via delle Segherie 12"; alpina.PostalCode = "39100"; alpina.City = "Bolzano"; alpina.Province = "BZ"; alpina.Email = "ordini@segheria-alpina.demo";
-        alpina.Contacts.Add(new SupplierContact { FirstName = "Luca", LastName = "Bernardi", Role = "Commerciale", Phone = "0471 000100", Mobile = "333 0000100", Email = "l.bernardi@segheria-alpina.demo" });
-        nord.VatNumber = "IT04123450987"; nord.Address = "Via del Legno 8"; nord.PostalCode = "33170"; nord.City = "Pordenone"; nord.Province = "PN"; nord.Email = "ufficio@legnaminord.demo";
-        nord.Contacts.Add(new SupplierContact { FirstName = "Sara", LastName = "Moretti", Role = "Logistica", Phone = "0434 000200", Email = "logistica@legnaminord.demo" });
-        bosco.VatNumber = "IT01876540321"; bosco.Address = "Zona Industriale 4"; bosco.PostalCode = "32032"; bosco.City = "Feltre"; bosco.Province = "BL"; bosco.Email = "info@boscoetavole.demo";
-        nord.ThicknessConfigurations[1].IsPlaningEnabled = false;
-        nord.ThicknessConfigurations[2].IsPlaningEnabled = false;
-        Suppliers = [alpina, nord, bosco];
-        Seed(alpina, (23m, 425m, new DateTime(2025,1,1), new DateTime(2025,12,31)), (23m,445m,new DateTime(2026,1,1),null), (34m,478m,new DateTime(2026,1,1),null), (44m,512m,new DateTime(2026,1,1),null));
-        Seed(nord, (23m,432m,new DateTime(2026,1,1),null), (34m,465m,new DateTime(2026,1,1),null), (44m,501m,new DateTime(2026,1,1),null));
-        Seed(bosco, (23m,451m,new DateTime(2026,1,1),null), (34m,486m,new DateTime(2026,1,1),null), (44m,520m,new DateTime(2026,1,1),null));
-        RefreshCurrentPrices(DateTime.Today);
+        Suppliers = [];
     }
 
     public static SupplierCatalogService Shared => SharedInstance.Value;
@@ -66,10 +51,6 @@ public sealed class SupplierCatalogService
         foreach (var supplier in Suppliers)
             foreach (var config in supplier.ThicknessConfigurations)
                 config.CurrentPrice = GetValidPrice(supplier.Id, config.ConventionalThickness, date) ?? 0m;
-    }
-    private void Seed(Supplier supplier, params (decimal T, decimal P, DateTime From, DateTime? To)[] rows)
-    {
-        foreach (var row in rows) _prices.Add(new SupplierPrice { SupplierId=supplier.Id, ConventionalThickness=row.T, PricePerCubicMeter=row.P, ValidFrom=row.From, ValidTo=row.To });
     }
     private string CreateUniqueDraftCode()
     {
