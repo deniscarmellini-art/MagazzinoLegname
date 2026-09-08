@@ -1,0 +1,13 @@
+{
+  "Database": {
+    "Server": "localhost\\SQLEXPRESS",
+    "Database": "MagazzinoLegname_Dev",
+    "Authentication": "Windows",
+    "UserId": "",
+    "Password": "",
+    "Encrypt": true,
+    "TrustServerCertificate": true,
+    "ConnectionTimeoutSeconds": 15,
+    "CommandTimeoutSeconds": 30
+  }
+}
