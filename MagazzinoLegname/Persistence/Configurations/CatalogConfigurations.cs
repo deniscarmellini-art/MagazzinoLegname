@@ -20,9 +20,9 @@ public sealed class SupplierConfiguration : IEntityTypeConfiguration<SupplierEnt
         builder.ToTable("Suppliers"); builder.HasKey(x => x.Id);
         builder.Property(x => x.Code).HasMaxLength(16).IsRequired(); builder.HasIndex(x => x.Code).IsUnique();
         builder.Property(x => x.Name).HasMaxLength(200).IsRequired();
-        builder.Property(x => x.VatNumber).HasMaxLength(32); builder.Property(x => x.Address).HasMaxLength(250);
+        builder.Property(x => x.VatNumber).HasMaxLength(32); builder.Property(x => x.TaxCode).HasMaxLength(32); builder.Property(x => x.Address).HasMaxLength(250);
         builder.Property(x => x.PostalCode).HasMaxLength(16); builder.Property(x => x.City).HasMaxLength(100);
-        builder.Property(x => x.Province).HasMaxLength(8); builder.Property(x => x.Email).HasMaxLength(254);
+        builder.Property(x => x.Province).HasMaxLength(8); builder.Property(x => x.Country).HasMaxLength(100); builder.Property(x => x.Email).HasMaxLength(254); builder.Property(x => x.CertifiedEmail).HasMaxLength(254);
         builder.Property(x => x.RowVersion).IsRowVersion();
     }
 }

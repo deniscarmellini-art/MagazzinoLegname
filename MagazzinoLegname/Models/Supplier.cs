@@ -34,6 +34,7 @@ public sealed class Supplier : ObservableObject
     }
 
     public Guid Id { get; }
+    public byte[] RowVersion { get; internal set; } = [];
     public string Name { get => _name; set => SetProperty(ref _name, value); }
     public string Code { get => _code; set => SetProperty(ref _code, value.Trim().ToUpperInvariant()); }
     public bool IsActive { get => _isActive; set => SetProperty(ref _isActive, value); }

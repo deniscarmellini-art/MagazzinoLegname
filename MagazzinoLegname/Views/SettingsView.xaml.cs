@@ -1,11 +1,13 @@
 using System.Windows;
 using System.Windows.Controls;
 using MagazzinoLegname.ViewModels;
+using MagazzinoLegname.Navigation;
+using MagazzinoLegname.Persistence;
 using Microsoft.Win32;
 
 namespace MagazzinoLegname.Views;
 
-public partial class SettingsView : UserControl
+public partial class SettingsView : UserControl, INavigationAware
 {
     private SettingsViewModel ViewModel => (SettingsViewModel)DataContext;
     public SettingsView()
@@ -13,16 +15,22 @@ public partial class SettingsView : UserControl
         InitializeComponent();
         DataContext = new SettingsViewModel();
     }
-    private void AddSupplier_Click(object sender, RoutedEventArgs e) => ViewModel.AddSupplier();
+    private void AddSupplier_Click(object sender, RoutedEventArgs e)
+    {
+        try { ViewModel.AddSupplier(); }
+        catch (Exception exception) { MessageBox.Show(exception.Message, "Database fornitori", MessageBoxButton.OK, MessageBoxImage.Error); }
+    }
     private void SaveSupplier_Click(object sender, RoutedEventArgs e)
     {
+        PersistenceDebugLog.Write("SettingsView.SaveSupplier_Click: pulsante Salva anagrafica eseguito.");
         try
         {
             ViewModel.SaveSupplier();
-            MessageBox.Show("Anagrafica aggiornata in memoria.", "Fornitori", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("Anagrafica salvata nel database.", "Fornitori", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception exception)
         {
+            PersistenceDebugLog.WriteException("SettingsView.SaveSupplier_Click", exception);
             MessageBox.Show(exception.Message, "Anagrafica non valida", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
@@ -142,7 +150,10 @@ public partial class SettingsView : UserControl
     }
     private void AddContact_Click(object sender, RoutedEventArgs e) => ViewModel.AddContact();
     private void DeleteContact_Click(object sender, RoutedEventArgs e) => ViewModel.DeleteContact();
-    private void AddOperator_Click(object sender, RoutedEventArgs e) => ViewModel.AddOperator();
+    private void AddOperator_Click(object sender, RoutedEventArgs e)
+    {
+        try { ViewModel.AddOperator(); } catch (Exception exception) { MessageBox.Show(exception.Message, "Database operatori", MessageBoxButton.OK, MessageBoxImage.Error); }
+    }
     private void EditOperator_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: Models.Operator item }) return;
@@ -152,17 +163,31 @@ public partial class SettingsView : UserControl
     }
     private void ToggleOperator_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is Button { Tag: Models.Operator item }) ViewModel.ToggleOperator(item);
+        if (sender is Button { Tag: Models.Operator item })
+            try { ViewModel.ToggleOperator(item); } catch (Exception exception) { MessageBox.Show(exception.Message, "Database operatori", MessageBoxButton.OK, MessageBoxImage.Error); }
     }
     private void SaveMaterialParameters_Click(object sender, RoutedEventArgs e)
     {
-        ViewModel.SaveMaterialParameters();
-        MessageBox.Show("Parametri materiale aggiornati in memoria.", "Parametri materiale", MessageBoxButton.OK, MessageBoxImage.Information);
+        try
+        {
+            ViewModel.SaveMaterialParameters();
+            MessageBox.Show("Parametri materiale salvati nel database.", "Parametri materiale", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception exception) { MessageBox.Show(exception.Message, "Database configurazioni", MessageBoxButton.OK, MessageBoxImage.Error); }
     }
     private void SavePlanningSettings_Click(object sender, RoutedEventArgs e)
     {
-        ViewModel.SavePlanningSettings();
-        MessageBox.Show("Parametri di pianificazione aggiornati in memoria.", "Parametri pianificazione", MessageBoxButton.OK, MessageBoxImage.Information);
+        try
+        {
+            ViewModel.SavePlanningSettings();
+            MessageBox.Show("Parametri di pianificazione salvati nel database.", "Parametri pianificazione", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception exception) { MessageBox.Show(exception.Message, "Database configurazioni", MessageBoxButton.OK, MessageBoxImage.Error); }
+    }
+    public void OnNavigatedTo()
+    {
+        try { ViewModel.ReloadSqlCatalogs(); }
+        catch (Exception exception) { MessageBox.Show(exception.Message, "Database non disponibile", MessageBoxButton.OK, MessageBoxImage.Error); }
     }
     private void AddPrice_Click(object sender, RoutedEventArgs e)
     {

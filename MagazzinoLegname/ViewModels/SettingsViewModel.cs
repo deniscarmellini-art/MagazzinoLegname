@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using MagazzinoLegname.Infrastructure;
 using MagazzinoLegname.Models;
+using MagazzinoLegname.Persistence;
 using MagazzinoLegname.Services;
 
 namespace MagazzinoLegname.ViewModels;
@@ -82,15 +83,19 @@ public sealed class SettingsViewModel : ObservableObject
         set { if (SetProperty(ref _selectedSupplier, value)) Refresh(); }
     }
     public bool IsHistoryVisible { get => _isHistoryVisible; set => SetProperty(ref _isHistoryVisible, value); }
-    public Supplier AddSupplier() { var supplier = _catalog.AddSupplier("Nuovo fornitore"); SelectedSupplier = supplier; return supplier; }
+    public Supplier AddSupplier() { PersistenceDebugLog.Write("SettingsViewModel.AddSupplier: ingresso comando Nuovo fornitore."); var supplier = _catalog.AddSupplier("Nuovo fornitore"); SelectedSupplier = supplier; return supplier; }
     public void SaveSupplier()
     {
-        if (SelectedSupplier is null) return;
+        PersistenceDebugLog.Write("SettingsViewModel.SaveSupplier: ingresso comando Salva.");
+        if (SelectedSupplier is null) { PersistenceDebugLog.Write("SettingsViewModel.SaveSupplier: nessun modello selezionato."); return; }
+        PersistenceDebugLog.Write($"SettingsViewModel.SaveSupplier: modello Id={SelectedSupplier.Id}, Code='{SelectedSupplier.Code}', Name='{SelectedSupplier.Name}', IsActive={SelectedSupplier.IsActive}, Configurations={SelectedSupplier.ThicknessConfigurations.Count}, Contacts={SelectedSupplier.Contacts.Count}, Prices={_catalog.GetHistory(SelectedSupplier.Id).Count}.");
         if (string.IsNullOrWhiteSpace(SelectedSupplier.Code))
             throw new InvalidOperationException("Il codice fornitore è obbligatorio.");
+        if (string.IsNullOrWhiteSpace(SelectedSupplier.Name))
+            throw new InvalidOperationException("La ragione sociale è obbligatoria.");
         if (!_catalog.IsSupplierCodeUnique(SelectedSupplier))
             throw new InvalidOperationException("Il codice fornitore deve essere univoco.");
-        _catalog.NotifyChanged();
+        _catalog.SaveSupplier(SelectedSupplier);
     }
     public void ShowSuppliers() => SelectedSection = "Suppliers";
     public void ShowMaterialParameters() { IsHistoryVisible = false; SelectedSection = "MaterialParameters"; }
@@ -146,14 +151,20 @@ public sealed class SettingsViewModel : ObservableObject
         InMemoryTestDataResetService.Shared.ResetOperationalData();
         LegacyReport = null; LegacyImportPlan = null; LegacyImportResult = null; LegacyClosedHistoryPlan = null; LegacyClosedHistoryResult = null; LegacyAnalysisError = null;
     }
-    public void SaveMaterialParameters()
-    {
-        MaterialParametersService.Shared.NotifyChanged();
-        GeneralSettingsService.Shared.NotifyChanged();
-    }
+    public void SaveMaterialParameters() => MaterialParametersService.Shared.NotifyChanged();
     public void SavePlanningSettings() => PlanningSettingsService.Shared.NotifyChanged();
     public Operator AddOperator() => OperatorCatalogService.Shared.AddOperator();
     public void ToggleOperator(Operator item) => OperatorCatalogService.Shared.ToggleActive(item);
+    public void ReloadSqlCatalogs()
+    {
+        var selectedSupplierId = SelectedSupplier?.Id;
+        _catalog.Reload();
+        OperatorCatalogService.Shared.Reload();
+        MaterialParametersService.Shared.Reload();
+        SelectedSupplier = Suppliers.FirstOrDefault(x => x.Id == selectedSupplierId) ?? Suppliers.FirstOrDefault();
+        OnPropertyChanged(nameof(Operators));
+        Refresh();
+    }
     public void AddContact()
     {
         if (SelectedSupplier is null) return;

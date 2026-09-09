@@ -4,6 +4,7 @@ namespace MagazzinoLegname.Models;
 
 public sealed class PlanningSettings : ObservableObject
 {
+    public byte[] RowVersion { get; internal set; } = [];
     private decimal _standardCubicMetersPerExpectedLoad23 = 50m;
     private decimal _standardCubicMetersPerExpectedLoad34 = 50m;
     private decimal _standardCubicMetersPerExpectedLoad44 = 50m;

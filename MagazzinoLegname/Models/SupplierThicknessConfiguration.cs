@@ -18,6 +18,8 @@ public sealed class SupplierThicknessConfiguration : ObservableObject
     }
 
     public Guid SupplierId { get; }
+    public Guid PersistenceId { get; internal set; }
+    public byte[] RowVersion { get; internal set; } = [];
     public decimal ConventionalThickness { get; }
     public bool IsPlaningEnabled
     {

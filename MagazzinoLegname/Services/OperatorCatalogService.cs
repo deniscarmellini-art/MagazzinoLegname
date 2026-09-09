@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using MagazzinoLegname.Models;
+using MagazzinoLegname.Persistence;
+using MagazzinoLegname.Persistence.Repositories;
 
 namespace MagazzinoLegname.Services;
 
@@ -8,17 +10,13 @@ public sealed class OperatorCatalogService
 {
     private static readonly Lazy<OperatorCatalogService> SharedInstance = new(() => new());
     private readonly ObservableCollection<string> _activeOperatorNames = [];
+    private readonly IOperatorRepository _repository = SqlPersistenceRoot.Operators;
+    private bool _isReloading;
 
     private OperatorCatalogService()
     {
-        Operators =
-        [
-            Create("Andrea", "Rossi"),
-            Create("Elena", "Bianchi"),
-            Create("Marco", "Conti")
-        ];
-        foreach (var item in Operators) item.PropertyChanged += Operator_PropertyChanged;
-        RefreshActiveOperators();
+        Operators = [];
+        Reload();
     }
 
     public static OperatorCatalogService Shared => SharedInstance.Value;
@@ -28,7 +26,8 @@ public sealed class OperatorCatalogService
 
     public Operator AddOperator()
     {
-        var item = Create("Nuovo", "Operatore");
+        Operator item;
+        try { item = _repository.Add(); } catch (Exception exception) { throw SqlPersistenceRoot.OperatorException(exception); }
         item.PropertyChanged += Operator_PropertyChanged;
         Operators.Add(item);
         RefreshActiveOperators();
@@ -40,13 +39,26 @@ public sealed class OperatorCatalogService
         item.IsActive = !item.IsActive;
     }
 
-    private static Operator Create(string firstName, string lastName) =>
-        new() { FirstName = firstName, LastName = lastName, IsActive = true };
+    public void Reload()
+    {
+        try
+        {
+            _isReloading = true; foreach (var old in Operators) old.PropertyChanged -= Operator_PropertyChanged; Operators.Clear();
+            foreach (var item in _repository.GetAll()) { item.PropertyChanged += Operator_PropertyChanged; Operators.Add(item); }
+            RefreshActiveOperators();
+        }
+        catch (Exception exception) { throw SqlPersistenceRoot.OperatorException(exception); }
+        finally { _isReloading = false; }
+    }
 
     private void Operator_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(Operator.FirstName) or nameof(Operator.LastName) or nameof(Operator.IsActive))
+        {
+            if (!_isReloading && sender is Operator item)
+                try { _repository.Save(item); } catch (Exception exception) { Reload(); throw SqlPersistenceRoot.OperatorException(exception); }
             RefreshActiveOperators();
+        }
     }
 
     private void RefreshActiveOperators()

@@ -7,11 +7,14 @@ public sealed class SupplierEntity
     public string Name { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public string? VatNumber { get; set; }
+    public string? TaxCode { get; set; }
     public string? Address { get; set; }
     public string? PostalCode { get; set; }
     public string? City { get; set; }
     public string? Province { get; set; }
+    public string? Country { get; set; }
     public string? Email { get; set; }
+    public string? CertifiedEmail { get; set; }
     public byte[] RowVersion { get; set; } = [];
     public ICollection<SupplierContactEntity> Contacts { get; set; } = [];
     public ICollection<SupplierThicknessConfigurationEntity> ThicknessConfigurations { get; set; } = [];

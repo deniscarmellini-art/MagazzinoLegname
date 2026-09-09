@@ -4,6 +4,7 @@ namespace MagazzinoLegname.Models;
 
 public sealed class GeneralSettings : ObservableObject
 {
+    public byte[] RowVersion { get; internal set; } = [];
     private string _defaultTimberCertification = "PEFC";
     public string DefaultTimberCertification
     {

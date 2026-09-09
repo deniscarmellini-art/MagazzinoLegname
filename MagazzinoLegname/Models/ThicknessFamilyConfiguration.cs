@@ -4,6 +4,8 @@ namespace MagazzinoLegname.Models;
 
 public sealed class ThicknessFamilyConfiguration : ObservableObject
 {
+    public Guid PersistenceId { get; internal set; }
+    public byte[] RowVersion { get; internal set; } = [];
     private decimal _minimumIncomingThickness;
     private decimal _maximumIncomingThickness;
     private decimal _conventionalThickness;
