@@ -42,12 +42,9 @@ public sealed class MaterialGroupEntity
     public LoadEntity Load { get; set; } = null!;
     public decimal IncomingThickness { get; set; }
     public decimal ConventionalThickness { get; set; }
-    public decimal UsefulThickness { get; set; }
     public decimal IncomingWidth { get; set; }
     public decimal WidthAfterPlaning { get; set; }
-    public decimal FinalWidth { get; set; }
     public decimal IncomingLength { get; set; }
-    public decimal FinalLength { get; set; }
     public string Quality { get; set; } = string.Empty;
     public int PackageCount { get; set; }
     public int InitialPieces { get; set; }
@@ -119,7 +116,7 @@ public sealed class WasteAdjustmentEntity
     public int DiscardedWholeBoards { get; set; }
     public int GoodPieces { get; set; }
     public decimal AdjustmentBaseCubicMeters { get; set; }
-    public decimal TheoreticalUsefulCubicMeters { get; set; }
+    public decimal CubicMetersBeforeAdjustment { get; set; }
     public decimal CubicMetersAfterWholeBoardWaste { get; set; }
     public decimal PartialWastePercentage { get; set; }
     public decimal PartialWasteCubicMeters { get; set; }

@@ -9,9 +9,9 @@ public sealed class MaterialParameters : ObservableObject
     {
         ThicknessFamilies =
         [
-            new(20m, 29m, 23m, 20m),
-            new(30m, 39m, 34m, 30m),
-            new(40m, 49m, 44m, 40m)
+            new(20m, 29m, 23m),
+            new(30m, 39m, 34m),
+            new(40m, 49m, 44m)
         ];
     }
     public ObservableCollection<ThicknessFamilyConfiguration> ThicknessFamilies { get; }

@@ -82,9 +82,6 @@ public sealed class ThicknessFamilyConfiguration : IEntityTypeConfiguration<Thic
         builder.Property(x => x.MinimumIncomingThickness).HasColumnType(SqlPrecision.Dimension);
         builder.Property(x => x.MaximumIncomingThickness).HasColumnType(SqlPrecision.Dimension);
         builder.Property(x => x.ConventionalThickness).HasColumnType(SqlPrecision.Dimension);
-        builder.Property(x => x.UsefulProductionThickness).HasColumnType(SqlPrecision.Dimension);
-        builder.Property(x => x.StandardWidthReductionMillimeters).HasColumnType(SqlPrecision.Dimension);
-        builder.Property(x => x.FingerJointLengthReductionMillimeters).HasColumnType(SqlPrecision.Dimension);
         builder.Property(x => x.RowVersion).IsRowVersion(); builder.HasIndex(x => x.ConventionalThickness).IsUnique();
     }
 }

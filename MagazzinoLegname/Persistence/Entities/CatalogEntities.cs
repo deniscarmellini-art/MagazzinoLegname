@@ -72,9 +72,6 @@ public sealed class ThicknessFamilyEntity
     public decimal MinimumIncomingThickness { get; set; }
     public decimal MaximumIncomingThickness { get; set; }
     public decimal ConventionalThickness { get; set; }
-    public decimal UsefulProductionThickness { get; set; }
-    public decimal StandardWidthReductionMillimeters { get; set; }
-    public decimal FingerJointLengthReductionMillimeters { get; set; }
     public byte[] RowVersion { get; set; } = [];
 }
 

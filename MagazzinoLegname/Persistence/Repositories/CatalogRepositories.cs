@@ -154,7 +154,7 @@ public sealed class SqlDomainConfigurationRepository(IDbContextFactory<Magazzino
         }
         using var db=contextFactory.CreateDbContext();
         var app=db.ApplicationSettings.AsNoTracking().Single(x=>x.Id==1);
-        var families=db.ThicknessFamilies.AsNoTracking().OrderBy(x=>x.ConventionalThickness).AsEnumerable().Select(x=>new ThicknessFamilyConfiguration(x.MinimumIncomingThickness,x.MaximumIncomingThickness,x.ConventionalThickness,x.UsefulProductionThickness,x.StandardWidthReductionMillimeters,x.FingerJointLengthReductionMillimeters){PersistenceId=x.Id,RowVersion=x.RowVersion}).ToList();
+        var families=db.ThicknessFamilies.AsNoTracking().OrderBy(x=>x.ConventionalThickness).AsEnumerable().Select(x=>new ThicknessFamilyConfiguration(x.MinimumIncomingThickness,x.MaximumIncomingThickness,x.ConventionalThickness){PersistenceId=x.Id,RowVersion=x.RowVersion}).ToList();
         return new(families,new GeneralSettings { DefaultTimberCertification=app.DefaultTimberCertification, RowVersion=app.RowVersion },new PlanningSettings { StandardCubicMetersPerExpectedLoad23=app.StandardCubicMetersPerExpectedLoad23,StandardCubicMetersPerExpectedLoad34=app.StandardCubicMetersPerExpectedLoad34,StandardCubicMetersPerExpectedLoad44=app.StandardCubicMetersPerExpectedLoad44,RowVersion=app.RowVersion });
     }
     private void InitializeMissingConfigurations(MagazzinoDbContext strategyContext)
@@ -175,9 +175,9 @@ public sealed class SqlDomainConfigurationRepository(IDbContextFactory<Magazzino
         using var db=contextFactory.CreateDbContext(); var app=db.ApplicationSettings.Single(x=>x.Id==1);
         var expected=general.RowVersion.Length>0?general.RowVersion:planning.RowVersion; if(expected.Length>0&&!expected.SequenceEqual(app.RowVersion)) throw new DbUpdateConcurrencyException();
         app.DefaultTimberCertification=general.DefaultTimberCertification; app.StandardCubicMetersPerExpectedLoad23=planning.StandardCubicMetersPerExpectedLoad23; app.StandardCubicMetersPerExpectedLoad34=planning.StandardCubicMetersPerExpectedLoad34; app.StandardCubicMetersPerExpectedLoad44=planning.StandardCubicMetersPerExpectedLoad44;
-        foreach(var item in material.ThicknessFamilies){var entity=db.ThicknessFamilies.Single(x=>x.Id==item.PersistenceId); if(item.RowVersion.Length>0&&!item.RowVersion.SequenceEqual(entity.RowVersion)) throw new DbUpdateConcurrencyException(); entity.MinimumIncomingThickness=item.MinimumIncomingThickness;entity.MaximumIncomingThickness=item.MaximumIncomingThickness;entity.ConventionalThickness=item.ConventionalThickness;entity.UsefulProductionThickness=item.UsefulProductionThickness;entity.StandardWidthReductionMillimeters=item.StandardWidthReductionMillimeters;entity.FingerJointLengthReductionMillimeters=item.FingerJointLengthReductionMillimeters;}
+        foreach(var item in material.ThicknessFamilies){var entity=db.ThicknessFamilies.Single(x=>x.Id==item.PersistenceId); if(item.RowVersion.Length>0&&!item.RowVersion.SequenceEqual(entity.RowVersion)) throw new DbUpdateConcurrencyException(); entity.MinimumIncomingThickness=item.MinimumIncomingThickness;entity.MaximumIncomingThickness=item.MaximumIncomingThickness;entity.ConventionalThickness=item.ConventionalThickness;}
         db.SaveChanges(); general.RowVersion=app.RowVersion;planning.RowVersion=app.RowVersion; foreach(var item in material.ThicknessFamilies)item.RowVersion=db.ThicknessFamilies.Local.Single(x=>x.Id==item.PersistenceId).RowVersion;
     }
-    private static IEnumerable<ThicknessFamilyEntity> Defaults(){yield return New(20,29,23,20);yield return New(30,39,34,30);yield return New(40,49,44,40);}
-    private static ThicknessFamilyEntity New(decimal min,decimal max,decimal conventional,decimal useful)=>new(){Id=Guid.NewGuid(),MinimumIncomingThickness=min,MaximumIncomingThickness=max,ConventionalThickness=conventional,UsefulProductionThickness=useful,StandardWidthReductionMillimeters=10m,FingerJointLengthReductionMillimeters=10m};
+    private static IEnumerable<ThicknessFamilyEntity> Defaults(){yield return New(20,29,23);yield return New(30,39,34);yield return New(40,49,44);}
+    private static ThicknessFamilyEntity New(decimal min,decimal max,decimal conventional)=>new(){Id=Guid.NewGuid(),MinimumIncomingThickness=min,MaximumIncomingThickness=max,ConventionalThickness=conventional};
 }

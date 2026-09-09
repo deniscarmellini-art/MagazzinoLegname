@@ -12,17 +12,8 @@ public sealed class GoodsReceiptLine : ObservableObject, IDataErrorInfo
     private decimal _incomingWidth = 180m;
     private decimal _incomingLength = 4000m;
     private decimal _conventionalThickness;
-    private decimal _usefulProductionThickness;
     private decimal _planingReduction;
-    private decimal _standardWidthReduction;
-    private decimal _finalWidth;
-    private decimal _fingerJointLengthReduction;
-    private decimal _finalLength;
     private decimal _physicalIncomingCubicMeters;
-    private decimal _theoreticalUsefulCubicMeters;
-    private decimal _realAvailableUsefulCubicMeters;
-    private decimal _processingLossCubicMeters;
-    private decimal _processingLossPercentage;
     private decimal _appliedPrice;
     private decimal _lineValue;
     private bool _isClassified;
@@ -70,7 +61,6 @@ public sealed class GoodsReceiptLine : ObservableObject, IDataErrorInfo
 
     public decimal IncomingThickness { get => _incomingThickness; set => SetProperty(ref _incomingThickness, Math.Max(0m, value)); }
     public decimal ConventionalThickness { get => _conventionalThickness; internal set => SetProperty(ref _conventionalThickness, value); }
-    public decimal UsefulProductionThickness { get => _usefulProductionThickness; internal set => SetProperty(ref _usefulProductionThickness, value); }
     public decimal IncomingWidth
     {
         get => _incomingWidth;
@@ -89,17 +79,9 @@ public sealed class GoodsReceiptLine : ObservableObject, IDataErrorInfo
                 OnPropertyChanged(nameof(WidthAfterPlaning));
         }
     }
-    public decimal StandardWidthReduction { get => _standardWidthReduction; internal set => SetProperty(ref _standardWidthReduction, value); }
-    public decimal FinalWidth { get => _finalWidth; internal set => SetProperty(ref _finalWidth, value); }
     public decimal IncomingLength { get => _incomingLength; set => SetProperty(ref _incomingLength, Math.Max(0m, value)); }
-    public decimal FingerJointLengthReduction { get => _fingerJointLengthReduction; internal set => SetProperty(ref _fingerJointLengthReduction, value); }
-    public decimal FinalLength { get => _finalLength; internal set => SetProperty(ref _finalLength, value); }
 
     public decimal PhysicalIncomingCubicMeters { get => _physicalIncomingCubicMeters; internal set => SetProperty(ref _physicalIncomingCubicMeters, value); }
-    public decimal TheoreticalUsefulCubicMeters { get => _theoreticalUsefulCubicMeters; internal set => SetProperty(ref _theoreticalUsefulCubicMeters, value); }
-    public decimal RealAvailableUsefulCubicMeters { get => _realAvailableUsefulCubicMeters; internal set => SetProperty(ref _realAvailableUsefulCubicMeters, value); }
-    public decimal ProcessingLossCubicMeters { get => _processingLossCubicMeters; internal set => SetProperty(ref _processingLossCubicMeters, value); }
-    public decimal ProcessingLossPercentage { get => _processingLossPercentage; internal set => SetProperty(ref _processingLossPercentage, value); }
     public decimal PrezzoApplicato { get => _appliedPrice; internal set => SetProperty(ref _appliedPrice, value); }
     public decimal PricePerCubicMeter => PrezzoApplicato;
     public decimal LineValue { get => _lineValue; internal set => SetProperty(ref _lineValue, value); }
@@ -140,10 +122,7 @@ public sealed class GoodsReceiptLine : ObservableObject, IDataErrorInfo
     public int TotalPieces => EnteredPieces;
     public decimal Length { get => IncomingLength; set => IncomingLength = value; }
     public decimal WidthAfterPlaning => Math.Max(0m, IncomingWidth - PlaningReduction);
-    public decimal TheoreticalWidth => FinalWidth;
     public decimal ArrivedCubicMeters => PhysicalIncomingCubicMeters;
-    public decimal TheoreticalCubicMeters => TheoreticalUsefulCubicMeters;
-    public decimal RealAvailableCubicMeters => RealAvailableUsefulCubicMeters;
 
     internal void NotifyDerivedPieceCountsChanged()
     {

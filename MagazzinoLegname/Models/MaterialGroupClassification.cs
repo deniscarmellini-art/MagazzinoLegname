@@ -15,12 +15,9 @@ public sealed class MaterialGroupClassification : ObservableObject
     public required Guid LoadId { get; init; }
     public decimal IncomingThickness { get; init; }
     public decimal ConventionalThickness { get; init; }
-    public decimal UsefulThickness { get; init; }
     public decimal IncomingWidth { get; init; }
     public decimal WidthAfterPlaning { get; init; }
-    public decimal FinalWidth { get; init; }
     public decimal IncomingLength { get; init; }
-    public decimal FinalLength { get; init; }
     public required string Quality { get; init; }
     public int PackageCount { get; init; }
     public int InitialPieces { get; init; }
@@ -34,11 +31,7 @@ public sealed class MaterialGroupClassification : ObservableObject
     public Guid? LegacyImportBatchId { get; init; }
     public decimal IncomingPhysicalCubicMeters =>
         InitialPieces * IncomingThickness * IncomingWidth * IncomingLength / 1_000_000_000m;
-    public decimal? TheoreticalUsefulCubicMeters => IsLegacyImport ? null : Volume(InitialPieces);
     public decimal AdjustmentBaseCubicMeters => IncomingPhysicalCubicMeters;
-    public decimal ProcessingWastePercentage => IncomingPhysicalCubicMeters == 0m || !TheoreticalUsefulCubicMeters.HasValue ? 0m
-        : (IncomingPhysicalCubicMeters - TheoreticalUsefulCubicMeters.Value)
-          / IncomingPhysicalCubicMeters * 100m;
     public DateTime? ClassificationDate { get => _classificationDate; private set => SetProperty(ref _classificationDate, value); }
     public string? ClassificationOperator { get => _classificationOperator; private set => SetProperty(ref _classificationOperator, value); }
     public DateTime? OfficialLabelsPrintedAt { get => _officialLabelsPrintedAt; private set => SetProperty(ref _officialLabelsPrintedAt, value); }
@@ -92,8 +85,6 @@ public sealed class MaterialGroupClassification : ObservableObject
         WasteVerified = false;
         OnPropertyChanged(nameof(IsClassified)); OnPropertyChanged(nameof(ClassificationStatus)); OnPropertyChanged(nameof(WasteVerified));
     }
-
-    public decimal Volume(int pieces) => pieces * UsefulThickness * FinalWidth * FinalLength / 1_000_000_000m;
 
     public void MarkWasteAsVerified()
     {

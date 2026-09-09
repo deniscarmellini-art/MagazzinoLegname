@@ -4,6 +4,7 @@ using MagazzinoLegname.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MagazzinoLegname.Persistence.Migrations
 {
     [DbContext(typeof(MagazzinoDbContext))]
-    partial class MagazzinoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260909100708_SimplifyTimberDimensions")]
+    partial class SimplifyTimberDimensions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -848,9 +851,6 @@ namespace MagazzinoLegname.Persistence.Migrations
                     b.Property<decimal>("CubicMetersAfterWholeBoardWaste")
                         .HasColumnType("decimal(19,9)");
 
-                    b.Property<decimal>("CubicMetersBeforeAdjustment")
-                        .HasColumnType("decimal(19,9)");
-
                     b.Property<int>("DiscardedWholeBoards")
                         .HasColumnType("int");
 
@@ -891,6 +891,9 @@ namespace MagazzinoLegname.Persistence.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
+
+                    b.Property<decimal>("TheoreticalUsefulCubicMeters")
+                        .HasColumnType("decimal(19,9)");
 
                     b.Property<decimal>("TotalClassificationWastePercentage")
                         .HasColumnType("decimal(9,4)");

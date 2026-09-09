@@ -97,7 +97,6 @@ public sealed class GoodsReceiptViewModel : ObservableObject
     public int TotalPackages => Lines.Sum(line => line.PackageCount);
     public int TotalPieces => Lines.Sum(line => line.TotalPieces);
     public decimal TotalArrivedCubicMeters => Lines.Sum(line => line.PhysicalIncomingCubicMeters);
-    public decimal TotalRealAvailableCubicMeters => Lines.Sum(line => line.RealAvailableUsefulCubicMeters);
     public decimal TotalValue => Lines.Sum(line => line.LineValue);
     public GoodsReceiptLoadDraft LoadDraft => _loadDraft;
     public string CertificationIndicator => _loadDraft.IsCertificationCaptured
@@ -261,7 +260,7 @@ public sealed class GoodsReceiptViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(TotalPackages)); OnPropertyChanged(nameof(TotalPieces));
         OnPropertyChanged(nameof(TotalArrivedCubicMeters));
-        OnPropertyChanged(nameof(TotalRealAvailableCubicMeters)); OnPropertyChanged(nameof(TotalValue));
+        OnPropertyChanged(nameof(TotalValue));
         OnPropertyChanged(nameof(IsReceiptValid));
         NotifyPackageControlChanged();
     }

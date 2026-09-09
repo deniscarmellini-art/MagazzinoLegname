@@ -81,9 +81,9 @@ public sealed class SqlInboundLoadRepository(IDbContextFactory<MagazzinoDbContex
                 loadEntity.MaterialGroups.Add(new MaterialGroupEntity
                 {
                     Id = line.GroupId, LoadId = draft.Id, IncomingThickness = line.IncomingThickness,
-                    ConventionalThickness = line.ConventionalThickness, UsefulThickness = line.UsefulProductionThickness,
+                    ConventionalThickness = line.ConventionalThickness,
                     IncomingWidth = line.IncomingWidth, WidthAfterPlaning = line.WidthAfterPlaning,
-                    FinalWidth = line.FinalWidth, IncomingLength = line.IncomingLength, FinalLength = line.FinalLength,
+                    IncomingLength = line.IncomingLength,
                     Quality = line.Quality, PackageCount = line.PackageCount, InitialPieces = line.EnteredPieces,
                     IncomingPhysicalCubicMeters = line.PhysicalIncomingCubicMeters,
                     AppliedPrice = line.PrezzoApplicato, HistoricalValue = line.LineValue,
@@ -164,9 +164,9 @@ public sealed class SqlInboundLoadRepository(IDbContextFactory<MagazzinoDbContex
         var groups = entity.MaterialGroups.OrderBy(x => x.Id).Select(x => new MaterialGroupClassification
         {
             GroupId = x.Id, LoadId = x.LoadId, IncomingThickness = x.IncomingThickness,
-            ConventionalThickness = x.ConventionalThickness, UsefulThickness = x.UsefulThickness,
-            IncomingWidth = x.IncomingWidth, WidthAfterPlaning = x.WidthAfterPlaning, FinalWidth = x.FinalWidth,
-            IncomingLength = x.IncomingLength, FinalLength = x.FinalLength, Quality = x.Quality,
+            ConventionalThickness = x.ConventionalThickness,
+            IncomingWidth = x.IncomingWidth, WidthAfterPlaning = x.WidthAfterPlaning,
+            IncomingLength = x.IncomingLength, Quality = x.Quality,
             PackageCount = x.PackageCount, InitialPieces = x.InitialPieces, AppliedPrice = x.AppliedPrice,
             LineValue = x.HistoricalValue, IsLegacyImport = x.IsLegacyImport, RowVersion = x.RowVersion
         }).ToList();

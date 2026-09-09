@@ -34,7 +34,7 @@ public sealed class MaterialGroupConfiguration : IEntityTypeConfiguration<Materi
     public void Configure(EntityTypeBuilder<MaterialGroupEntity> builder)
     {
         builder.ToTable("MaterialGroups"); builder.HasKey(x => x.Id); builder.Property(x => x.Quality).HasMaxLength(30).IsRequired();
-        foreach (var property in new[] { nameof(MaterialGroupEntity.IncomingThickness), nameof(MaterialGroupEntity.ConventionalThickness), nameof(MaterialGroupEntity.UsefulThickness), nameof(MaterialGroupEntity.IncomingWidth), nameof(MaterialGroupEntity.WidthAfterPlaning), nameof(MaterialGroupEntity.FinalWidth), nameof(MaterialGroupEntity.IncomingLength), nameof(MaterialGroupEntity.FinalLength) })
+        foreach (var property in new[] { nameof(MaterialGroupEntity.IncomingThickness), nameof(MaterialGroupEntity.ConventionalThickness), nameof(MaterialGroupEntity.IncomingWidth), nameof(MaterialGroupEntity.WidthAfterPlaning), nameof(MaterialGroupEntity.IncomingLength) })
             builder.Property(property).HasColumnType(SqlPrecision.Dimension);
         builder.Property(x => x.IncomingPhysicalCubicMeters).HasColumnType(SqlPrecision.Volume);
         builder.Property(x => x.LegacyEstimatedCubicMeters).HasColumnType(SqlPrecision.Volume);
@@ -78,7 +78,7 @@ public sealed class WasteAdjustmentConfiguration : IEntityTypeConfiguration<Wast
     {
         builder.ToTable("WasteAdjustments"); builder.HasKey(x => x.Id); builder.HasIndex(x => x.MaterialGroupId).IsUnique();
         builder.Property(x => x.OperatorSnapshot).HasMaxLength(200).IsRequired();
-        foreach (var property in new[] { nameof(WasteAdjustmentEntity.AdjustmentBaseCubicMeters), nameof(WasteAdjustmentEntity.TheoreticalUsefulCubicMeters), nameof(WasteAdjustmentEntity.CubicMetersAfterWholeBoardWaste), nameof(WasteAdjustmentEntity.PartialWasteCubicMeters), nameof(WasteAdjustmentEntity.RealAvailableCubicMeters) })
+        foreach (var property in new[] { nameof(WasteAdjustmentEntity.AdjustmentBaseCubicMeters), nameof(WasteAdjustmentEntity.CubicMetersBeforeAdjustment), nameof(WasteAdjustmentEntity.CubicMetersAfterWholeBoardWaste), nameof(WasteAdjustmentEntity.PartialWasteCubicMeters), nameof(WasteAdjustmentEntity.RealAvailableCubicMeters) })
             builder.Property(property).HasColumnType(SqlPrecision.Volume);
         foreach (var property in new[] { nameof(WasteAdjustmentEntity.PartialWastePercentage), nameof(WasteAdjustmentEntity.WholeBoardWastePercentage), nameof(WasteAdjustmentEntity.TotalClassificationWastePercentage) })
             builder.Property(property).HasColumnType(SqlPrecision.Percentage);

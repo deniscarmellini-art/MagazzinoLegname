@@ -107,7 +107,7 @@ public sealed class WasteCorrectionRowViewModel : ObservableObject
             DiscardedWholeBoards = result.DiscardedWholeBoards, GoodPieces = result.GoodGroupPieces,
             AdjustmentBaseCubicMeters = result.AdjustmentBaseCubicMeters,
             // Campo mantenuto per compatibilità: da ora contiene la base fisica della rettifica.
-            TheoreticalUsefulCubicMeters = result.AdjustmentBaseCubicMeters,
+            CubicMetersBeforeAdjustment = result.AdjustmentBaseCubicMeters,
             CubicMetersAfterWholeBoardWaste = result.CubicMetersAfterWholeBoardWaste,
             PartialWastePercentage = result.PartialWastePercentage,
             PartialWasteCubicMeters = result.PartialWasteCubicMeters,

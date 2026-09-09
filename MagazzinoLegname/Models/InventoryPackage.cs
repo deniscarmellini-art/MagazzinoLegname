@@ -26,14 +26,12 @@ public sealed class InventoryPackage
     public required string ClassificationStatus { get; init; }
     public required string WasteAdjustmentStatus { get; init; }
     public decimal IncomingCubicMeters { get; init; }
-    public decimal ProcessingWastePercentage { get; init; }
     public decimal? QualityWastePercentage { get; init; }
     public decimal InventoryCubicMeters { get; init; }
     public decimal? AppliedPrice { get; init; }
     public bool IsSupplementary => PackageType == PackageType.Supplementary;
     public bool IsAccountedPackage => PackageType == PackageType.Official;
     public decimal? PackageValue => AppliedPrice.HasValue && IsAccountedPackage ? IncomingCubicMeters * AppliedPrice.Value : null;
-    public decimal? TheoreticalUsefulCubicMeters { get; init; }
     public decimal? LegacyEstimatedCubicMeters { get; init; }
     public InventoryQuantitySource InventoryQuantitySource { get; init; }
     public string? LegacyLoadNumber { get; init; }
