@@ -14,6 +14,7 @@ public sealed class ClassificationLoad : ObservableObject
     }
 
     public Guid Id { get; init; } = Guid.NewGuid();
+    public byte[] RowVersion { get; internal set; } = [];
     public Guid SupplierId { get; init; }
     public required string LoadNumber { get; init; }
     public required string SupplierName { get; init; }

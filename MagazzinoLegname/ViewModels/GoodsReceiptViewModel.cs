@@ -157,9 +157,6 @@ public sealed class GoodsReceiptViewModel : ObservableObject
     {
         if (RegistrationState != GoodsReceiptRegistrationState.New || SelectedSupplier is null) return;
         _pricesCaptured = true;
-        if (!_loadDraft.IsNumberAssigned)
-            _loadDraft.AssignNumber(_loadNumberSequence.ReserveNext(SelectedSupplier.Id,
-                (EntryDate ?? DateTime.Today).Year), SelectedSupplier.Code);
         _loadDraft.DeliveryNoteNumber = DeliveryNoteNumber;
         _loadDraft.CaptureCertification(_generalSettings.Settings.DefaultTimberCertification);
         OnPropertyChanged(nameof(CertificationIndicator)); OnPropertyChanged(nameof(DisplayLoadNumber));

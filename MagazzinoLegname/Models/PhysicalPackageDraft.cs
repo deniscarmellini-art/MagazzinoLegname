@@ -12,6 +12,7 @@ public sealed record PhysicalPackageDraft(
     decimal IncomingLength,
     string Quality)
 {
+    public byte[] RowVersion { get; init; } = [];
     public required int TotalPackages { get; init; }
     public required DateTime ArrivalDate { get; init; }
     public string Status { get; init; } = "Da classificare";

@@ -9,7 +9,6 @@ namespace MagazzinoLegname.Views;
 public partial class GoodsReceiptView : UserControl
 {
     private GoodsReceiptViewModel ViewModel => (GoodsReceiptViewModel)DataContext;
-    private readonly PackageExpansionService _packageExpansionService = new();
     private readonly GoodsReceiptRegistrationService _registrationService = new();
 
     public GoodsReceiptView()
@@ -39,11 +38,10 @@ public partial class GoodsReceiptView : UserControl
             if (ViewModel.RegistrationState == GoodsReceiptRegistrationState.New)
             {
                 ViewModel.CaptureRegistrationSnapshot();
-                var packages = _packageExpansionService.Expand(ViewModel.LoadDraft,
-                    ViewModel.EntryDate!.Value, ViewModel.Lines);
-                _registrationService.Register(ViewModel.LoadDraft, ViewModel.SelectedSupplier!,
-                    ViewModel.SelectedOperator, ViewModel.EntryDate.Value, ViewModel.Lines, packages);
-                ViewModel.MarkRegistered(packages);
+                var load = _registrationService.Register(ViewModel.LoadDraft, ViewModel.SelectedSupplier!,
+                    ViewModel.SelectedOperator, ViewModel.EntryDate!.Value, ViewModel.ExpectedPackages, ViewModel.Lines.ToList());
+                ViewModel.MarkRegistered(ClassificationWorkflowService.Shared.RegisteredPhysicalPackages
+                    .Where(x => x.LoadId == load.Id).OrderBy(x => x.SequenceNumber).ToList());
             }
 
             if (ViewModel.IsRegistered)

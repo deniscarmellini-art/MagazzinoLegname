@@ -11,6 +11,7 @@ public sealed class MaterialGroupClassification : ObservableObject
     private string? _officialLabelsPrintedBy;
 
     public Guid GroupId { get; init; } = Guid.NewGuid();
+    public byte[] RowVersion { get; internal set; } = [];
     public required Guid LoadId { get; init; }
     public decimal IncomingThickness { get; init; }
     public decimal ConventionalThickness { get; init; }

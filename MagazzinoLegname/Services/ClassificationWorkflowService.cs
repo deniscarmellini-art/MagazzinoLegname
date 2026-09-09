@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using MagazzinoLegname.Models;
+using MagazzinoLegname.Persistence;
 
 namespace MagazzinoLegname.Services;
 
@@ -9,6 +10,7 @@ public sealed class ClassificationWorkflowService
     private ClassificationWorkflowService()
     {
         Loads = [];
+        ReloadInboundLoads();
     }
     private readonly object _workflowLock = new();
 
@@ -56,35 +58,9 @@ public sealed class ClassificationWorkflowService
         {
             if (group.IsClassified)
                 throw new InvalidOperationException("Il gruppo è già classificato: non è possibile creare nuove etichette supplementari.");
-            var next = SupplementaryPackages.Where(item => item.MaterialGroupId == group.GroupId)
-                .Select(item => item.SupplementarySequence)
-                .DefaultIfEmpty(0)
-                .Max() + 1;
-            var code = $"{load.SupplierCode}-{load.AnnualProgressive ?? 0}-{(load.LoadYear ?? load.ArrivalDate.Year) % 100:00}-S{next:00}";
-            if (RegisteredPhysicalPackages.Any(item => item.PackageCode.Equals(code, StringComparison.OrdinalIgnoreCase))
-                || SupplementaryPackages.Any(item => item.PackageCode.Equals(code, StringComparison.OrdinalIgnoreCase)))
-                throw new InvalidOperationException("Codice supplementare duplicato. Riprovare.");
-            var package = new SupplementaryPackage
-            {
-                LoadId = load.Id,
-                MaterialGroupId = group.GroupId,
-                PackageCode = code,
-                QrPayload = QrCodeService.BuildSupplementaryPayload(code, group, load.ArrivalDate),
-                SupplementarySequence = next,
-                SupplierName = load.SupplierName,
-                SupplierCode = load.SupplierCode,
-                LoadNumber = load.LoadNumber,
-                ArrivalDate = load.ArrivalDate,
-                IncomingThickness = group.IncomingThickness,
-                ConventionalThickness = group.ConventionalThickness,
-                IncomingWidth = group.IncomingWidth,
-                WidthAfterPlaning = group.WidthAfterPlaning,
-                IncomingLength = group.IncomingLength,
-                Quality = group.Quality,
-                Certification = load.Certification,
-                CreatedAt = createdAt,
-                CreatedBy = operatorName
-            };
+            SupplementaryPackage package;
+            try { package = SqlPersistenceRoot.InboundLoads.AddSupplementary(load, group, operatorName, createdAt); }
+            catch (Exception exception) { throw SqlPersistenceRoot.OperatorException(exception); }
             SupplementaryPackages.Add(package);
             WorkflowChanged?.Invoke(this, EventArgs.Empty);
             return package;
@@ -104,6 +80,32 @@ public sealed class ClassificationWorkflowService
         Loads.Add(load);
         foreach (var package in packages) RegisteredPhysicalPackages.Add(package);
         WorkflowChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void RegisterPersistedLoad(ClassificationLoad load, IReadOnlyList<PhysicalPackageDraft> packages)
+    {
+        lock (_workflowLock)
+        {
+            Loads.Add(load);
+            foreach (var package in packages) RegisteredPhysicalPackages.Add(package);
+            WorkflowChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    public void ReloadInboundLoads()
+    {
+        lock (_workflowLock)
+        {
+            var persisted = SqlPersistenceRoot.InboundLoads.GetAll();
+            Loads.Clear(); RegisteredPhysicalPackages.Clear(); SupplementaryPackages.Clear();
+            foreach (var item in persisted)
+            {
+                Loads.Add(item.Load);
+                foreach (var package in item.Packages) RegisteredPhysicalPackages.Add(package);
+                foreach (var package in item.SupplementaryPackages) SupplementaryPackages.Add(package);
+            }
+            WorkflowChanged?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     public void RegisterLegacyBatch(IReadOnlyList<ClassificationLoad> loads, IReadOnlyList<PhysicalPackageDraft> packages)

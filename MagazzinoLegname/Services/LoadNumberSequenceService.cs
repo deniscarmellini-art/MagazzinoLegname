@@ -1,39 +1,29 @@
 using System.Text.RegularExpressions;
 using MagazzinoLegname.Models;
+using MagazzinoLegname.Persistence;
 
 namespace MagazzinoLegname.Services;
 
 public sealed partial class LoadNumberSequenceService
 {
     private static readonly Lazy<LoadNumberSequenceService> SharedInstance = new(() => new());
-    private readonly object _assignmentLock = new();
-    private readonly HashSet<(Guid SupplierId, int Year, int AnnualSequence)> _reservedAssignments = [];
-
     private LoadNumberSequenceService() { }
     public static LoadNumberSequenceService Shared => SharedInstance.Value;
 
     public LoadNumberAssignment PreviewNext(Guid supplierId, int year)
     {
-        lock (_assignmentLock) return new(supplierId, year, FindNextProgressive(supplierId, year));
+        try { return SqlPersistenceRoot.InboundLoads.PreviewNext(supplierId, year); }
+        catch (Exception exception) { throw SqlPersistenceRoot.OperatorException(exception); }
     }
     public LoadNumberAssignment ReserveNext(Guid supplierId, int year)
     {
-        lock (_assignmentLock)
-        {
-            var next = FindNextProgressive(supplierId, year);
-            _reservedAssignments.Add((supplierId, year, next));
-            return new(supplierId, year, next);
-        }
+        throw new InvalidOperationException("La numerazione definitiva viene assegnata esclusivamente nella transazione SQL di registrazione carico.");
     }
     public bool IsAlreadyUsed(Guid supplierId, int year, int annualSequence)
     {
-        lock (_assignmentLock) return ExistingAssignments(supplierId, year).Contains(annualSequence)
-            || _reservedAssignments.Contains((supplierId, year, annualSequence));
+        try { return SqlPersistenceRoot.InboundLoads.PreviewNext(supplierId, year).AnnualSequence > annualSequence; }
+        catch (Exception exception) { throw SqlPersistenceRoot.OperatorException(exception); }
     }
-    private int FindNextProgressive(Guid supplierId, int year) => ExistingAssignments(supplierId, year)
-        .Concat(_reservedAssignments.Where(x => x.SupplierId == supplierId && x.Year == year).Select(x => x.AnnualSequence))
-        .DefaultIfEmpty(0).Max() + 1;
-
     private IEnumerable<int> ExistingAssignments(Guid supplierId, int year)
     {
         var suppliers = SupplierCatalogService.Shared.Suppliers;

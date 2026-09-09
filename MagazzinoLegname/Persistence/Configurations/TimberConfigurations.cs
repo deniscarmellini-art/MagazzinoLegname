@@ -50,6 +50,7 @@ public sealed class PackageConfiguration : IEntityTypeConfiguration<PackageEntit
     {
         builder.ToTable("Packages", table => table.HasCheckConstraint("CK_Packages_SupplementaryNoValue", "[PackageType] = 0 OR ([IncomingPhysicalCubicMeters] = 0 AND [AppliedPrice] IS NULL AND [HistoricalPackageValue] IS NULL)"));
         builder.HasKey(x => x.Id); builder.Property(x => x.PackageCode).HasMaxLength(80).IsRequired(); builder.HasIndex(x => x.PackageCode).IsUnique();
+        builder.Property(x => x.Status).HasMaxLength(60).IsRequired();
         builder.Property(x => x.QrPayload).HasMaxLength(1000).IsRequired(); builder.Property(x => x.PackageType).HasConversion<int>();
         builder.Property(x => x.IncomingPhysicalCubicMeters).HasColumnType(SqlPrecision.Volume);
         builder.Property(x => x.AppliedPrice).HasColumnType(SqlPrecision.Money); builder.Property(x => x.HistoricalPackageValue).HasColumnType(SqlPrecision.Money);

@@ -1,47 +1,25 @@
 using MagazzinoLegname.Models;
+using MagazzinoLegname.Persistence;
 
 namespace MagazzinoLegname.Services;
 
 public sealed class GoodsReceiptRegistrationService
 {
-    private readonly object _registrationLock = new();
     private readonly ClassificationWorkflowService _workflow = ClassificationWorkflowService.Shared;
 
     public ClassificationLoad Register(GoodsReceiptLoadDraft draft, Supplier supplier,
-        string receiptOperator, DateTime arrivalDate, IEnumerable<GoodsReceiptLine> lines,
-        IReadOnlyList<PhysicalPackageDraft> packages)
+        string receiptOperator, DateTime arrivalDate, int expectedPackages, IReadOnlyList<GoodsReceiptLine> lines)
     {
-        lock (_registrationLock)
+        var operatorItem = OperatorCatalogService.Shared.Operators.SingleOrDefault(x =>
+            x.IsActive && x.DisplayName.Equals(receiptOperator, StringComparison.OrdinalIgnoreCase))
+            ?? throw new InvalidOperationException("L'operatore selezionato non è disponibile nel database.");
+        try
         {
-            var groups = lines.Select(line => new MaterialGroupClassification
-            {
-                GroupId = line.GroupId, LoadId = draft.Id,
-                IncomingThickness = line.IncomingThickness,
-                ConventionalThickness = line.ConventionalThickness,
-                UsefulThickness = line.UsefulProductionThickness,
-                IncomingWidth = line.IncomingWidth,
-                WidthAfterPlaning = line.WidthAfterPlaning,
-                FinalWidth = line.FinalWidth,
-                IncomingLength = line.IncomingLength,
-                FinalLength = line.FinalLength,
-                Quality = line.Quality,
-                PackageCount = line.PackageCount,
-                InitialPieces = line.EnteredPieces,
-                AppliedPrice = line.PrezzoApplicato,
-                LineValue = line.LineValue
-            }).ToList();
-            var load = new ClassificationLoad(groups)
-            {
-                Id = draft.Id, LoadNumber = draft.LoadNumber,
-                SupplierId = supplier.Id, LoadYear = draft.Year, AnnualProgressive = draft.AnnualSequence,
-                SupplierName = supplier.Name, SupplierCode = supplier.Code,
-                Certification = draft.CertificationApplied,
-                ArrivalDate = arrivalDate.Date,
-                DeliveryNoteNumber = draft.DeliveryNoteNumber,
-                ReceiptOperator = receiptOperator
-            };
-            _workflow.RegisterLoad(load, packages);
-            return load;
+            var persisted = SqlPersistenceRoot.InboundLoads.Register(draft, supplier, operatorItem,
+                arrivalDate, expectedPackages, lines);
+            _workflow.RegisterPersistedLoad(persisted.Load, persisted.Packages);
+            return persisted.Load;
         }
+        catch (Exception exception) { throw SqlPersistenceRoot.OperatorException(exception); }
     }
 }

@@ -17,6 +17,7 @@ public sealed class LoadEntity
     public Guid? ReceiptOperatorId { get; set; }
     public OperatorEntity? ReceiptOperator { get; set; }
     public string? ReceiptOperatorSnapshot { get; set; }
+    public int ExpectedPackages { get; set; }
     public string? LegacyLoadNumber { get; set; }
     public Guid? LegacyImportBatchId { get; set; }
     public LegacyImportBatchEntity? LegacyImportBatch { get; set; }
@@ -76,6 +77,8 @@ public sealed class PackageEntity
     public int SequenceNumber { get; set; }
     public int? SupplementarySequence { get; set; }
     public int? PieceCount { get; set; }
+    public int TotalOfficialPackages { get; set; }
+    public string Status { get; set; } = string.Empty;
     public decimal IncomingPhysicalCubicMeters { get; set; }
     public decimal? AppliedPrice { get; set; }
     public decimal? HistoricalPackageValue { get; set; }
