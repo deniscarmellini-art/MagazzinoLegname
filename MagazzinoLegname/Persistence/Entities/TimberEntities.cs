@@ -52,6 +52,8 @@ public sealed class MaterialGroupEntity
     public decimal? AppliedPrice { get; set; }
     public decimal? HistoricalValue { get; set; }
     public bool IsClassified { get; set; }
+    public DateTime? OfficialLabelsPrintedAt { get; set; }
+    public string? OfficialLabelsPrintedBy { get; set; }
     public bool WasteVerified { get; set; }
     public bool IsLegacyImport { get; set; }
     public decimal? LegacyEstimatedCubicMeters { get; set; }

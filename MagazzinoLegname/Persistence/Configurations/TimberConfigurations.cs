@@ -39,6 +39,7 @@ public sealed class MaterialGroupConfiguration : IEntityTypeConfiguration<Materi
         builder.Property(x => x.IncomingPhysicalCubicMeters).HasColumnType(SqlPrecision.Volume);
         builder.Property(x => x.LegacyEstimatedCubicMeters).HasColumnType(SqlPrecision.Volume);
         builder.Property(x => x.AppliedPrice).HasColumnType(SqlPrecision.Money); builder.Property(x => x.HistoricalValue).HasColumnType(SqlPrecision.Money);
+        builder.Property(x => x.OfficialLabelsPrintedBy).HasMaxLength(200);
         builder.Property(x => x.RowVersion).IsRowVersion();
         builder.HasOne(x => x.Load).WithMany(x => x.MaterialGroups).HasForeignKey(x => x.LoadId).OnDelete(DeleteBehavior.Cascade);
     }
@@ -50,6 +51,8 @@ public sealed class PackageConfiguration : IEntityTypeConfiguration<PackageEntit
     {
         builder.ToTable("Packages", table => table.HasCheckConstraint("CK_Packages_SupplementaryNoValue", "[PackageType] = 0 OR ([IncomingPhysicalCubicMeters] = 0 AND [AppliedPrice] IS NULL AND [HistoricalPackageValue] IS NULL)"));
         builder.HasKey(x => x.Id); builder.Property(x => x.PackageCode).HasMaxLength(80).IsRequired(); builder.HasIndex(x => x.PackageCode).IsUnique();
+        builder.HasIndex(x => new { x.MaterialGroupId, x.PackageType, x.SupplementarySequence }).IsUnique()
+            .HasFilter("[PackageType] = 1 AND [SupplementarySequence] IS NOT NULL");
         builder.Property(x => x.Status).HasMaxLength(60).IsRequired();
         builder.Property(x => x.QrPayload).HasMaxLength(1000).IsRequired(); builder.Property(x => x.PackageType).HasConversion<int>();
         builder.Property(x => x.IncomingPhysicalCubicMeters).HasColumnType(SqlPrecision.Volume);

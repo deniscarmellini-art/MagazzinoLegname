@@ -24,30 +24,67 @@ public sealed class ClassificationWorkflowService
     public void AddAdjustment(MaterialGroupClassification group, WasteAdjustment adjustment)
     {
         if (group.WasteVerified) return;
-        WasteAdjustmentHistory.Add(adjustment);
-        group.MarkWasteAsVerified();
+        try
+        {
+            var operatorItem = ResolveOperator(adjustment.AdjustmentOperator);
+            var persisted = SqlPersistenceRoot.WasteAdjustments.Add(group.LoadId, group.GroupId,
+                group.RowVersion.ToArray(), adjustment, operatorItem);
+            WasteAdjustmentHistory.Add(persisted.Adjustment);
+            group.ApplyPersistedWasteVerification(persisted.MaterialGroupRowVersion);
+        }
+        catch (Exception exception)
+        {
+            if (DatabaseErrorTranslator.Translate(exception).Kind is DatabaseFailureKind.ConcurrencyConflict
+                or DatabaseFailureKind.UniqueConstraint)
+                ReloadInboundLoads();
+            throw SqlPersistenceRoot.OperatorException(exception);
+        }
         WorkflowChanged?.Invoke(this, EventArgs.Empty);
         InventoryProjectionService.Shared.NotifyProjectionChanged();
     }
 
-    public void NotifyClassificationChanged() => WorkflowChanged?.Invoke(this, EventArgs.Empty);
-
-    public void RecordClassification(MaterialGroupClassification group)
+    public void MarkClassified(Guid loadId, Guid materialGroupId, byte[] rowVersion,
+        MaterialGroupClassification target, string operatorName, DateTime classifiedAt)
     {
-        if (!group.ClassificationDate.HasValue || string.IsNullOrWhiteSpace(group.ClassificationOperator)) return;
-        ClassificationHistory.Add(new ClassificationMovement
+        var operatorItem = ResolveOperator(operatorName);
+        try
         {
-            LoadId = group.LoadId,
-            MaterialGroupId = group.GroupId,
-            ClassificationDate = group.ClassificationDate.Value,
-            ClassificationOperator = group.ClassificationOperator
-        });
+            var state = SqlPersistenceRoot.Classifications.MarkClassified(loadId, materialGroupId, rowVersion,
+                operatorItem, classifiedAt);
+            target.ApplyPersistedClassification(state.RowVersion, state.IsClassified, state.ClassificationDate,
+                state.ClassificationOperator, state.OfficialLabelsPrintedAt, state.OfficialLabelsPrintedBy);
+            ClassificationHistory.Add(new ClassificationMovement { LoadId = loadId,
+                MaterialGroupId = materialGroupId, ClassificationDate = state.ClassificationDate ?? classifiedAt,
+                ClassificationOperator = state.ClassificationOperator ?? operatorName });
+        }
+        catch (Exception exception) { HandleClassificationFailure(exception); }
         WorkflowChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    public void MarkOfficialLabelsPrinted(MaterialGroupClassification group, string operatorName, DateTime printedAt)
+    public void MarkOfficialLabelsPrinted(Guid loadId, Guid materialGroupId, byte[] rowVersion,
+        MaterialGroupClassification target, string operatorName, DateTime printedAt)
     {
-        group.MarkOfficialLabelsPrinted(operatorName, printedAt);
+        try
+        {
+            var state = SqlPersistenceRoot.Classifications.MarkOfficialLabelsPrinted(loadId, materialGroupId,
+                rowVersion, ResolveOperator(operatorName), printedAt);
+            target.ApplyPersistedClassification(state.RowVersion, state.IsClassified, state.ClassificationDate,
+                state.ClassificationOperator, state.OfficialLabelsPrintedAt, state.OfficialLabelsPrintedBy);
+        }
+        catch (Exception exception) { HandleClassificationFailure(exception); }
+        WorkflowChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void UndoClassification(Guid loadId, Guid materialGroupId, byte[] rowVersion,
+        MaterialGroupClassification target)
+    {
+        try
+        {
+            var state = SqlPersistenceRoot.Classifications.UndoClassification(loadId, materialGroupId, rowVersion);
+            target.ApplyPersistedClassification(state.RowVersion, state.IsClassified, state.ClassificationDate,
+                state.ClassificationOperator, state.OfficialLabelsPrintedAt, state.OfficialLabelsPrintedBy);
+        }
+        catch (Exception exception) { HandleClassificationFailure(exception); }
         WorkflowChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -98,11 +135,13 @@ public sealed class ClassificationWorkflowService
         {
             var persisted = SqlPersistenceRoot.InboundLoads.GetAll();
             Loads.Clear(); RegisteredPhysicalPackages.Clear(); SupplementaryPackages.Clear();
+            WasteAdjustmentHistory.Clear();
             foreach (var item in persisted)
             {
                 Loads.Add(item.Load);
                 foreach (var package in item.Packages) RegisteredPhysicalPackages.Add(package);
                 foreach (var package in item.SupplementaryPackages) SupplementaryPackages.Add(package);
+                foreach (var adjustment in item.WasteAdjustments) WasteAdjustmentHistory.Add(adjustment);
             }
             WorkflowChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -142,5 +181,17 @@ public sealed class ClassificationWorkflowService
             Loads.Clear(); RegisteredPhysicalPackages.Clear(); SupplementaryPackages.Clear(); ClassificationHistory.Clear(); WasteAdjustmentHistory.Clear();
             WorkflowChanged?.Invoke(this, EventArgs.Empty);
         }
+    }
+
+    private static Operator ResolveOperator(string operatorName) =>
+        OperatorCatalogService.Shared.Operators.SingleOrDefault(x => x.IsActive &&
+            x.DisplayName.Equals(operatorName, StringComparison.OrdinalIgnoreCase))
+        ?? throw new InvalidOperationException("L'operatore selezionato non è disponibile nel database.");
+
+    private void HandleClassificationFailure(Exception exception)
+    {
+        if (DatabaseErrorTranslator.Translate(exception).Kind == DatabaseFailureKind.ConcurrencyConflict)
+            ReloadInboundLoads();
+        throw SqlPersistenceRoot.OperatorException(exception);
     }
 }

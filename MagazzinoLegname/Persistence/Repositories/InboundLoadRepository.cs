@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace MagazzinoLegname.Persistence.Repositories;
 
 public sealed record PersistedInboundLoad(ClassificationLoad Load, IReadOnlyList<PhysicalPackageDraft> Packages,
-    IReadOnlyList<SupplementaryPackage> SupplementaryPackages);
+    IReadOnlyList<SupplementaryPackage> SupplementaryPackages, IReadOnlyList<WasteAdjustment> WasteAdjustments);
 
 public interface IInboundLoadRepository
 {
@@ -109,7 +109,8 @@ public sealed class SqlInboundLoadRepository(IDbContextFactory<MagazzinoDbContex
             db.SaveChanges();
             transaction.Commit();
             db.ChangeTracker.Clear();
-            var reloaded = db.Loads.AsNoTracking().Include(x => x.Supplier).Include(x => x.MaterialGroups)
+            var reloaded = db.Loads.AsNoTracking().Include(x => x.Supplier).Include(x => x.MaterialGroups).ThenInclude(x => x.ClassificationMovements)
+                .Include(x => x.MaterialGroups).ThenInclude(x => x.WasteAdjustments)
                 .Include(x => x.Packages).Single(x => x.Id == draft.Id);
             result = Map(reloaded);
         });
@@ -121,7 +122,8 @@ public sealed class SqlInboundLoadRepository(IDbContextFactory<MagazzinoDbContex
     public IReadOnlyList<PersistedInboundLoad> GetAll()
     {
         using var db = contextFactory.CreateDbContext();
-        return db.Loads.AsNoTracking().Include(x => x.Supplier).Include(x => x.MaterialGroups)
+        return db.Loads.AsNoTracking().Include(x => x.Supplier).Include(x => x.MaterialGroups).ThenInclude(x => x.ClassificationMovements)
+            .Include(x => x.MaterialGroups).ThenInclude(x => x.WasteAdjustments)
             .Include(x => x.Packages).OrderBy(x => x.ArrivalDate).ThenBy(x => x.AnnualProgressive)
             .AsEnumerable().Select(Map).ToList();
     }
@@ -138,8 +140,10 @@ public sealed class SqlInboundLoadRepository(IDbContextFactory<MagazzinoDbContex
             using var transaction = db.Database.BeginTransaction(IsolationLevel.Serializable);
             if (!db.MaterialGroups.Any(x => x.Id == group.GroupId && x.LoadId == load.Id))
                 throw new InvalidOperationException("Il gruppo materiale non è presente nel database.");
-            var next = (db.Packages.Where(x => x.MaterialGroupId == group.GroupId && x.PackageType == PersistentPackageType.Supplementary)
-                .Max(x => (int?)x.SupplementarySequence) ?? 0) + 1;
+            var existingSupplementaries = db.Packages
+                .FromSqlInterpolated($"SELECT * FROM dbo.Packages WITH (UPDLOCK, HOLDLOCK) WHERE MaterialGroupId = {group.GroupId} AND PackageType = {(int)PersistentPackageType.Supplementary}")
+                .ToList();
+            var next = (existingSupplementaries.Max(x => x.SupplementarySequence) ?? 0) + 1;
             var code = $"{load.SupplierCode}-{load.AnnualProgressive ?? 0}-{(load.LoadYear ?? load.ArrivalDate.Year) % 100:00}-S{next:00}";
             var qr = QrCodeService.BuildSupplementaryPayload(code, group, load.ArrivalDate);
             var entity = new PackageEntity { Id = Guid.NewGuid(), LoadId = load.Id, MaterialGroupId = group.GroupId,
@@ -161,14 +165,23 @@ public sealed class SqlInboundLoadRepository(IDbContextFactory<MagazzinoDbContex
 
     private static PersistedInboundLoad Map(LoadEntity entity)
     {
-        var groups = entity.MaterialGroups.OrderBy(x => x.Id).Select(x => new MaterialGroupClassification
+        var groups = entity.MaterialGroups.OrderBy(x => x.Id).Select(x =>
         {
-            GroupId = x.Id, LoadId = x.LoadId, IncomingThickness = x.IncomingThickness,
-            ConventionalThickness = x.ConventionalThickness,
-            IncomingWidth = x.IncomingWidth, WidthAfterPlaning = x.WidthAfterPlaning,
-            IncomingLength = x.IncomingLength, Quality = x.Quality,
-            PackageCount = x.PackageCount, InitialPieces = x.InitialPieces, AppliedPrice = x.AppliedPrice,
-            LineValue = x.HistoricalValue, IsLegacyImport = x.IsLegacyImport, RowVersion = x.RowVersion
+            var group = new MaterialGroupClassification
+            {
+                GroupId = x.Id, LoadId = x.LoadId, IncomingThickness = x.IncomingThickness,
+                ConventionalThickness = x.ConventionalThickness,
+                IncomingWidth = x.IncomingWidth, WidthAfterPlaning = x.WidthAfterPlaning,
+                IncomingLength = x.IncomingLength, Quality = x.Quality,
+                PackageCount = x.PackageCount, InitialPieces = x.InitialPieces, AppliedPrice = x.AppliedPrice,
+                LineValue = x.HistoricalValue, IsLegacyImport = x.IsLegacyImport, RowVersion = x.RowVersion
+            };
+            var movement = x.ClassificationMovements.OrderByDescending(m => m.OccurredAtUtc).FirstOrDefault();
+            group.ApplyPersistedClassification(x.RowVersion, x.IsClassified,
+                movement?.OccurredAtUtc.ToLocalTime(), movement?.OperatorSnapshot,
+                x.OfficialLabelsPrintedAt, x.OfficialLabelsPrintedBy);
+            if (x.WasteVerified) group.MarkWasteAsVerified();
+            return group;
         }).ToList();
         var load = new ClassificationLoad(groups) { Id = entity.Id, SupplierId = entity.SupplierId,
             LoadNumber = entity.LoadNumber, LoadYear = entity.LoadYear, AnnualProgressive = entity.AnnualProgressive,
@@ -198,7 +211,9 @@ public sealed class SqlInboundLoadRepository(IDbContextFactory<MagazzinoDbContex
                     Quality = group.Quality, Certification = load.Certification, CreatedAt = x.ArrivalDate,
                     CreatedBy = load.ReceiptOperator };
             }).ToList();
-        return new PersistedInboundLoad(load, packages, supplementaryPackages);
+        var adjustments = entity.MaterialGroups.SelectMany(x => x.WasteAdjustments)
+            .OrderBy(x => x.OccurredAtUtc).Select(SqlWasteAdjustmentRepository.Map).ToList();
+        return new PersistedInboundLoad(load, packages, supplementaryPackages, adjustments);
     }
 
     private static string? NullIfEmpty(string value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

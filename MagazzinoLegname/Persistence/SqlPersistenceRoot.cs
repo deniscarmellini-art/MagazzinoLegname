@@ -10,6 +10,8 @@ public static class SqlPersistenceRoot
     public static IOperatorRepository Operators { get; } = new SqlOperatorRepository(ContextFactory);
     public static IDomainConfigurationRepository DomainConfigurations { get; } = new SqlDomainConfigurationRepository(ContextFactory);
     public static IInboundLoadRepository InboundLoads { get; } = new SqlInboundLoadRepository(ContextFactory);
+    public static IClassificationRepository Classifications { get; } = new SqlClassificationRepository(ContextFactory);
+    public static IWasteAdjustmentRepository WasteAdjustments { get; } = new SqlWasteAdjustmentRepository(ContextFactory);
 
     public static void InitializeDatabase()
     {

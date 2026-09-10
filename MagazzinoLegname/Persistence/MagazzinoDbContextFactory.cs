@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+#if DEBUG
+using Microsoft.Extensions.Logging;
+#endif
 
 namespace MagazzinoLegname.Persistence;
 
@@ -12,14 +15,22 @@ public sealed class MagazzinoDbContextFactory : IDbContextFactory<MagazzinoDbCon
     public MagazzinoDbContext CreateDbContext()
     {
         var (settings, _) = DatabaseSettingsLoader.Load(_baseDirectory);
-        var options = new DbContextOptionsBuilder<MagazzinoDbContext>()
+        var optionsBuilder = new DbContextOptionsBuilder<MagazzinoDbContext>()
             .UseSqlServer(settings.BuildConnectionString(), sql =>
             {
                 sql.CommandTimeout(Math.Clamp(settings.CommandTimeoutSeconds, 1, 600));
                 sql.EnableRetryOnFailure(3, TimeSpan.FromSeconds(2), null);
-            })
-            .Options;
-        return new MagazzinoDbContext(options);
+            });
+#if DEBUG
+        if (settings.Database.Equals("MagazzinoLegname_Dev", StringComparison.OrdinalIgnoreCase))
+        {
+            optionsBuilder.EnableSensitiveDataLogging()
+                .EnableDetailedErrors()
+                .LogTo(PersistenceDebugLog.WriteEfCommand,
+                    [DbLoggerCategory.Database.Command.Name], LogLevel.Information);
+        }
+#endif
+        return new MagazzinoDbContext(optionsBuilder.Options);
     }
 
     MagazzinoDbContext IDesignTimeDbContextFactory<MagazzinoDbContext>.CreateDbContext(string[] args) => CreateDbContext();

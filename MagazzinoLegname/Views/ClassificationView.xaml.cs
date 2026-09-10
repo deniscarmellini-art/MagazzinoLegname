@@ -1,11 +1,12 @@
 using System.Windows;
 using System.Windows.Controls;
 using MagazzinoLegname.Models;
+using MagazzinoLegname.Navigation;
 using MagazzinoLegname.ViewModels;
 
 namespace MagazzinoLegname.Views;
 
-public partial class ClassificationView : UserControl
+public partial class ClassificationView : UserControl, INavigationAware
 {
     private ClassificationViewModel ViewModel => (ClassificationViewModel)DataContext;
     public ClassificationView()
@@ -19,8 +20,12 @@ public partial class ClassificationView : UserControl
         if (sender is not Button { Tag: MaterialGroupClassification group }) return;
         var packages = ViewModel.GetOfficialPackages(group);
         if (packages.Count == 0) return;
-        if (ShowLabelPreview(packages, group) == true)
-            ViewModel.MarkOfficialLabelsPrinted(group);
+        if (ShowLabelPreview(packages, group) != true) return;
+        try { ViewModel.MarkOfficialLabelsPrinted(group); }
+        catch (InvalidOperationException exception)
+        {
+            MessageBox.Show(exception.Message, "Classificazione", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
     }
 
     private void ReprintOfficialLabels_Click(object sender, RoutedEventArgs e)
@@ -102,13 +107,30 @@ public partial class ClassificationView : UserControl
     private void MarkClassified_Click(object sender, RoutedEventArgs e)
     {
         if (sender is Button { Tag: MaterialGroupClassification group })
-            ViewModel.MarkGroupAsClassified(group);
+            try { ViewModel.MarkGroupAsClassified(group); }
+            catch (InvalidOperationException exception)
+            {
+                MessageBox.Show(exception.Message, "Classificazione", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
     }
 
     private void UndoClassification_Click(object sender, RoutedEventArgs e)
     {
         if (sender is Button { Tag: MaterialGroupClassification group })
-            ViewModel.UndoGroupClassification(group);
+            try { ViewModel.UndoGroupClassification(group); }
+            catch (InvalidOperationException exception)
+            {
+                MessageBox.Show(exception.Message, "Classificazione", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+    }
+
+    public void OnNavigatedTo()
+    {
+        try { ViewModel.ReloadFromDatabase(); }
+        catch (InvalidOperationException exception)
+        {
+            MessageBox.Show(exception.Message, "Database non disponibile", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private bool? ShowLabelPreview(IReadOnlyList<PhysicalPackageDraft> packages, MaterialGroupClassification group)

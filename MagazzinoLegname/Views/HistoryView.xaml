@@ -164,8 +164,26 @@
                                     <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                                     <DataGrid ItemsSource="{Binding LoadTimeline}"
                                               SelectedItem="{Binding SelectedLoadTimelineMovement, Mode=TwoWay}"
-                                              AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
-                                        <DataGrid.Columns><DataGridTextColumn Header="Data/Ora" Width="145" Binding="{Binding DateTime, StringFormat=dd/MM/yyyy HH:mm}"/><DataGridTextColumn Header="Movimento" Width="190" Binding="{Binding MovementType}"/><DataGridTextColumn Header="MC" Width="110" Binding="{Binding CubicMetersDisplay}"/><DataGridTextColumn Header="Operatore" Width="*" Binding="{Binding Operator}"/></DataGrid.Columns>
+                                              AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
+                                              RowHeight="38">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Data/Ora" Width="150"
+                                                Binding="{Binding DateTime, StringFormat=dd/MM/yyyy HH:mm}"
+                                                HeaderStyle="{StaticResource HistoryLeftHeaderStyle}"
+                                                ElementStyle="{StaticResource HistoryCellStyle}"/>
+                                            <DataGridTextColumn Header="Movimento" Width="1.25*" MinWidth="190"
+                                                Binding="{Binding MovementType}"
+                                                HeaderStyle="{StaticResource HistoryLeftHeaderStyle}"
+                                                ElementStyle="{StaticResource HistoryCellStyle}"/>
+                                            <DataGridTextColumn Header="MC" Width="105"
+                                                Binding="{Binding CubicMetersDisplay}"
+                                                HeaderStyle="{StaticResource HistoryNumericHeaderStyle}"
+                                                ElementStyle="{StaticResource HistoryNumericCellStyle}"/>
+                                            <DataGridTextColumn Header="Operatore" Width="1*" MinWidth="160"
+                                                Binding="{Binding Operator, TargetNullValue=—}"
+                                                HeaderStyle="{StaticResource HistoryLeftHeaderStyle}"
+                                                ElementStyle="{StaticResource HistoryCellStyle}"/>
+                                        </DataGrid.Columns>
                                     </DataGrid>
                                     <Expander Grid.Row="1" IsExpanded="False" Margin="0,8,0,0"
                                               Background="{DynamicResource SurfaceHeaderBrush}"

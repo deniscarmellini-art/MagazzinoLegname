@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using MagazzinoLegname.Infrastructure;
 using MagazzinoLegname.Models;
+using MagazzinoLegname.Persistence;
 using MagazzinoLegname.Services;
 
 namespace MagazzinoLegname.ViewModels;
@@ -67,11 +68,14 @@ public sealed class ClassificationViewModel : ObservableObject
 
     public void MarkOfficialLabelsPrinted(MaterialGroupClassification group)
     {
-        var load = _allLoads.FirstOrDefault(item => item.Id == group.LoadId)
-            ?? throw new InvalidOperationException("Carico non trovato.");
+        var (load, currentGroup) = ResolveCurrentSelection(group);
+        if (load is null || currentGroup is null)
+            throw new InvalidOperationException("Carico o gruppo materiale non trovato.");
         if (string.IsNullOrWhiteSpace(load.SelectedOperator))
             throw new InvalidOperationException("Selezionare un operatore prima della stampa.");
-        _workflow.MarkOfficialLabelsPrinted(group, load.SelectedOperator, DateTime.Now);
+        var rowVersion = currentGroup.RowVersion.ToArray();
+        _workflow.MarkOfficialLabelsPrinted(load.Id, currentGroup.GroupId, rowVersion,
+            currentGroup, load.SelectedOperator, DateTime.Now);
     }
 
     public string GetSupplierName(MaterialGroupClassification group) =>
@@ -94,16 +98,29 @@ public sealed class ClassificationViewModel : ObservableObject
 
     public void MarkGroupAsClassified(MaterialGroupClassification group)
     {
-        var load = _allLoads.FirstOrDefault(item => item.Id == group.LoadId);
-        if (group.IsClassified || load is null || string.IsNullOrWhiteSpace(load.SelectedOperator)) return;
-        group.MarkAsClassified(load.SelectedOperator, DateTime.Now);
-        _workflow.RecordClassification(group);
+        var (load, currentGroup) = ResolveCurrentSelection(group);
+        if (currentGroup is null || currentGroup.IsClassified || load is null || string.IsNullOrWhiteSpace(load.SelectedOperator)) return;
+        var rowVersion = currentGroup.RowVersion.ToArray();
+        PersistenceDebugLog.Write($"Segna classificato: LoadId UI={load.Id}; MaterialGroupId UI={currentGroup.GroupId}; " +
+            $"RowVersion UI={(rowVersion.Length == 0 ? "<empty>" : Convert.ToHexString(rowVersion))}.");
+        _workflow.MarkClassified(load.Id, currentGroup.GroupId, rowVersion,
+            currentGroup, load.SelectedOperator, DateTime.Now);
     }
 
     public void UndoGroupClassification(MaterialGroupClassification group)
     {
-        if (!group.UndoClassification()) return;
-        _workflow.NotifyClassificationChanged();
+        var (load, currentGroup) = ResolveCurrentSelection(group);
+        if (load is null || currentGroup is null || !currentGroup.CanUndoClassification) return;
+        _workflow.UndoClassification(load.Id, currentGroup.GroupId, currentGroup.RowVersion.ToArray(), currentGroup);
+    }
+
+    public void ReloadFromDatabase()
+    {
+        var selectedLoadId = SelectedLoad?.Id;
+        _workflow.ReloadInboundLoads();
+        SubscribeToNewLoads();
+        ApplyFilters();
+        SelectedLoad = VisibleLoads.FirstOrDefault(x => x.Id == selectedLoadId) ?? VisibleLoads.FirstOrDefault();
     }
 
     private static PhysicalPackageDraft ToLabelDraft(SupplementaryPackage package) => new(
@@ -121,15 +138,18 @@ public sealed class ClassificationViewModel : ObservableObject
 
     private void ApplyFilters()
     {
-        var previousSelection = SelectedLoad;
+        var previousSelectionId = SelectedLoad?.Id;
         var presentGroupIds = _inventory.BuildInventory().Select(package => package.MaterialGroupId).ToHashSet();
         var matches = _allLoads.Where(load => load.Groups.Any(group =>
                 presentGroupIds.Contains(group.GroupId) && !group.IsClassified))
             .ToList();
+        var previousSelection = _allLoads.FirstOrDefault(load => load.Id == previousSelectionId);
+        if (previousSelection is not null && previousSelection.Groups.Any(group => presentGroupIds.Contains(group.GroupId))
+            && matches.All(load => load.Id != previousSelection.Id))
+            matches.Add(previousSelection);
         VisibleLoads.Clear();
         foreach (var load in matches) VisibleLoads.Add(load);
-        SelectedLoad = previousSelection is not null && matches.Contains(previousSelection)
-            ? previousSelection : matches.FirstOrDefault();
+        SelectedLoad = matches.FirstOrDefault(load => load.Id == previousSelectionId) ?? matches.FirstOrDefault();
         RefreshOperationalGroups();
         OnPropertyChanged(nameof(LoadCountText));
         EnsureActiveSelections();
@@ -161,5 +181,13 @@ public sealed class ClassificationViewModel : ObservableObject
     {
         foreach (var load in _allLoads.Where(load => _subscribedLoadIds.Add(load.Id)))
             load.PropertyChanged += Load_PropertyChanged;
+    }
+
+    private (ClassificationLoad? Load, MaterialGroupClassification? Group) ResolveCurrentSelection(
+        MaterialGroupClassification clickedGroup)
+    {
+        var load = _allLoads.FirstOrDefault(item => item.Id == clickedGroup.LoadId);
+        var group = load?.Groups.FirstOrDefault(item => item.GroupId == clickedGroup.GroupId);
+        return (load, group);
     }
 }

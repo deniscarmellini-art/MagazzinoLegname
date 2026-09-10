@@ -9,6 +9,8 @@ internal static class PersistenceDebugLog
     [Conditional("DEBUG")]
     public static void Write(string message) => Debug.WriteLine($"[SQL] {message}");
 
+    public static void WriteEfCommand(string message) => Debug.WriteLine($"[EF Database.Command] {message}");
+
     [Conditional("DEBUG")]
     public static void WriteException(string operation, Exception exception)
     {

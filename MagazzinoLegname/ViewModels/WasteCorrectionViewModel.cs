@@ -36,6 +36,12 @@ public sealed class WasteCorrectionViewModel : ObservableObject
         return true;
     }
 
+    public void ReloadFromDatabase()
+    {
+        _workflow.ReloadInboundLoads();
+        ReloadEligibleGroups();
+    }
+
     private void ReloadEligibleGroups()
     {
         Groups.Clear();

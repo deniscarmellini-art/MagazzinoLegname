@@ -94,4 +94,28 @@ public sealed class MaterialGroupClassification : ObservableObject
         OnPropertyChanged(nameof(CanUndoClassification));
         OnPropertyChanged(nameof(ClassificationStatus));
     }
+
+    internal void ApplyPersistedWasteVerification(byte[] rowVersion)
+    {
+        RowVersion = rowVersion;
+        MarkWasteAsVerified();
+    }
+
+    internal void ApplyPersistedClassification(byte[] rowVersion, bool isClassified,
+        DateTime? classificationDate, string? classificationOperator,
+        DateTime? officialLabelsPrintedAt, string? officialLabelsPrintedBy)
+    {
+        RowVersion = rowVersion;
+        if (isClassified && !IsClassified)
+        {
+            if (IsLegacyImport && string.IsNullOrWhiteSpace(classificationOperator))
+                MarkAsLegacyClassified(classificationDate);
+            else
+                MarkAsClassified(classificationOperator ?? string.Empty, classificationDate ?? DateTime.MinValue);
+        }
+        else if (!isClassified && IsClassified)
+            UndoClassification();
+        if (officialLabelsPrintedAt.HasValue)
+            MarkOfficialLabelsPrinted(officialLabelsPrintedBy ?? string.Empty, officialLabelsPrintedAt.Value);
+    }
 }
