@@ -27,8 +27,12 @@ public sealed class InventoryProjectionService
         {
             DischargeMovements.Clear();
             SupplementaryExitMovements.Clear();
+            ManualRemovalMovements.Clear();
+            SupplierReturnMovements.Clear();
             foreach (var movement in persisted.Discharges) DischargeMovements.Add(movement);
             foreach (var movement in persisted.SupplementaryExits) SupplementaryExitMovements.Add(movement);
+            foreach (var movement in persisted.ManualRemovals) ManualRemovalMovements.Add(movement);
+            foreach (var movement in persisted.SupplierReturns) SupplierReturnMovements.Add(movement);
         }
         InventoryChanged?.Invoke(this, EventArgs.Empty);
     }
@@ -59,128 +63,35 @@ public sealed class InventoryProjectionService
                 movement.PackageCode.Equals(packageCode, StringComparison.OrdinalIgnoreCase));
     }
 
-    public MaterialDischargeMovement Discharge(string packageCode, string operatorName)
-    {
-        lock (_sync)
-        {
-            var package = BuildInventoryCore(true).FirstOrDefault(item =>
-                item.PackageCode.Equals(packageCode, StringComparison.OrdinalIgnoreCase))
-                ?? throw new InvalidOperationException("Pacco non trovato.");
-            if (!package.IsPresent) throw new InvalidOperationException("Pacco già scaricato.");
-            if (package.ClassificationStatus != "Classificato")
-                throw new InvalidOperationException("Il materiale deve essere classificato prima dello scarico.");
-            if (!package.UsesRealCubicMeters)
-                throw new InvalidOperationException("È necessario completare la rettifica scarti.");
-
-            var movement = new MaterialDischargeMovement
-            {
-                PackageId = package.Id, PackageCode = package.PackageCode,
-                LoadId = package.LoadId, MaterialGroupId = package.MaterialGroupId,
-                LoadNumber = package.LoadNumber, SupplierName = package.SupplierName,
-                DischargeDate = DateTime.Now, DischargeOperator = operatorName,
-                DischargedCubicMeters = package.InventoryCubicMeters,
-                PreviousStatus = "Presente", NextStatus = "Scaricato"
-            };
-            DischargeMovements.Add(movement);
-            PackageTerminalStateStore.Shared.Record(package.PackageCode,
-                PackageTerminalState.Discharged, movement.DischargeDate, movement.DischargeOperator);
-            InventoryChanged?.Invoke(this, EventArgs.Empty);
-            return movement;
-        }
-    }
-
-    public SupplementaryPackageExitMovement ExitSupplementaryPackage(string packageCode, string operatorName)
-    {
-        lock (_sync)
-        {
-            var package = BuildInventoryCore(true).FirstOrDefault(item =>
-                item.PackageCode.Equals(packageCode, StringComparison.OrdinalIgnoreCase))
-                ?? throw new InvalidOperationException("Pacco supplementare non trovato.");
-            if (!package.IsSupplementary) throw new InvalidOperationException("Il pacco indicato non è supplementare.");
-            if (!package.IsPresent) throw new InvalidOperationException("Pacco supplementare già uscito dalla giacenza fisica.");
-            if (string.IsNullOrWhiteSpace(operatorName)) throw new InvalidOperationException("Indicare l'operatore.");
-            var movement = new SupplementaryPackageExitMovement
-            {
-                PackageId = package.Id, PackageCode = package.PackageCode,
-                LoadId = package.LoadId, MaterialGroupId = package.MaterialGroupId,
-                LoadNumber = package.LoadNumber, SupplierName = package.SupplierName,
-                ExitDate = DateTime.Now, ExitOperator = operatorName
-            };
-            SupplementaryExitMovements.Add(movement);
-            PackageTerminalStateStore.Shared.Record(package.PackageCode,
-                PackageTerminalState.SupplementaryExited, movement.ExitDate, movement.ExitOperator);
-            InventoryChanged?.Invoke(this, EventArgs.Empty);
-            return movement;
-        }
-    }
-
     public ManualPackageRemovalMovement RemovePackage(string packageCode, string operatorName,
         string reason, string? note)
     {
-        lock (_sync)
+        if (string.IsNullOrWhiteSpace(operatorName)) throw new InvalidOperationException("Indicare l'operatore.");
+        if (string.IsNullOrWhiteSpace(reason)) throw new InvalidOperationException("Indicare il motivo della rimozione.");
+        if (reason == "Altro" && string.IsNullOrWhiteSpace(note))
+            throw new InvalidOperationException("Per il motivo Altro è richiesta una breve nota.");
+        try
         {
-            var package = BuildInventoryCore(false).FirstOrDefault(item =>
-                item.PackageCode.Equals(packageCode, StringComparison.OrdinalIgnoreCase));
-            if (package is null) throw new InvalidOperationException("Pacco non trovato o non più presente.");
-            if (string.IsNullOrWhiteSpace(operatorName)) throw new InvalidOperationException("Indicare l'operatore.");
-            if (string.IsNullOrWhiteSpace(reason)) throw new InvalidOperationException("Indicare il motivo della rimozione.");
-            if (reason == "Altro" && string.IsNullOrWhiteSpace(note))
-                throw new InvalidOperationException("Per il motivo Altro è richiesta una breve nota.");
-
-            var movement = new ManualPackageRemovalMovement
-            {
-                PackageId = package.Id, PackageCode = package.PackageCode,
-                LoadId = package.LoadId, MaterialGroupId = package.MaterialGroupId,
-                LoadNumber = package.LoadNumber, SupplierName = package.SupplierName,
-                RemovalDate = DateTime.Now, RemovalOperator = operatorName,
-                RemovedCubicMeters = package.IsSupplementary ? null : package.InventoryCubicMeters,
-                Reason = reason, Note = note?.Trim() ?? string.Empty
-            };
-            ManualRemovalMovements.Add(movement);
-            PackageTerminalStateStore.Shared.Record(package.PackageCode,
-                PackageTerminalState.ManuallyRemoved, movement.RemovalDate, movement.RemovalOperator);
-            InventoryChanged?.Invoke(this, EventArgs.Empty);
+            var movement = Persistence.SqlPersistenceRoot.PackageTerminals.Remove(packageCode, operatorName, reason, note);
+            ReloadSqlTerminalMovements();
             return movement;
         }
+        catch (Exception exception) { throw Persistence.SqlPersistenceRoot.OperatorException(exception); }
     }
 
     public SupplierReturnResult RegisterSupplierReturn(IReadOnlyCollection<InventoryPackage> packages,
         SupplierReturnMode mode, string operatorName, string reason, string? note, string? documentReference)
     {
-        lock (_sync)
+        if (packages.Any(item => item.IsSupplementary))
+            throw new InvalidOperationException("I pacchi supplementari non possono generare movimenti di reso con MC.");
+        try
         {
-            if (packages.Any(item => item.IsSupplementary))
-                throw new InvalidOperationException("I pacchi supplementari non possono generare movimenti di reso con MC.");
-            var current = BuildInventoryCore(false).ToDictionary(item => item.PackageCode, StringComparer.OrdinalIgnoreCase);
-            if (packages.Any(item => !current.ContainsKey(item.PackageCode)))
-                throw new InvalidOperationException("Uno o più pacchi non sono più presenti e non possono essere resi.");
-            var operationId = Guid.NewGuid();
-            var returnDate = DateTime.Now;
-            var movements = packages.Select(snapshot =>
-            {
-                var package = current[snapshot.PackageCode];
-                return new SupplierReturnMovement
-                {
-                    ReturnOperationId = operationId, PackageId = package.Id, PackageCode = package.PackageCode,
-                    LoadId = package.LoadId, MaterialGroupId = package.MaterialGroupId,
-                    LoadNumber = package.LoadNumber, SupplierName = package.SupplierName,
-                    ReturnDate = returnDate, ReturnOperator = operatorName, Reason = reason,
-                    Note = note ?? string.Empty, DocumentReference = documentReference ?? string.Empty,
-                    ReturnedPhysicalCubicMeters = package.IncomingCubicMeters,
-                    RemovedInventoryCubicMeters = package.InventoryCubicMeters, Mode = mode
-                };
-            }).ToArray();
-            foreach (var movement in movements)
-            {
-                SupplierReturnMovements.Add(movement);
-                PackageTerminalStateStore.Shared.Record(movement.PackageCode,
-                    PackageTerminalState.Returned, movement.ReturnDate, movement.ReturnOperator);
-            }
-            InventoryChanged?.Invoke(this, EventArgs.Empty);
-            return new(operationId, mode, movements.Length,
-                movements.Sum(item => item.ReturnedPhysicalCubicMeters),
-                movements.Sum(item => item.RemovedInventoryCubicMeters));
+            var result = Persistence.SqlPersistenceRoot.PackageTerminals.Return(packages.First().LoadId,
+                packages.Select(x => x.PackageCode).ToArray(), mode, operatorName, reason, note, documentReference);
+            ReloadSqlTerminalMovements();
+            return result;
         }
+        catch (Exception exception) { throw Persistence.SqlPersistenceRoot.OperatorException(exception); }
     }
 
     private IReadOnlyList<InventoryPackage> BuildInventoryCore(bool includeDischarged)
@@ -366,7 +277,6 @@ public sealed class InventoryProjectionService
         lock (_sync)
         {
             DischargeMovements.Clear(); SupplementaryExitMovements.Clear(); ManualRemovalMovements.Clear(); SupplierReturnMovements.Clear(); _packageIds.Clear();
-            PackageTerminalStateStore.Shared.ResetTestData();
             InventoryChanged?.Invoke(this, EventArgs.Empty);
         }
     }

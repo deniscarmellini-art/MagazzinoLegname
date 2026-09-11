@@ -1,7 +1,6 @@
 using System.Data;
 using MagazzinoLegname.Models;
 using MagazzinoLegname.Persistence.Entities;
-using MagazzinoLegname.Services;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,12 +10,17 @@ public sealed record SqlPackageTerminalState(bool Exists, PackageType PackageTyp
     PackageTerminalState? TerminalState);
 
 public sealed record PersistedTerminalMovements(IReadOnlyList<MaterialDischargeMovement> Discharges,
-    IReadOnlyList<SupplementaryPackageExitMovement> SupplementaryExits);
+    IReadOnlyList<SupplementaryPackageExitMovement> SupplementaryExits,
+    IReadOnlyList<ManualPackageRemovalMovement> ManualRemovals,
+    IReadOnlyList<SupplierReturnMovement> SupplierReturns);
 
 public interface IPackageTerminalRepository
 {
     SqlPackageTerminalState FindState(string packageCode);
     PackageExitResult Discharge(string packageCode, string operatorName);
+    ManualPackageRemovalMovement Remove(string packageCode, string operatorName, string reason, string? note);
+    SupplierReturnResult Return(Guid loadId, IReadOnlyCollection<string> packageCodes, SupplierReturnMode mode,
+        string operatorName, string reason, string? note, string? documentReference);
     PersistedTerminalMovements GetAllDischarges();
 }
 
@@ -98,16 +102,153 @@ public sealed class SqlPackageTerminalRepository(IDbContextFactory<MagazzinoDbCo
         var packageIndex = presentPackageIds.IndexOf(package.Id);
         if (packageIndex < 0) throw new PackageAlreadyExitedException(package.PackageCode);
         var residual = Math.Max(0m, adjustment.RealAvailableCubicMeters - alreadyDischarged);
-        return InventoryProjectionService.DistributeExactly(residual, presentPackageIds.Count)[packageIndex];
+        return Services.InventoryProjectionService.DistributeExactly(residual, presentPackageIds.Count)[packageIndex];
     }
+
+    public ManualPackageRemovalMovement Remove(string packageCode, string operatorName, string reason, string? note)
+    {
+        ManualPackageRemovalMovement? result = null;
+        ExecuteTerminalTransaction(packageCode, operatorName, (db, package, operatorItem) =>
+        {
+            var supplementary = package.PackageType == PersistentPackageType.Supplementary;
+            var removedCubicMeters = supplementary ? (decimal?)null : CalculateCurrentPackageCubicMeters(db, package);
+            var occurredAt = DateTime.Now;
+            var terminal = new PackageTerminalEventEntity
+            {
+                Id = Guid.NewGuid(), PackageId = package.Id, EventType = PackageTerminalEventType.ManualRemoval,
+                OccurredAtUtc = occurredAt.ToUniversalTime(), OperatorId = operatorItem.Id,
+                OperatorSnapshot = DisplayName(operatorItem), InventoryCubicMeters = removedCubicMeters,
+                Reason = reason.Trim(), Note = NullIfEmpty(note)
+            };
+            package.Status = "Rimosso manualmente";
+            db.PackageTerminalEvents.Add(terminal);
+            result = new ManualPackageRemovalMovement
+            {
+                MovementId = terminal.Id, PackageId = package.Id, PackageCode = package.PackageCode,
+                LoadId = package.LoadId, MaterialGroupId = package.MaterialGroupId,
+                LoadNumber = package.Load.LoadNumber, SupplierName = package.Load.Supplier.Name,
+                RemovalDate = occurredAt, RemovalOperator = terminal.OperatorSnapshot,
+                RemovedCubicMeters = removedCubicMeters, Reason = terminal.Reason, Note = terminal.Note ?? string.Empty
+            };
+        });
+        return result ?? throw new InvalidOperationException("La rimozione non è stata registrata.");
+    }
+
+    public SupplierReturnResult Return(Guid loadId, IReadOnlyCollection<string> packageCodes, SupplierReturnMode mode,
+        string operatorName, string reason, string? note, string? documentReference)
+    {
+        using var strategyContext = contextFactory.CreateDbContext();
+        var strategy = strategyContext.Database.CreateExecutionStrategy();
+        SupplierReturnResult? result = null;
+        try
+        {
+            strategy.Execute(() =>
+            {
+                using var db = contextFactory.CreateDbContext();
+                using var transaction = db.Database.BeginTransaction(IsolationLevel.Serializable);
+                var operatorItem = ActiveOperator(db, operatorName);
+                var packages = new List<PackageEntity>();
+                foreach (var code in packageCodes.Distinct(StringComparer.OrdinalIgnoreCase))
+                {
+                    var package = LockedPackage(db, code);
+                    if (package.LoadId != loadId) throw new InvalidOperationException("Uno o più pacchi non appartengono al carico selezionato.");
+                    EnsureAvailable(db, package);
+                    packages.Add(package);
+                }
+                if (packages.Count == 0) throw new InvalidOperationException("Selezionare almeno un pacco da rendere.");
+                if (packages.Any(x => x.PackageType == PersistentPackageType.Supplementary))
+                    throw new InvalidOperationException("I pacchi supplementari non possono generare movimenti di reso con MC.");
+
+                var occurredAt = DateTime.Now;
+                var operation = new SupplierReturnOperationEntity
+                {
+                    Id = Guid.NewGuid(), LoadId = loadId, OccurredAtUtc = occurredAt.ToUniversalTime(),
+                    OperatorId = operatorItem.Id, OperatorSnapshot = DisplayName(operatorItem),
+                    Reason = reason.Trim(), Note = NullIfEmpty(note), DocumentReference = NullIfEmpty(documentReference)
+                };
+                decimal physical = 0m, inventory = 0m;
+                foreach (var package in packages)
+                {
+                    var current = CalculateCurrentPackageCubicMeters(db, package);
+                    physical += package.IncomingPhysicalCubicMeters;
+                    inventory += current;
+                    var terminal = new PackageTerminalEventEntity
+                    {
+                        Id = Guid.NewGuid(), PackageId = package.Id, EventType = PackageTerminalEventType.Return,
+                        OccurredAtUtc = operation.OccurredAtUtc, OperatorId = operatorItem.Id,
+                        OperatorSnapshot = operation.OperatorSnapshot, ReturnOperationId = operation.Id,
+                        InventoryCubicMeters = current, ReturnedPhysicalCubicMeters = package.IncomingPhysicalCubicMeters,
+                        Reason = operation.Reason, Note = operation.Note
+                    };
+                    operation.PackageEvents.Add(terminal);
+                    package.Status = "Reso";
+                }
+                db.SupplierReturnOperations.Add(operation);
+                db.SaveChanges();
+                transaction.Commit();
+                result = new(operation.Id, mode, packages.Count, physical, inventory);
+            });
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is SqlException { Number: 2601 or 2627 })
+        {
+            throw new PackageAlreadyExitedException(packageCodes.FirstOrDefault() ?? string.Empty);
+        }
+        return result ?? throw new InvalidOperationException("Il reso non è stato registrato.");
+    }
+
+    private void ExecuteTerminalTransaction(string packageCode, string operatorName,
+        Action<MagazzinoDbContext, PackageEntity, OperatorEntity> prepare)
+    {
+        using var strategyContext = contextFactory.CreateDbContext();
+        var strategy = strategyContext.Database.CreateExecutionStrategy();
+        try
+        {
+            strategy.Execute(() =>
+            {
+                using var db = contextFactory.CreateDbContext();
+                using var transaction = db.Database.BeginTransaction(IsolationLevel.Serializable);
+                var package = LockedPackage(db, packageCode);
+                EnsureAvailable(db, package);
+                prepare(db, package, ActiveOperator(db, operatorName));
+                db.SaveChanges();
+                transaction.Commit();
+            });
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is SqlException { Number: 2601 or 2627 })
+        {
+            throw new PackageAlreadyExitedException(packageCode);
+        }
+    }
+
+    private static PackageEntity LockedPackage(MagazzinoDbContext db, string packageCode) => db.Packages
+        .FromSqlInterpolated($"SELECT * FROM dbo.Packages WITH (UPDLOCK, HOLDLOCK) WHERE PackageCode = {packageCode}")
+        .Include(x => x.MaterialGroup).Include(x => x.Load).ThenInclude(x => x.Supplier)
+        .SingleOrDefault() ?? throw new InvalidOperationException("Pacco non trovato.");
+
+    private static void EnsureAvailable(MagazzinoDbContext db, PackageEntity package)
+    {
+        if (db.PackageTerminalEvents.Any(x => x.PackageId == package.Id))
+            throw new PackageAlreadyExitedException(package.PackageCode);
+    }
+
+    private static OperatorEntity ActiveOperator(MagazzinoDbContext db, string operatorName) =>
+        db.Operators.SingleOrDefault(x => x.IsActive && (x.FirstName + " " + x.LastName) == operatorName)
+        ?? throw new InvalidOperationException("L'operatore selezionato non è disponibile nel database.");
+
+    private static string DisplayName(OperatorEntity item) => $"{item.FirstName} {item.LastName}";
+    private static string? NullIfEmpty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     public PersistedTerminalMovements GetAllDischarges()
     {
         using var db = contextFactory.CreateDbContext();
-        var rows = db.PackageTerminalEvents.AsNoTracking().Include(x => x.Package)
+        var rows = db.PackageTerminalEvents.AsNoTracking().Include(x => x.ReturnOperation).Include(x => x.Package)
             .ThenInclude(x => x.Load).ThenInclude(x => x.Supplier)
-            .Where(x => x.EventType == PackageTerminalEventType.Discharge ||
-                x.EventType == PackageTerminalEventType.SupplementaryExit).ToList();
+            .ToList();
+        var returnModes = rows.Where(x => x.EventType == PackageTerminalEventType.Return && x.ReturnOperationId.HasValue)
+            .GroupBy(x => x.ReturnOperationId!.Value).ToDictionary(group => group.Key, group =>
+                db.Packages.AsNoTracking().Any(package => package.LoadId == group.First().Package.LoadId &&
+                    package.PackageType == PersistentPackageType.Official && package.TerminalEvent == null)
+                    ? SupplierReturnMode.Partial : SupplierReturnMode.Total);
         return new(
             rows.Where(x => x.EventType == PackageTerminalEventType.Discharge).Select(x => new MaterialDischargeMovement
             {
@@ -123,6 +264,28 @@ public sealed class SqlPackageTerminalRepository(IDbContextFactory<MagazzinoDbCo
                 LoadId = x.Package.LoadId, MaterialGroupId = x.Package.MaterialGroupId,
                 LoadNumber = x.Package.Load.LoadNumber, SupplierName = x.Package.Load.Supplier.Name,
                 ExitDate = x.OccurredAtUtc.ToLocalTime(), ExitOperator = x.OperatorSnapshot
+            }).ToList(),
+            rows.Where(x => x.EventType == PackageTerminalEventType.ManualRemoval).Select(x => new ManualPackageRemovalMovement
+            {
+                MovementId = x.Id, PackageId = x.PackageId, PackageCode = x.Package.PackageCode,
+                LoadId = x.Package.LoadId, MaterialGroupId = x.Package.MaterialGroupId,
+                LoadNumber = x.Package.Load.LoadNumber, SupplierName = x.Package.Load.Supplier.Name,
+                RemovalDate = x.OccurredAtUtc.ToLocalTime(), RemovalOperator = x.OperatorSnapshot,
+                RemovedCubicMeters = x.InventoryCubicMeters, Reason = x.Reason ?? string.Empty, Note = x.Note ?? string.Empty
+            }).ToList(),
+            rows.Where(x => x.EventType == PackageTerminalEventType.Return).Select(x => new SupplierReturnMovement
+            {
+                MovementId = x.Id, ReturnOperationId = x.ReturnOperationId!.Value,
+                PackageId = x.PackageId, PackageCode = x.Package.PackageCode,
+                LoadId = x.Package.LoadId, MaterialGroupId = x.Package.MaterialGroupId,
+                LoadNumber = x.Package.Load.LoadNumber, SupplierName = x.Package.Load.Supplier.Name,
+                ReturnDate = x.OccurredAtUtc.ToLocalTime(), ReturnOperator = x.OperatorSnapshot,
+                Reason = x.Reason ?? x.ReturnOperation?.Reason ?? string.Empty,
+                Note = x.Note ?? x.ReturnOperation?.Note ?? string.Empty,
+                DocumentReference = x.ReturnOperation?.DocumentReference ?? string.Empty,
+                ReturnedPhysicalCubicMeters = x.ReturnedPhysicalCubicMeters ?? 0m,
+                RemovedInventoryCubicMeters = x.InventoryCubicMeters ?? 0m,
+                Mode = returnModes[x.ReturnOperationId!.Value]
             }).ToList());
     }
 

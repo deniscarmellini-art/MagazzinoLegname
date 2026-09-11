@@ -1,5 +1,7 @@
 namespace MagazzinoLegname.Models;
 
+public enum PackageTerminalState { Discharged, Returned, ManuallyRemoved, SupplementaryExited }
+
 public enum PackageLookupStatus
 {
     Ready,
