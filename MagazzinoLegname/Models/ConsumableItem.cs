@@ -30,6 +30,7 @@ public sealed class ConsumableItem : ObservableObject
     private string? _photoPath;
     private bool _isActive = true;
 
+    public byte[] RowVersion { get; set; } = [];
     public Guid Id { get; init; } = Guid.NewGuid();
     public string InternalCode { get => _internalCode; set => SetProperty(ref _internalCode, value); }
     public string ProductName { get => _productName; set => SetProperty(ref _productName, value); }

@@ -39,23 +39,38 @@ public partial class SettingsView : UserControl, INavigationAware
     private void MaterialParametersSection_Click(object sender, RoutedEventArgs e) => ViewModel.ShowMaterialParameters();
     private void PlanningParametersSection_Click(object sender, RoutedEventArgs e) => ViewModel.ShowPlanningParameters();
     private void OperatorsSection_Click(object sender, RoutedEventArgs e) => ViewModel.ShowOperators();
-    private void ConsumablesSection_Click(object sender, RoutedEventArgs e) => ViewModel.ShowConsumables();
+    private void ConsumablesSection_Click(object sender, RoutedEventArgs e) => RunConsumableAction(ViewModel.ShowConsumables);
     private void LegacyImportSection_Click(object sender, RoutedEventArgs e) => ViewModel.ShowLegacyImport();
     private void AddConsumable_Click(object sender, RoutedEventArgs e) => ViewModel.AddConsumable();
     private void ConsumablesGrid_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
         if (sender is DataGrid grid && ItemsControl.ContainerFromElement(grid, e.OriginalSource as DependencyObject) is DataGridRow { Item: Models.ConsumableItem item })
-            ViewModel.SelectConsumable(item);
+            RunConsumableAction(() => ViewModel.SelectConsumable(item));
     }
-    private void CloseConsumableEditor_Click(object sender, RoutedEventArgs e) => ViewModel.CloseConsumableEditor();
+    private void CloseConsumableEditor_Click(object sender, RoutedEventArgs e) => RunConsumableAction(ViewModel.CloseConsumableEditor);
     private void SaveConsumable_Click(object sender, RoutedEventArgs e)
     {
-        try { ViewModel.SaveConsumables(); MessageBox.Show("Articolo aggiornato in memoria.", "Materiali di consumo", MessageBoxButton.OK, MessageBoxImage.Information); }
+        try { ValidateConsumableEditor(this); ViewModel.SaveConsumables(); MessageBox.Show("Anagrafica salvata e ricaricata da SQL.", "Materiali di consumo", MessageBoxButton.OK, MessageBoxImage.Information); }
         catch (Exception exception) { MessageBox.Show(exception.Message, "Anagrafica non valida", MessageBoxButton.OK, MessageBoxImage.Warning); }
     }
-    private void ToggleConsumable_Click(object sender, RoutedEventArgs e) => ViewModel.ToggleConsumable();
-    private void EditConsumable_Click(object sender, RoutedEventArgs e) { if (sender is Button { Tag: Models.ConsumableItem item }) ViewModel.SelectConsumable(item); }
-    private void ToggleConsumableRow_Click(object sender, RoutedEventArgs e) { if (sender is Button { Tag: Models.ConsumableItem item }) { ViewModel.SelectConsumable(item); ViewModel.ToggleConsumable(); } }
+    private void ToggleConsumable_Click(object sender, RoutedEventArgs e) => RunConsumableAction(() => { ValidateConsumableEditor(this); ViewModel.ToggleConsumable(); });
+    private void EditConsumable_Click(object sender, RoutedEventArgs e) { if (sender is Button { Tag: Models.ConsumableItem item }) RunConsumableAction(() => ViewModel.SelectConsumable(item)); }
+    private void ToggleConsumableRow_Click(object sender, RoutedEventArgs e) { if (sender is Button { Tag: Models.ConsumableItem item }) { RunConsumableAction(() => ViewModel.SelectConsumable(item)); RunConsumableAction(ViewModel.ToggleConsumable); } }
+    private static void ValidateConsumableEditor(DependencyObject element)
+    {
+        if (element is FrameworkElement { IsVisible: false }) return;
+        if (Validation.GetHasError(element))
+            throw new InvalidOperationException("Correggere i campi non validi prima di salvare (quantità o giorni).");
+        for (var index = 0; index < System.Windows.Media.VisualTreeHelper.GetChildrenCount(element); index++)
+            ValidateConsumableEditor(System.Windows.Media.VisualTreeHelper.GetChild(element, index));
+    }
+
+    private static void RunConsumableAction(Action action)
+    {
+        try { action(); }
+        catch (Exception exception) { MessageBox.Show(exception.Message, "Anagrafica consumabili SQL", MessageBoxButton.OK, MessageBoxImage.Warning); }
+    }
+
     private void SelectConsumablePhoto_Click(object sender, RoutedEventArgs e)
     {
         if (ViewModel.SelectedConsumable is null) return;
@@ -113,7 +128,7 @@ public partial class SettingsView : UserControl, INavigationAware
             $"Gruppi materiale: {plan.MaterialGroupCount:N0}\nGruppi classificati da rettificare: {plan.ClassifiedMaterialGroups:N0}\nGruppi da classificare: {plan.MaterialGroupsToClassify:N0}\n" +
             $"MC fisici: {plan.PhysicalCubicMeters:N5}\nMC disponibili legacy: {plan.LegacyAvailableCubicMeters:N5}\n" +
             $"Pacchi con prezzo: {plan.PackagesWithPrice:N0}\nPacchi senza prezzo: {plan.MissingPrices:N0}\nPrezzi non validi: {plan.InvalidPrices:N0}\n" +
-            $"MC fisici valorizzati: {plan.PricedPhysicalCubicMeters:N5}\nValore totale importabile: {plan.ImportableValue:N2} €\n" +
+            $"MC fisici valorizzati: {plan.PricedPhysicalCubicMeters:N5}\nValore totale importabile: {plan.ImportableValue:N2} â‚¬\n" +
             $"Fingerprint: {plan.FileFingerprint}\n\nI dati saranno persi alla chiusura dell'applicazione. Procedere?";
         if (MessageBox.Show(message, "Conferma importazione giacenza iniziale", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes) return;
         try

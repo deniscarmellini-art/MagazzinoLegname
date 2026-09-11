@@ -49,7 +49,7 @@ public sealed class SettingsViewModel : ObservableObject
     public bool IsOperatorsSection => SelectedSection == "Operators";
     public bool IsConsumablesSection => SelectedSection == "Consumables";
     public bool IsLegacyImportSection => SelectedSection == "LegacyImport";
-    public ObservableCollection<ConsumableItem> ConsumableItems => ConsumablesStore.Shared.Items;
+    public ObservableCollection<ConsumableItem> ConsumableItems => ConsumableCatalogService.Shared.Items;
     public ObservableCollection<ConsumableItem> FilteredConsumableItems { get; } = [];
     public ConsumableItem? SelectedConsumable { get => _selectedConsumable; set => SetProperty(ref _selectedConsumable, value); }
     public string ConsumableSearchText { get => _consumableSearchText; set { if (SetProperty(ref _consumableSearchText, value)) RefreshConsumableList(); } }
@@ -101,13 +101,61 @@ public sealed class SettingsViewModel : ObservableObject
     public void ShowMaterialParameters() { IsHistoryVisible = false; SelectedSection = "MaterialParameters"; }
     public void ShowPlanningParameters() { IsHistoryVisible = false; SelectedSection = "PlanningParameters"; }
     public void ShowOperators() { IsHistoryVisible = false; SelectedSection = "Operators"; }
-    public void ShowConsumables() { IsHistoryVisible = false; SelectedSection = "Consumables"; IsConsumableEditorVisible = false; RefreshConsumableList(); }
+    public void ShowConsumables() { IsHistoryVisible = false; SelectedSection = "Consumables"; IsConsumableEditorVisible = false; ReloadConsumables(); }
     public void ShowLegacyImport() { IsHistoryVisible = false; SelectedSection = "LegacyImport"; }
-    public ConsumableItem AddConsumable() { var item = ConsumablesStore.Shared.AddItem(); SelectedConsumable = item; IsConsumableEditorVisible = true; return item; }
-    public void SaveConsumables() { if (SelectedConsumable is null) return; if (string.IsNullOrWhiteSpace(SelectedConsumable.ProductName)) throw new InvalidOperationException("Il nome prodotto è obbligatorio."); if (SelectedConsumable.QuantityPerUnit is <= 0) throw new InvalidOperationException("Qtà per UDM deve essere maggiore di zero quando valorizzata."); if (ConsumableItems.Any(item => item != SelectedConsumable && item.InternalCode.Equals(SelectedConsumable.InternalCode, StringComparison.OrdinalIgnoreCase))) throw new InvalidOperationException("Il codice articolo deve essere univoco."); ConsumablesStore.Shared.NotifyChanged(); OnPropertyChanged(nameof(ConsumableSuppliers)); OnPropertyChanged(nameof(ConsumableDepartments)); IsConsumableEditorVisible = false; RefreshConsumableList(); }
-    public void SelectConsumable(ConsumableItem item) { SelectedConsumable = item; IsConsumableEditorVisible = true; }
-    public void CloseConsumableEditor() { IsConsumableEditorVisible = false; RefreshConsumableList(); }
-    public void ToggleConsumable() { if (SelectedConsumable is null) return; SelectedConsumable.IsActive = !SelectedConsumable.IsActive; ConsumablesStore.Shared.NotifyChanged(); IsConsumableEditorVisible = false; RefreshConsumableList(); }
+    public ConsumableItem AddConsumable()
+    {
+        SelectedConsumable = ConsumableCatalogService.Shared.CreateDraft();
+        IsConsumableEditorVisible = true;
+        return SelectedConsumable;
+    }
+
+    public void SaveConsumables()
+    {
+        if (SelectedConsumable is null) return;
+        try { ConsumableCatalogService.Shared.Save(SelectedConsumable); }
+        catch (ConsumableCatalogRefreshException)
+        {
+            SelectedConsumable = null;
+            IsConsumableEditorVisible = false;
+            RefreshConsumableList();
+            throw;
+        }
+        SelectedConsumable = null;
+        IsConsumableEditorVisible = false;
+        RefreshConsumableList();
+        OnPropertyChanged(nameof(ConsumableSuppliers));
+        OnPropertyChanged(nameof(ConsumableDepartments));
+    }
+
+    public void SelectConsumable(ConsumableItem item)
+    {
+        SelectedConsumable = null;
+        IsConsumableEditorVisible = false;
+        SelectedConsumable = ConsumableCatalogService.Shared.LoadDetail(item.Id);
+        IsConsumableEditorVisible = true;
+    }
+
+    public void CloseConsumableEditor()
+    {
+        SelectedConsumable = null;
+        IsConsumableEditorVisible = false;
+        ReloadConsumables();
+    }
+
+    public void ToggleConsumable()
+    {
+        if (SelectedConsumable is null) return;
+        SelectedConsumable.IsActive = !SelectedConsumable.IsActive;
+        SaveConsumables();
+    }
+
+    private void ReloadConsumables()
+    {
+        SelectedConsumable = null;
+        try { ConsumableCatalogService.Shared.Reload(); }
+        finally { RefreshConsumableList(); }
+    }
     public void AnalyzeConsumablesLegacy() { if (string.IsNullOrWhiteSpace(ConsumablesLegacyFilePath)) throw new InvalidOperationException("Selezionare il file Excel."); ConsumablesImportPlan = new ConsumablesLegacyExcelImporter().Analyze(ConsumablesLegacyFilePath); }
     public ConsumablesLegacyImportResult ImportConsumablesLegacy() { if (ConsumablesImportPlan is null) throw new InvalidOperationException("Analizzare prima il file Excel."); var result = new ConsumablesLegacyExcelImporter().Commit(ConsumablesImportPlan); ConsumablesImportPlan = null; RefreshConsumableList(); return result; }
     private void RefreshConsumableList()

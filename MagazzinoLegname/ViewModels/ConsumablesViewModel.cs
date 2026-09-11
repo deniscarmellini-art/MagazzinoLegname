@@ -31,7 +31,7 @@ public sealed class ConsumablesViewModel : ObservableObject
     public ObservableCollection<string> Departments { get; } = [];
     public ObservableCollection<string> Products { get; } = [];
     public ReadOnlyObservableCollection<string> Operators { get; }
-    public IReadOnlyList<string> Statuses { get; } = ["Tutti", "OK", "Da ordinare", "Sotto scorta · in ordine", "In ordine", "Da verificare"];
+    public IReadOnlyList<string> Statuses { get; } = ["Tutti"];
     public Array OrderStatuses => Enum.GetValues<ConsumableOrderStatus>();
 
     public string SearchText { get => _searchText; set { if (SetProperty(ref _searchText, value)) ApplySituationFilters(); } }
@@ -47,10 +47,10 @@ public sealed class ConsumablesViewModel : ObservableObject
     public string HistoryDepartment { get => _historyDepartment; set { if (SetProperty(ref _historyDepartment, NormalizeFilter(value)) && !_isReloading) ApplyHistoryFilters(); } }
 
     public int ActiveItems => _store.Items.Count(item => item.IsActive);
-    public int BelowMinimum => _store.Items.Count(item => item.IsActive && _store.StatusFor(item) is ConsumableStockStatus.ToOrder or ConsumableStockStatus.BelowMinimumOrdered);
-    public int ToOrder => _store.ItemsToOrder;
-    public int Ordered => _store.Items.Count(item => item.IsActive && _store.OrderFor(item.Id).IsOpen);
-    public int ToVerify => _store.Items.Count(item => item.IsActive && _store.StatusFor(item) == ConsumableStockStatus.ToVerify);
+    public string BelowMinimum => "—";
+    public string ToOrder => "—";
+    public string Ordered => "—";
+    public string ToVerify => "—";
 
     public int ConfirmInventory()
     {
@@ -102,7 +102,7 @@ public sealed class ConsumablesViewModel : ObservableObject
         SituationRows.Clear();
         foreach (var item in _store.Items.Where(item => item.IsActive).OrderBy(item => item.ProductName))
         {
-            var row = new ConsumableSituationRow(item, _store.LatestReading(item.Id), _store.OrderFor(item.Id), _store.StatusFor(item));
+            var row = new ConsumableSituationRow(item, _store.LatestReading(item.Id), _store.OrderFor(item.Id), ConsumableStockStatus.ToVerify);
             if (!string.IsNullOrWhiteSpace(SearchText) && !item.ProductName.Contains(SearchText, StringComparison.OrdinalIgnoreCase) && !item.InternalCode.Contains(SearchText, StringComparison.OrdinalIgnoreCase)) continue;
             if (SelectedSupplier != "Tutti" && item.SupplierName != SelectedSupplier) continue;
             if (SelectedDepartment != "Tutti" && item.Department != SelectedDepartment) continue;
@@ -141,15 +141,15 @@ public sealed record ConsumableSituationRow(ConsumableItem Item, ConsumableInven
     public string ProductName => Item.ProductName; public string SupplierName => Item.SupplierName; public string Department => Item.Department;
     public string UnitOfMeasure => Item.UnitOfMeasure; public string? PhotoPath => Item.PhotoPath;
     public string LatestReadingDisplay => LatestReading is null ? "—" : LatestReading.ReadingDate.ToString("dd/MM/yyyy");
-    public string CurrentStockDisplay => LatestReading is null ? "—" : LatestReading.Quantity.ToString("N2");
+    public string CurrentStockDisplay => "Non disponibile";
     public string CountedUnitsDisplay => LatestReading?.CountedUnits is { } value ? $"{value:N2} {Item.UnitOfMeasure}" : "—";
     public string QuantityPerUnitDisplay => Item.QuantityPerUnit?.ToString("N2") ?? "—";
     public string MinimumStockDisplay => Item.MinimumStock?.ToString("N2") ?? "—";
     public string ConsumptionDisplay => string.IsNullOrWhiteSpace(Item.ConsumptionAverageText) ? "—" : Item.ConsumptionAverageText;
     public string LeadTimeDisplay => Item.LeadTimeDays.HasValue ? $"{Item.LeadTimeDays} gg" : "—";
-    public string OrderedDisplay => Order.IsOpen ? $"{Order.Quantity:N2} {Item.UnitOfMeasure}" : "—";
+    public string OrderedDisplay => "Non disponibile";
     public bool HasAnagraphicWarning => Item.NeedsVerification;
-    public string StatusDisplay => Status switch { ConsumableStockStatus.Ok => "OK", ConsumableStockStatus.ToOrder => "Da ordinare", ConsumableStockStatus.BelowMinimumOrdered => "Sotto scorta · in ordine", ConsumableStockStatus.Ordered => "In ordine", _ => "Da verificare" };
+    public string StatusDisplay => "Non disponibile";
 }
 
 public sealed class ConsumableInventoryEntryRow(ConsumableItem item, ConsumableInventoryReading? previous) : ObservableObject

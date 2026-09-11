@@ -18,8 +18,8 @@
   <Style x:Key="ConsumablesCellLeftStyle" TargetType="TextBlock"><Setter Property="FontFamily" Value="Inter, Segoe UI"/><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="TextAlignment" Value="Left"/><Setter Property="TextTrimming" Value="CharacterEllipsis"/><Setter Property="Margin" Value="10,0,6,0"/></Style>
   <Style x:Key="ConsumablesCellCenterStyle" TargetType="TextBlock" BasedOn="{StaticResource ConsumablesCellLeftStyle}"><Setter Property="TextAlignment" Value="Center"/><Setter Property="Margin" Value="5,0"/></Style>
  </UserControl.Resources>
- <Grid Background="{DynamicResource AppBackgroundBrush}"><TabControl Margin="20,5,20,16" Style="{StaticResource ConsumablesTabControlStyle}">
-  <TabItem Header="Situazione">
+ <Grid Background="{DynamicResource AppBackgroundBrush}"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><TextBlock Margin="20,6" Text="Fase 2C-1: solo l’anagrafica in Impostazioni è SQL. Questa area usa dati in memoria/file; giacenze e KPI non disponibili." TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}"/><TabControl Grid.Row="1" Margin="20,5,20,16" Style="{StaticResource ConsumablesTabControlStyle}">
+  <TabItem Header="Situazione (non SQL)">
    <Grid Margin="8" Background="{DynamicResource AppBackgroundBrush}"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
     <UniformGrid Columns="5" Margin="-5,0,-5,9">
      <Border Style="{StaticResource ConsumableKpiStyle}"><StackPanel><TextBlock Text="ARTICOLI ATTIVI" Style="{StaticResource ConsumableHeaderStyle}"/><TextBlock Text="{Binding ActiveItems}" Style="{StaticResource ConsumableKpiValueStyle}"/></StackPanel></Border>
@@ -47,12 +47,10 @@
       <DataGridTextColumn Header="Scorta min." Width="90" Binding="{Binding MinimumStockDisplay}" IsReadOnly="True" HeaderStyle="{StaticResource ConsumablesHeaderCenterStyle}" ElementStyle="{StaticResource ConsumablesCellCenterStyle}"/>
       <DataGridTextColumn Header="Consumo medio" Width=".9*" MinWidth="105" Binding="{Binding ConsumptionDisplay}" IsReadOnly="True" HeaderStyle="{StaticResource ConsumablesHeaderCenterStyle}" ElementStyle="{StaticResource ConsumablesCellCenterStyle}"/>
       <DataGridTextColumn Header="Quantità in ordine" Width="118" Binding="{Binding OrderedDisplay}" IsReadOnly="True" HeaderStyle="{StaticResource ConsumablesHeaderCenterStyle}" ElementStyle="{StaticResource ConsumablesCellCenterStyle}"/>
-      <DataGridTemplateColumn Header="Stato" Width="155" IsReadOnly="True" HeaderStyle="{StaticResource ConsumablesHeaderCenterStyle}"><DataGridTemplateColumn.CellTemplate><DataTemplate>
-       <Border CornerRadius="7" Padding="8,4" Margin="4" HorizontalAlignment="Center"><Border.Style><Style TargetType="Border"><Setter Property="Background" Value="#253B2B"/><Setter Property="BorderBrush" Value="{DynamicResource SuccessBrush}"/><Setter Property="BorderThickness" Value="1"/><Style.Triggers><DataTrigger Binding="{Binding Status}" Value="{x:Static models:ConsumableStockStatus.ToOrder}"><Setter Property="Background" Value="#3B2830"/><Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}"/></DataTrigger><DataTrigger Binding="{Binding Status}" Value="{x:Static models:ConsumableStockStatus.BelowMinimumOrdered}"><Setter Property="Background" Value="#413224"/><Setter Property="BorderBrush" Value="{DynamicResource WarningBrush}"/></DataTrigger><DataTrigger Binding="{Binding Status}" Value="{x:Static models:ConsumableStockStatus.Ordered}"><Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/></DataTrigger><DataTrigger Binding="{Binding Status}" Value="{x:Static models:ConsumableStockStatus.ToVerify}"><Setter Property="Background" Value="#413224"/><Setter Property="BorderBrush" Value="{DynamicResource WarningBrush}"/></DataTrigger></Style.Triggers></Style></Border.Style><TextBlock Text="{Binding StatusDisplay}" FontWeight="SemiBold" TextAlignment="Center"/></Border>
-      </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+      <DataGridTextColumn Header="Stato (non SQL)" Width="155" Binding="{Binding StatusDisplay}" ElementStyle="{StaticResource ConsumablesCellCenterStyle}"/>
      </DataGrid.Columns>
     </DataGrid>
-    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"><StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding HasItems, ElementName=SituationGrid}" Value="False"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style><TextBlock Text="Nessun materiale presente" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/><TextBlock Text="Importa lo storico Excel o aggiungi un materiale dalle Impostazioni." Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,5,0,0"/></StackPanel>
+    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"><StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding HasItems, ElementName=SituationGrid}" Value="False"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style><TextBlock Text="Nessun materiale presente" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/><TextBlock Text="Solo l’anagrafica in Impostazioni è SQL. Inventari, storico e ordini restano in memoria/file." Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,5,0,0"/></StackPanel>
     </Grid>
     <Border Grid.Row="3" Margin="0,9,0,0" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="12" Padding="14">
      <Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding SelectedItem, ElementName=SituationGrid}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Border.Style>
@@ -70,7 +68,7 @@
     </Border>
    </Grid>
   </TabItem>
-  <TabItem Header="Inventario">
+  <TabItem Header="Inventario (in memoria)">
    <Grid Margin="8"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
     <Border Style="{StaticResource CardStyle}" Padding="14" Margin="0,0,0,9"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="260"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
      <StackPanel><TextBlock Text="DATA RILEVAZIONE" Style="{StaticResource FieldLabelStyle}"/><DatePicker SelectedDate="{Binding InventoryDate}"/></StackPanel>
@@ -86,7 +84,7 @@
     <Button Grid.Row="2" Content="Conferma inventario" Click="ConfirmInventory_Click" Style="{StaticResource PrimaryButtonStyle}" HorizontalAlignment="Right" Margin="0,10,0,0"/>
    </Grid>
   </TabItem>
-  <TabItem Header="Storico">
+  <TabItem Header="Storico (in memoria)">
    <Grid Margin="8"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
     <Border Style="{StaticResource CardStyle}" Padding="12" Margin="0,0,0,9"><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition Width="1.5*"/><ColumnDefinition Width="1.2*"/><ColumnDefinition Width="1.2*"/></Grid.ColumnDefinitions>
      <StackPanel Margin="0,0,8,0"><TextBlock Text="DA DATA" Style="{StaticResource FieldLabelStyle}"/><DatePicker SelectedDate="{Binding HistoryFrom}"/></StackPanel><StackPanel Grid.Column="1" Margin="0,0,8,0"><TextBlock Text="A DATA" Style="{StaticResource FieldLabelStyle}"/><DatePicker SelectedDate="{Binding HistoryTo}"/></StackPanel>

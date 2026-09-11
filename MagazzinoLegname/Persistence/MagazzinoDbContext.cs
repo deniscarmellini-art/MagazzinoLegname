@@ -5,6 +5,7 @@ namespace MagazzinoLegname.Persistence;
 
 public sealed class MagazzinoDbContext(DbContextOptions<MagazzinoDbContext> options) : DbContext(options)
 {
+    public DbSet<ConsumableItemEntity> ConsumableItems => Set<ConsumableItemEntity>();
     public DbSet<SupplierEntity> Suppliers => Set<SupplierEntity>();
     public DbSet<SupplierContactEntity> SupplierContacts => Set<SupplierContactEntity>();
     public DbSet<SupplierThicknessConfigurationEntity> SupplierThicknessConfigurations => Set<SupplierThicknessConfigurationEntity>();
