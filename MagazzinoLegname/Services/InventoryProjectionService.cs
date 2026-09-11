@@ -10,7 +10,7 @@ public sealed class InventoryProjectionService
     private readonly Dictionary<string, Guid> _packageIds = new(StringComparer.OrdinalIgnoreCase);
 
     public static InventoryProjectionService Shared { get; } = new();
-    private InventoryProjectionService() { }
+    private InventoryProjectionService() => ReloadSqlTerminalMovements();
 
     public ObservableCollection<MaterialDischargeMovement> DischargeMovements { get; } = [];
     public ObservableCollection<SupplementaryPackageExitMovement> SupplementaryExitMovements { get; } = [];
@@ -19,6 +19,19 @@ public sealed class InventoryProjectionService
     public event EventHandler? InventoryChanged;
 
     public void NotifyProjectionChanged() => InventoryChanged?.Invoke(this, EventArgs.Empty);
+
+    public void ReloadSqlTerminalMovements()
+    {
+        var persisted = Persistence.SqlPersistenceRoot.PackageTerminals.GetAllDischarges();
+        lock (_sync)
+        {
+            DischargeMovements.Clear();
+            SupplementaryExitMovements.Clear();
+            foreach (var movement in persisted.Discharges) DischargeMovements.Add(movement);
+            foreach (var movement in persisted.SupplementaryExits) SupplementaryExitMovements.Add(movement);
+        }
+        InventoryChanged?.Invoke(this, EventArgs.Empty);
+    }
 
     public IReadOnlyList<InventoryPackage> BuildInventory(bool includeDischarged = false)
     {

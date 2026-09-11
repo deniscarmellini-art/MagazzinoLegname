@@ -12,6 +12,7 @@ public static class SqlPersistenceRoot
     public static IInboundLoadRepository InboundLoads { get; } = new SqlInboundLoadRepository(ContextFactory);
     public static IClassificationRepository Classifications { get; } = new SqlClassificationRepository(ContextFactory);
     public static IWasteAdjustmentRepository WasteAdjustments { get; } = new SqlWasteAdjustmentRepository(ContextFactory);
+    public static IPackageTerminalRepository PackageTerminals { get; } = new SqlPackageTerminalRepository(ContextFactory);
 
     public static void InitializeDatabase()
     {

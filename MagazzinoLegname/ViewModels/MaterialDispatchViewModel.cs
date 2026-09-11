@@ -57,7 +57,12 @@ public sealed class MaterialDispatchViewModel : ObservableObject
         _scanInProgress = true;
         try
         {
-            var result = _service.Lookup(QrInput);
+            PackageLookupResult result;
+            try { result = _service.Lookup(QrInput); }
+            catch (InvalidOperationException exception)
+            {
+                result = new(PackageLookupStatus.InvalidQr, exception.Message);
+            }
             FeedbackMessage = result.Message;
             IsSuccessFeedback = result.CanDischarge;
             LookupResult = result.CanDischarge ? result : null;

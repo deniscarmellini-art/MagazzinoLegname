@@ -1,5 +1,7 @@
 using System.Text.RegularExpressions;
 using MagazzinoLegname.Models;
+using MagazzinoLegname.Persistence;
+using MagazzinoLegname.Persistence.Repositories;
 
 namespace MagazzinoLegname.Services;
 
@@ -12,8 +14,18 @@ public sealed partial class MaterialDischargeService
         if (!TryExtractPackageCode(qrPayload, out var packageCode))
             return new(PackageLookupStatus.InvalidQr, "QR non valido");
 
-        var persistedState = PackageTerminalStateStore.Shared.Find(packageCode);
-        if (persistedState is not null) return TerminalStateResult(packageCode, persistedState.State);
+        SqlPackageTerminalState sqlState;
+        try { sqlState = SqlPersistenceRoot.PackageTerminals.FindState(packageCode); }
+        catch (Exception exception) { throw SqlPersistenceRoot.OperatorException(exception); }
+        if (!sqlState.Exists) return new(PackageLookupStatus.NotFound, "Pacco non trovato");
+        if (sqlState.TerminalState is { } terminalState) return TerminalStateResult(packageCode, terminalState);
+
+        try
+        {
+            ClassificationWorkflowService.Shared.ReloadInboundLoads();
+            _inventory.ReloadSqlTerminalMovements();
+        }
+        catch (Exception exception) { throw SqlPersistenceRoot.OperatorException(exception); }
 
         var package = _inventory.FindPackage(packageCode);
         if (package is null) return new(PackageLookupStatus.NotFound, "Pacco non trovato");
@@ -59,17 +71,15 @@ public sealed partial class MaterialDischargeService
 
     public PackageExitResult Confirm(InventoryPackage package, string operatorName)
     {
-        if (package.IsSupplementary)
+        try
         {
-            var movement = _inventory.ExitSupplementaryPackage(package.PackageCode, operatorName);
-            return new PackageExitResult(movement.PackageCode, PackageType.Supplementary, movement.ExitDate,
-                movement.ExitOperator, null, "Uscita supplementare registrata senza movimento di MC.");
+            var result = SqlPersistenceRoot.PackageTerminals.Discharge(package.PackageCode, operatorName);
+            ClassificationWorkflowService.Shared.ReloadInboundLoads();
+            _inventory.ReloadSqlTerminalMovements();
+            return result;
         }
-
-        var discharge = _inventory.Discharge(package.PackageCode, operatorName);
-        return new PackageExitResult(discharge.PackageCode, PackageType.Official, discharge.DischargeDate,
-            discharge.DischargeOperator, discharge.DischargedCubicMeters,
-            $"Pacco {discharge.PackageCode} scaricato correttamente · MC scaricati: {discharge.DischargedCubicMeters:N6}");
+        catch (PackageAlreadyExitedException) { throw; }
+        catch (Exception exception) { throw SqlPersistenceRoot.OperatorException(exception); }
     }
 
     private static bool TryExtractPackageCode(string payload, out string packageCode)
