@@ -33,8 +33,16 @@ public sealed class SqlConsumableInventoryRepository(IDbContextFactory<Magazzino
                     x.Session.CreatedAtUtc, x.Session.OperatorSnapshot, x.ProductSnapshot, x.SupplierSnapshot,
                     x.DepartmentSnapshot, x.UnitOfMeasureSnapshot, x.CountedUnits, x.QuantityPerUnitSnapshot,
                     x.CalculatedQuantity, x.Note)).ToArray();
+            var orders = db.ConsumableOrders.AsNoTracking().OrderByDescending(x => x.OrderedAt)
+                .ThenByDescending(x => x.CreatedAtUtc).ThenByDescending(x => x.Id).AsEnumerable().Select(SqlConsumableOrderRepository.Map).ToArray();
+            // SQL SUM of open orders only, grouped by original UDM so unlike units are never silently added.
+            var totals = db.ConsumableOrders.AsNoTracking()
+                .Where(x => x.Status == ConsumableOrderStatus.Ordered || x.Status == ConsumableOrderStatus.PartiallyReceived)
+                .GroupBy(x => new { x.ConsumableItemId, x.UnitOfMeasureSnapshot })
+                .Select(group => new ConsumableOpenOrderTotal(group.Key.ConsumableItemId, group.Key.UnitOfMeasureSnapshot,
+                    group.Sum(x => x.OrderedQuantity), group.Count())).ToArray();
             transaction.Commit();
-            return new ConsumableInventorySnapshot(items, operators, readings);
+            return new ConsumableInventorySnapshot(items, operators, readings) { Orders = orders, OpenOrderTotals = totals };
         });
     }
 

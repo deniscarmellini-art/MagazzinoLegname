@@ -10,6 +10,8 @@ namespace MagazzinoLegname.ViewModels;
 public sealed class ConsumablesViewModel : ObservableObject
 {
     private readonly ConsumableInventoryService _service;
+    private readonly ConsumableOrderService _orders;
+    private ConsumableSituationRow? _selectedSituation;
     private ConsumableInventorySnapshot _snapshot = new([], [], []);
     private SaveConsumableInventory? _pendingRequest;
     private string _searchText = string.Empty, _selectedSupplier = "Tutti", _selectedDepartment = "Tutti", _selectedStatus = "Tutti";
@@ -21,7 +23,25 @@ public sealed class ConsumablesViewModel : ObservableObject
     private string _databaseMessage = "Caricamento inventari SQL...";
 
     public ConsumablesViewModel() : this(new ConsumableInventoryService(SqlPersistenceRoot.ConsumableInventories)) { }
-    public ConsumablesViewModel(ConsumableInventoryService service) => _service = service;
+    public ConsumablesViewModel(ConsumableInventoryService service, ConsumableOrderService? orders = null)
+    {
+        _service = service;
+        _orders = orders ?? new ConsumableOrderService(SqlPersistenceRoot.ConsumableOrders);
+    }
+    private bool _isOrderEditorVisible;
+    public bool IsOrderEditorVisible { get => _isOrderEditorVisible; private set => SetProperty(ref _isOrderEditorVisible, value); }
+    public ConsumableSituationRow? SelectedSituation
+    {
+        get => _selectedSituation;
+        set { if (SetProperty(ref _selectedSituation, value)) IsOrderEditorVisible = value is not null; }
+    }
+    public void OpenOrderEditor() => IsOrderEditorVisible = SelectedSituation is not null;
+    public void CancelOrder()
+    {
+        SelectedSituation?.ResetOrderEditor();
+        IsOrderEditorVisible = false;
+    }
+    public ObservableCollection<ConsumableSqlOrder> OrderHistory { get; } = [];
 
     public ObservableCollection<ConsumableSituationRow> SituationRows { get; } = [];
     public ObservableCollection<ConsumableInventoryEntryRow> InventoryRows { get; } = [];
@@ -30,8 +50,10 @@ public sealed class ConsumablesViewModel : ObservableObject
     public ObservableCollection<string> Departments { get; } = [];
     public ObservableCollection<string> Products { get; } = [];
     public ObservableCollection<Operator> Operators { get; } = [];
-    public IReadOnlyList<string> Statuses { get; } = ["Tutti", "OK", "Da ordinare", "Da verificare"];
-    public Array OrderStatuses => Enum.GetValues<ConsumableOrderStatus>();
+    public IReadOnlyList<string> Statuses { get; } = ["Tutti", "OK", "Da ordinare", "In ordine", "Sotto scorta · In ordine", "Da verificare"];
+    public IReadOnlyList<KeyValuePair<ConsumableOrderStatus, string>> OrderStatuses { get; } =
+        Enum.GetValues<ConsumableOrderStatus>().Where(x => x != ConsumableOrderStatus.None)
+            .Select(x => new KeyValuePair<ConsumableOrderStatus, string>(x, ConsumableSqlOrder.StatusLabel(x))).ToArray();
     public string DatabaseMessage { get => _databaseMessage; private set => SetProperty(ref _databaseMessage, value); }
     public bool IsSqlAvailable { get => _isSqlAvailable; private set { SetProperty(ref _isSqlAvailable, value); OnPropertyChanged(nameof(CanEditInventory)); } }
     public bool CanEditInventory => IsSqlAvailable && _pendingRequest is null;
@@ -49,10 +71,12 @@ public sealed class ConsumablesViewModel : ObservableObject
     public string HistoryDepartment { get => _historyDepartment; set { if (SetProperty(ref _historyDepartment, NormalizeFilter(value)) && !_isReloading) ApplyHistoryFilters(); } }
 
     public int ActiveItems => _snapshot.Items.Count(item => item.IsActive);
-    public int BelowMinimum => ToOrder;
-    public int ToOrder => _snapshot.Items.Count(item => item.IsActive && ConsumableInventoryRules.Status(item, _snapshot.Latest(item.Id)) == ConsumableStockStatus.ToOrder);
-    public int OkItems => _snapshot.Items.Count(item => item.IsActive && ConsumableInventoryRules.Status(item, _snapshot.Latest(item.Id)) == ConsumableStockStatus.Ok);
-    public int ToVerify => _snapshot.Items.Count(item => item.IsActive && ConsumableInventoryRules.Status(item, _snapshot.Latest(item.Id)) == ConsumableStockStatus.ToVerify);
+    public int BelowMinimum => _snapshot.Items.Count(item => item.IsActive && StatusFor(item) is ConsumableStockStatus.ToOrder or ConsumableStockStatus.BelowMinimumOrdered);
+    public int Ordered => _snapshot.Items.Count(item => item.IsActive && _snapshot.HasOpenOrders(item.Id));
+    private ConsumableStockStatus StatusFor(ConsumableItem item) => ConsumableOrderRules.Status(item, _snapshot.Latest(item.Id), _snapshot.HasOpenOrders(item.Id));
+    public int ToOrder => _snapshot.Items.Count(item => item.IsActive && StatusFor(item) == ConsumableStockStatus.ToOrder);
+    public int OkItems => _snapshot.Items.Count(item => item.IsActive && StatusFor(item) == ConsumableStockStatus.Ok);
+    public int ToVerify => _snapshot.Items.Count(item => item.IsActive && StatusFor(item) == ConsumableStockStatus.ToVerify);
 
     public int ConfirmInventory()
     {
@@ -92,16 +116,36 @@ public sealed class ConsumablesViewModel : ObservableObject
         return count;
     }
 
-    // Orders remain in the pre-existing in-memory store and never affect SQL stock/status.
-    public void SaveOrders() => ConsumablesStore.Shared.NotifyChanged();
+    public void SaveOrders()
+    {
+        if (!IsSqlAvailable || SelectedSituation is null) throw new InvalidOperationException("Selezionare un articolo caricato da SQL.");
+        if (!SelectedSituation.CanEditOrder) throw new InvalidOperationException("L'ordine selezionato è concluso. Creare un nuovo ordine.");
+        try { _orders.Save(SelectedSituation.Order); }
+        catch (ConsumableOrderConflictException conflict)
+        {
+            try { Reload(); }
+            catch (Exception reloadError) { throw new InvalidOperationException(conflict.Message + " Ricaricamento SQL non riuscito: " + reloadError.Message, conflict); }
+            throw new InvalidOperationException(conflict.Message + " Dati ricaricati da SQL: verificare l'ordine prima di riprovare.", conflict);
+        }
+        try { Reload(); }
+        catch (Exception exception) { throw new InvalidOperationException("Ordine salvato in SQL, ma ricaricamento non riuscito. Aggiornare da SQL prima di altre operazioni.", exception); }
+    }
+
+    public void NewOrder()
+    {
+        if (!IsSqlAvailable || SelectedSituation is null) throw new InvalidOperationException("Selezionare un articolo caricato da SQL.");
+        SelectedSituation.CreateNewOrder();
+    }
 
     public void Reload()
     {
+        var selectedItemId = SelectedSituation?.Item.Id;
         var operatorId = SelectedOperator?.Id;
         _pendingRequest = null;
         IsSqlAvailable = false;
         _snapshot = new([], [], []);
-        SituationRows.Clear(); InventoryRows.Clear(); HistoryRows.Clear(); Operators.Clear();
+        SituationRows.Clear(); InventoryRows.Clear(); HistoryRows.Clear(); Operators.Clear(); OrderHistory.Clear();
+        SelectedSituation = null;
         SelectedOperator = null;
         RefreshKpis();
         try { _snapshot = _service.Load(); }
@@ -120,15 +164,17 @@ public sealed class ConsumablesViewModel : ObservableObject
         _isReloading = false;
         foreach (var item in _snapshot.Items.Where(x => x.IsActive).OrderBy(x => x.Department).ThenBy(x => x.ProductName))
             InventoryRows.Add(new ConsumableInventoryEntryRow(item, _snapshot.Latest(item.Id)));
+        foreach (var order in _snapshot.Orders) OrderHistory.Add(order.Copy());
         ApplySituationFilters(); ApplyHistoryFilters(); RefreshKpis();
+        SelectedSituation = SituationRows.FirstOrDefault(x => x.Item.Id == selectedItemId);
         IsSqlAvailable = true;
-        DatabaseMessage = "Inventari e storico aggiornati da SQL. Ordini non ancora disponibili su SQL.";
+        DatabaseMessage = "Inventari, ordini e stati aggiornati da SQL. Gli ordini non modificano la giacenza.";
     }
 
     private void RefreshKpis()
     {
         OnPropertyChanged(nameof(ActiveItems)); OnPropertyChanged(nameof(BelowMinimum)); OnPropertyChanged(nameof(ToOrder));
-        OnPropertyChanged(nameof(OkItems)); OnPropertyChanged(nameof(ToVerify));
+        OnPropertyChanged(nameof(OkItems)); OnPropertyChanged(nameof(Ordered)); OnPropertyChanged(nameof(ToVerify));
     }
 
     private void ApplySituationFilters()
@@ -137,7 +183,8 @@ public sealed class ConsumablesViewModel : ObservableObject
         foreach (var item in _snapshot.Items.Where(x => x.IsActive).OrderBy(x => x.ProductName))
         {
             var latest = _snapshot.Latest(item.Id);
-            var row = new ConsumableSituationRow(item, latest, ConsumablesStore.Shared.OrderFor(item.Id), ConsumableInventoryRules.Status(item, latest));
+            var row = new ConsumableSituationRow(item, latest, _snapshot.Orders.Where(x => x.MaterialId == item.Id).ToArray(),
+                _snapshot.OpenOrderTotals.Where(x => x.MaterialId == item.Id).ToArray(), StatusFor(item));
             if (!string.IsNullOrWhiteSpace(SearchText) && !item.ProductName.Contains(SearchText, StringComparison.OrdinalIgnoreCase) && !item.InternalCode.Contains(SearchText, StringComparison.OrdinalIgnoreCase)) continue;
             if (SelectedSupplier != "Tutti" && item.SupplierName != SelectedSupplier) continue;
             if (SelectedDepartment != "Tutti" && item.Department != SelectedDepartment) continue;
@@ -172,9 +219,51 @@ public sealed class ConsumablesViewModel : ObservableObject
     private static string RestoreFilter(IEnumerable<string> options, string previous) => options.Contains(previous, StringComparer.OrdinalIgnoreCase) ? previous : "Tutti";
 }
 
-public sealed record ConsumableSituationRow(ConsumableItem Item, ConsumableSqlReading? LatestReading,
-    ConsumableOrderInfo Order, ConsumableStockStatus Status)
+public sealed class ConsumableSituationRow : ObservableObject
 {
+    private ConsumableSqlOrder? _selectedOrder;
+    private ConsumableSqlOrder _order;
+    public ConsumableSituationRow(ConsumableItem item, ConsumableSqlReading? latestReading,
+        IReadOnlyList<ConsumableSqlOrder> orders, IReadOnlyList<ConsumableOpenOrderTotal> totals, ConsumableStockStatus status)
+    {
+        Item = item; LatestReading = latestReading; Orders = orders; Totals = totals; Status = status;
+        _selectedOrder = orders.FirstOrDefault(x => x.IsOpen) ?? orders.FirstOrDefault();
+        _order = _selectedOrder?.Copy() ?? Draft();
+    }
+    public ConsumableItem Item { get; }
+    public ConsumableSqlReading? LatestReading { get; }
+    public IReadOnlyList<ConsumableSqlOrder> Orders { get; }
+    public IReadOnlyList<ConsumableOpenOrderTotal> Totals { get; }
+    public ConsumableStockStatus Status { get; }
+    public ConsumableSqlOrder Order { get => _order; private set => SetProperty(ref _order, value); }
+    public ConsumableSqlOrder? SelectedOrder
+    {
+        get => _selectedOrder;
+        set
+        {
+            if (!SetProperty(ref _selectedOrder, value)) return;
+            Order = value?.Copy() ?? Draft();
+            OnPropertyChanged(nameof(CanEditOrder));
+        }
+    }
+    public bool CanEditOrder => SelectedOrder is null || SelectedOrder.IsOpen;
+    public void CreateNewOrder()
+    {
+        SetProperty(ref _selectedOrder, null, nameof(SelectedOrder));
+        Order = Draft();
+        OnPropertyChanged(nameof(CanEditOrder));
+    }
+    public void ResetOrderEditor()
+    {
+        SetProperty(ref _selectedOrder, Orders.FirstOrDefault(x => x.IsOpen) ?? Orders.FirstOrDefault(), nameof(SelectedOrder));
+        Order = _selectedOrder?.Copy() ?? Draft();
+        OnPropertyChanged(nameof(CanEditOrder));
+    }
+    private ConsumableSqlOrder Draft() => new()
+    {
+        MaterialId = Item.Id, ItemRowVersion = Item.RowVersion.ToArray(), SupplierNameSnapshot = Item.SupplierName,
+        ProductNameSnapshot = Item.ProductName, UnitOfMeasureSnapshot = Item.UnitOfMeasure
+    };
     public string ProductName => Item.ProductName; public string SupplierName => Item.SupplierName; public string Department => Item.Department;
     public string UnitOfMeasure => LatestReading?.UnitOfMeasureSnapshot ?? Item.UnitOfMeasure;
     public string LatestReadingDisplay => LatestReading?.InventoryDate.ToString("dd/MM/yyyy") ?? "—";
@@ -183,8 +272,12 @@ public sealed record ConsumableSituationRow(ConsumableItem Item, ConsumableSqlRe
     public string QuantityPerUnitDisplay => LatestReading?.QuantityPerUnitSnapshot.ToString("0.######") ?? "—";
     public string MinimumStockDisplay => Item.MinimumStock?.ToString("0.######") ?? "—";
     public string ConsumptionDisplay => string.IsNullOrWhiteSpace(Item.ConsumptionAverageText) ? "—" : Item.ConsumptionAverageText;
-    public string OrderedDisplay => "—";
-    public string StatusDisplay => Status switch { ConsumableStockStatus.Ok => "OK", ConsumableStockStatus.ToOrder => "Da ordinare", _ => "Da verificare" };
+    public string OrderedDisplay => Totals.Count == 0 ? "—" : string.Join(" + ", Totals.OrderBy(x => x.UnitOfMeasure).Select(x => $"{x.Quantity:0.######} {x.UnitOfMeasure}".Trim()));
+    public string StatusDisplay => Status switch
+    {
+        ConsumableStockStatus.Ok => "OK", ConsumableStockStatus.ToOrder => "Da ordinare",
+        ConsumableStockStatus.Ordered => "In ordine", ConsumableStockStatus.BelowMinimumOrdered => "Sotto scorta · In ordine", _ => "Da verificare"
+    };
 }
 
 public sealed class ConsumableInventoryEntryRow(ConsumableItem item, ConsumableSqlReading? previous) : ObservableObject

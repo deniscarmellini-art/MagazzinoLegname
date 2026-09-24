@@ -6,6 +6,7 @@ namespace MagazzinoLegname.Persistence;
 public static class SqlPersistenceRoot
 {
     public static IDbContextFactory<MagazzinoDbContext> ContextFactory { get; } = new MagazzinoDbContextFactory();
+    public static IConsumableOrderRepository ConsumableOrders { get; } = new SqlConsumableOrderRepository(ContextFactory);
     public static IConsumableInventoryRepository ConsumableInventories { get; } = new SqlConsumableInventoryRepository(ContextFactory);
     public static IConsumableRepository Consumables { get; } = new SqlConsumableRepository(ContextFactory);
     public static ISupplierRepository Suppliers { get; } = new SqlSupplierRepository(ContextFactory);

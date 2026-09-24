@@ -9,6 +9,9 @@ public sealed record ConsumableSqlReading(Guid Id, Guid SessionId, Guid Consumab
 public sealed record ConsumableInventorySnapshot(IReadOnlyList<ConsumableItem> Items,
     IReadOnlyList<Operator> Operators, IReadOnlyList<ConsumableSqlReading> Readings)
 {
+    public IReadOnlyList<ConsumableSqlOrder> Orders { get; init; } = [];
+    public IReadOnlyList<ConsumableOpenOrderTotal> OpenOrderTotals { get; init; } = [];
+    public bool HasOpenOrders(Guid itemId) => OpenOrderTotals.Any(x => x.MaterialId == itemId && x.Count > 0);
     // Readings arrive in deterministic SQL order: inventory date, creation UTC, session ID descending.
     public ConsumableSqlReading? Latest(Guid itemId) => Readings.FirstOrDefault(x => x.ConsumableItemId == itemId);
 }
