@@ -2,27 +2,26 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using MagazzinoLegname.Infrastructure;
 using MagazzinoLegname.Models;
+using MagazzinoLegname.Persistence;
 using MagazzinoLegname.Services;
 
 namespace MagazzinoLegname.ViewModels;
 
 public sealed class ConsumablesViewModel : ObservableObject
 {
-    private readonly ConsumablesStore _store = ConsumablesStore.Shared;
+    private readonly ConsumableInventoryService _service;
+    private ConsumableInventorySnapshot _snapshot = new([], [], []);
+    private SaveConsumableInventory? _pendingRequest;
     private string _searchText = string.Empty, _selectedSupplier = "Tutti", _selectedDepartment = "Tutti", _selectedStatus = "Tutti";
     private DateTime _inventoryDate = DateTime.Today;
-    private string _selectedOperator = string.Empty;
-    private DateTime? _historyFrom = DateTime.Today.AddYears(-1), _historyTo = DateTime.Today;
+    private Operator? _selectedOperator;
+    private DateTime? _historyFrom, _historyTo;
     private string _historyProduct = "Tutti", _historySupplier = "Tutti", _historyDepartment = "Tutti";
-    private bool _isReloading;
+    private bool _isReloading, _isSqlAvailable;
+    private string _databaseMessage = "Caricamento inventari SQL...";
 
-    public ConsumablesViewModel()
-    {
-        Operators = OperatorCatalogService.Shared.ActiveOperatorNames;
-        _selectedOperator = Operators.FirstOrDefault() ?? string.Empty;
-        _store.Changed += (_, _) => Reload();
-        Reload();
-    }
+    public ConsumablesViewModel() : this(new ConsumableInventoryService(SqlPersistenceRoot.ConsumableInventories)) { }
+    public ConsumablesViewModel(ConsumableInventoryService service) => _service = service;
 
     public ObservableCollection<ConsumableSituationRow> SituationRows { get; } = [];
     public ObservableCollection<ConsumableInventoryEntryRow> InventoryRows { get; } = [];
@@ -30,79 +29,115 @@ public sealed class ConsumablesViewModel : ObservableObject
     public ObservableCollection<string> Suppliers { get; } = [];
     public ObservableCollection<string> Departments { get; } = [];
     public ObservableCollection<string> Products { get; } = [];
-    public ReadOnlyObservableCollection<string> Operators { get; }
-    public IReadOnlyList<string> Statuses { get; } = ["Tutti"];
+    public ObservableCollection<Operator> Operators { get; } = [];
+    public IReadOnlyList<string> Statuses { get; } = ["Tutti", "OK", "Da ordinare", "Da verificare"];
     public Array OrderStatuses => Enum.GetValues<ConsumableOrderStatus>();
+    public string DatabaseMessage { get => _databaseMessage; private set => SetProperty(ref _databaseMessage, value); }
+    public bool IsSqlAvailable { get => _isSqlAvailable; private set { SetProperty(ref _isSqlAvailable, value); OnPropertyChanged(nameof(CanEditInventory)); } }
+    public bool CanEditInventory => IsSqlAvailable && _pendingRequest is null;
 
     public string SearchText { get => _searchText; set { if (SetProperty(ref _searchText, value)) ApplySituationFilters(); } }
     public string SelectedSupplier { get => _selectedSupplier; set { if (SetProperty(ref _selectedSupplier, NormalizeFilter(value)) && !_isReloading) ApplySituationFilters(); } }
     public string SelectedDepartment { get => _selectedDepartment; set { if (SetProperty(ref _selectedDepartment, NormalizeFilter(value)) && !_isReloading) ApplySituationFilters(); } }
     public string SelectedStatus { get => _selectedStatus; set { if (SetProperty(ref _selectedStatus, NormalizeFilter(value)) && !_isReloading) ApplySituationFilters(); } }
     public DateTime InventoryDate { get => _inventoryDate; set => SetProperty(ref _inventoryDate, value); }
-    public string SelectedOperator { get => _selectedOperator; set => SetProperty(ref _selectedOperator, value); }
+    public Operator? SelectedOperator { get => _selectedOperator; set => SetProperty(ref _selectedOperator, value); }
     public DateTime? HistoryFrom { get => _historyFrom; set { if (SetProperty(ref _historyFrom, value)) ApplyHistoryFilters(); } }
     public DateTime? HistoryTo { get => _historyTo; set { if (SetProperty(ref _historyTo, value)) ApplyHistoryFilters(); } }
     public string HistoryProduct { get => _historyProduct; set { if (SetProperty(ref _historyProduct, NormalizeFilter(value)) && !_isReloading) ApplyHistoryFilters(); } }
     public string HistorySupplier { get => _historySupplier; set { if (SetProperty(ref _historySupplier, NormalizeFilter(value)) && !_isReloading) ApplyHistoryFilters(); } }
     public string HistoryDepartment { get => _historyDepartment; set { if (SetProperty(ref _historyDepartment, NormalizeFilter(value)) && !_isReloading) ApplyHistoryFilters(); } }
 
-    public int ActiveItems => _store.Items.Count(item => item.IsActive);
-    public string BelowMinimum => "—";
-    public string ToOrder => "—";
-    public string Ordered => "—";
-    public string ToVerify => "—";
+    public int ActiveItems => _snapshot.Items.Count(item => item.IsActive);
+    public int BelowMinimum => ToOrder;
+    public int ToOrder => _snapshot.Items.Count(item => item.IsActive && ConsumableInventoryRules.Status(item, _snapshot.Latest(item.Id)) == ConsumableStockStatus.ToOrder);
+    public int OkItems => _snapshot.Items.Count(item => item.IsActive && ConsumableInventoryRules.Status(item, _snapshot.Latest(item.Id)) == ConsumableStockStatus.Ok);
+    public int ToVerify => _snapshot.Items.Count(item => item.IsActive && ConsumableInventoryRules.Status(item, _snapshot.Latest(item.Id)) == ConsumableStockStatus.ToVerify);
 
     public int ConfirmInventory()
     {
-        if (string.IsNullOrWhiteSpace(SelectedOperator)) throw new InvalidOperationException("Selezionare l'operatore.");
-        var completed = InventoryRows.Where(item => item.NewQuantity.HasValue).ToArray();
-        if (completed.Length == 0) throw new InvalidOperationException("Inserire almeno una nuova giacenza.");
-        if (completed.Any(item => !item.Item.QuantityPerUnit.HasValue || item.Item.QuantityPerUnit <= 0))
-            throw new InvalidOperationException("Impostare una Qtà per UDM valida per tutti gli articoli rilevati.");
-        _store.AddReadings(completed.Select(item => new ConsumableInventoryReading
+        if (!IsSqlAvailable) throw new InvalidOperationException("Ricaricare i dati da SQL prima di confermare l'inventario.");
+        if (_pendingRequest is null)
         {
-            MaterialId = item.Item.Id, ReadingDate = InventoryDate, CountedUnits = item.NewQuantity!.Value,
-            QuantityPerUnitSnapshot = item.Item.QuantityPerUnit!.Value,
-            Quantity = item.NewQuantity.Value * item.Item.QuantityPerUnit.Value,
-            Operator = SelectedOperator, Note = item.Note.Trim(), Origin = "Inventario"
-        }));
-        return completed.Length;
+            if (SelectedOperator is null) throw new InvalidOperationException("Selezionare l'operatore.");
+            var completed = InventoryRows.Where(row => !string.IsNullOrWhiteSpace(row.NewQuantityText)).ToArray();
+            if (completed.Length == 0) throw new InvalidOperationException("Inserire almeno un valore in UDM rilevate.");
+            foreach (var row in completed)
+                if (!row.NewQuantity.HasValue || !row.CalculatedQuantity.HasValue)
+                    throw new InvalidOperationException($"{row.ProductName}: {row.ValidationMessage}");
+            _pendingRequest = new SaveConsumableInventory(Guid.NewGuid(), InventoryDate.Date, SelectedOperator.Id,
+                completed.Select(row => new ConsumableInventoryInput(row.Item.Id, row.NewQuantity!.Value,
+                    row.Item.RowVersion.ToArray(), row.Note)).ToArray());
+            OnPropertyChanged(nameof(CanEditInventory));
+        }
+        var count = _pendingRequest.Readings.Count;
+        try { _service.Save(_pendingRequest); }
+        catch (ConsumableInventoryConflictException conflict)
+        {
+            try { Reload(); }
+            catch (Exception reloadError) { throw new InvalidOperationException(conflict.Message + " Ricaricamento SQL non riuscito: " + reloadError.Message, conflict); }
+            throw new InvalidOperationException(conflict.Message + " Dati ricaricati da SQL: reinserire e verificare i conteggi.", conflict);
+        }
+        catch (Exception exception)
+        {
+            // Freeze the original request after an ambiguous failure; retry with the same session ID.
+            throw new InvalidOperationException(exception.Message + " È possibile riprovare Conferma inventario con la stessa sessione, oppure aggiornare da SQL.", exception);
+        }
+        _pendingRequest = null;
+        try { Reload(); }
+        catch (Exception exception)
+        {
+            throw new InvalidOperationException("Inventario salvato in SQL, ma ricaricamento non riuscito. Aggiornare da SQL; non ripetere il conteggio.", exception);
+        }
+        return count;
     }
 
-    public void SaveOrders() => _store.NotifyChanged();
+    // Orders remain in the pre-existing in-memory store and never affect SQL stock/status.
+    public void SaveOrders() => ConsumablesStore.Shared.NotifyChanged();
 
     public void Reload()
     {
-        var selectedSupplier = NormalizeFilter(SelectedSupplier);
-        var selectedDepartment = NormalizeFilter(SelectedDepartment);
-        var historyProduct = NormalizeFilter(HistoryProduct);
-        var historySupplier = NormalizeFilter(HistorySupplier);
-        var historyDepartment = NormalizeFilter(HistoryDepartment);
+        var operatorId = SelectedOperator?.Id;
+        _pendingRequest = null;
+        IsSqlAvailable = false;
+        _snapshot = new([], [], []);
+        SituationRows.Clear(); InventoryRows.Clear(); HistoryRows.Clear(); Operators.Clear();
+        SelectedOperator = null;
+        RefreshKpis();
+        try { _snapshot = _service.Load(); }
+        catch (Exception exception) { DatabaseMessage = "Dati SQL non disponibili. " + exception.Message; throw; }
         _isReloading = true;
-        ReplaceOptions(Suppliers, "Tutti", _store.Items.Select(item => item.SupplierName));
-        ReplaceOptions(Departments, "Tutti", _store.Items.Select(item => item.Department));
-        ReplaceOptions(Products, "Tutti", _store.Items.Select(item => item.ProductName));
-        SelectedSupplier = RestoreFilter(Suppliers, selectedSupplier);
-        SelectedDepartment = RestoreFilter(Departments, selectedDepartment);
-        HistoryProduct = RestoreFilter(Products, historyProduct);
-        HistorySupplier = RestoreFilter(Suppliers, historySupplier);
+        var supplier = SelectedSupplier; var department = SelectedDepartment;
+        var product = HistoryProduct; var historySupplier = HistorySupplier; var historyDepartment = HistoryDepartment;
+        ReplaceOptions(Suppliers, _snapshot.Items.Select(x => x.SupplierName).Concat(_snapshot.Readings.Select(x => x.SupplierSnapshot)));
+        ReplaceOptions(Departments, _snapshot.Items.Select(x => x.Department).Concat(_snapshot.Readings.Select(x => x.DepartmentSnapshot)));
+        ReplaceOptions(Products, _snapshot.Readings.Select(x => x.ProductSnapshot));
+        SelectedSupplier = RestoreFilter(Suppliers, supplier); SelectedDepartment = RestoreFilter(Departments, department);
+        HistoryProduct = RestoreFilter(Products, product); HistorySupplier = RestoreFilter(Suppliers, historySupplier);
         HistoryDepartment = RestoreFilter(Departments, historyDepartment);
+        foreach (var item in _snapshot.Operators) Operators.Add(item);
+        SelectedOperator = Operators.FirstOrDefault(x => x.Id == operatorId) ?? Operators.FirstOrDefault();
         _isReloading = false;
-        ApplySituationFilters();
-        InventoryRows.Clear();
-        foreach (var item in _store.Items.Where(item => item.IsActive).OrderBy(item => item.ProductName))
-            InventoryRows.Add(new ConsumableInventoryEntryRow(item, _store.LatestReading(item.Id)));
-        ApplyHistoryFilters();
+        foreach (var item in _snapshot.Items.Where(x => x.IsActive).OrderBy(x => x.Department).ThenBy(x => x.ProductName))
+            InventoryRows.Add(new ConsumableInventoryEntryRow(item, _snapshot.Latest(item.Id)));
+        ApplySituationFilters(); ApplyHistoryFilters(); RefreshKpis();
+        IsSqlAvailable = true;
+        DatabaseMessage = "Inventari e storico aggiornati da SQL. Ordini non ancora disponibili su SQL.";
+    }
+
+    private void RefreshKpis()
+    {
         OnPropertyChanged(nameof(ActiveItems)); OnPropertyChanged(nameof(BelowMinimum)); OnPropertyChanged(nameof(ToOrder));
-        OnPropertyChanged(nameof(Ordered)); OnPropertyChanged(nameof(ToVerify));
+        OnPropertyChanged(nameof(OkItems)); OnPropertyChanged(nameof(ToVerify));
     }
 
     private void ApplySituationFilters()
     {
         SituationRows.Clear();
-        foreach (var item in _store.Items.Where(item => item.IsActive).OrderBy(item => item.ProductName))
+        foreach (var item in _snapshot.Items.Where(x => x.IsActive).OrderBy(x => x.ProductName))
         {
-            var row = new ConsumableSituationRow(item, _store.LatestReading(item.Id), _store.OrderFor(item.Id), ConsumableStockStatus.ToVerify);
+            var latest = _snapshot.Latest(item.Id);
+            var row = new ConsumableSituationRow(item, latest, ConsumablesStore.Shared.OrderFor(item.Id), ConsumableInventoryRules.Status(item, latest));
             if (!string.IsNullOrWhiteSpace(SearchText) && !item.ProductName.Contains(SearchText, StringComparison.OrdinalIgnoreCase) && !item.InternalCode.Contains(SearchText, StringComparison.OrdinalIgnoreCase)) continue;
             if (SelectedSupplier != "Tutti" && item.SupplierName != SelectedSupplier) continue;
             if (SelectedDepartment != "Tutti" && item.Department != SelectedDepartment) continue;
@@ -114,66 +149,89 @@ public sealed class ConsumablesViewModel : ObservableObject
     private void ApplyHistoryFilters()
     {
         HistoryRows.Clear();
-        foreach (var reading in _store.Readings.OrderByDescending(item => item.ReadingDate))
+        var previousByReading = new Dictionary<Guid, ConsumableSqlReading>();
+        foreach (var group in _snapshot.Readings.GroupBy(x => x.ConsumableItemId))
         {
-            var item = _store.Items.FirstOrDefault(candidate => candidate.Id == reading.MaterialId);
-            if (item is null || HistoryFrom.HasValue && reading.ReadingDate.Date < HistoryFrom.Value.Date || HistoryTo.HasValue && reading.ReadingDate.Date > HistoryTo.Value.Date) continue;
-            if (HistoryProduct != "Tutti" && item.ProductName != HistoryProduct || HistorySupplier != "Tutti" && item.SupplierName != HistorySupplier || HistoryDepartment != "Tutti" && item.Department != HistoryDepartment) continue;
-            var previous = _store.PreviousReading(item.Id, reading);
-            HistoryRows.Add(new ConsumableHistoryRow(item, reading, previous));
+            var readings = group.ToArray();
+            for (var index = 0; index + 1 < readings.Length; index++) previousByReading[readings[index].Id] = readings[index + 1];
+        }
+        foreach (var reading in _snapshot.Readings)
+        {
+            if (HistoryFrom.HasValue && reading.InventoryDate < HistoryFrom.Value.Date || HistoryTo.HasValue && reading.InventoryDate > HistoryTo.Value.Date) continue;
+            if (HistoryProduct != "Tutti" && reading.ProductSnapshot != HistoryProduct || HistorySupplier != "Tutti" && reading.SupplierSnapshot != HistorySupplier || HistoryDepartment != "Tutti" && reading.DepartmentSnapshot != HistoryDepartment) continue;
+            HistoryRows.Add(new ConsumableHistoryRow(reading, previousByReading.GetValueOrDefault(reading.Id)));
         }
     }
 
-    private static void ReplaceOptions(ObservableCollection<string> target, string all, IEnumerable<string> values)
+    private static void ReplaceOptions(ObservableCollection<string> target, IEnumerable<string> values)
     {
-        target.Clear(); target.Add(all);
+        target.Clear(); target.Add("Tutti");
         foreach (var value in values.Where(value => !string.IsNullOrWhiteSpace(value)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(value => value)) target.Add(value);
     }
-
     private static string NormalizeFilter(string? value) => string.IsNullOrWhiteSpace(value) ? "Tutti" : value;
-    private static string RestoreFilter(IEnumerable<string> options, string previous) =>
-        options.Contains(previous, StringComparer.OrdinalIgnoreCase) ? previous : "Tutti";
+    private static string RestoreFilter(IEnumerable<string> options, string previous) => options.Contains(previous, StringComparer.OrdinalIgnoreCase) ? previous : "Tutti";
 }
 
-public sealed record ConsumableSituationRow(ConsumableItem Item, ConsumableInventoryReading? LatestReading,
+public sealed record ConsumableSituationRow(ConsumableItem Item, ConsumableSqlReading? LatestReading,
     ConsumableOrderInfo Order, ConsumableStockStatus Status)
 {
     public string ProductName => Item.ProductName; public string SupplierName => Item.SupplierName; public string Department => Item.Department;
-    public string UnitOfMeasure => Item.UnitOfMeasure; public string? PhotoPath => Item.PhotoPath;
-    public string LatestReadingDisplay => LatestReading is null ? "—" : LatestReading.ReadingDate.ToString("dd/MM/yyyy");
-    public string CurrentStockDisplay => "Non disponibile";
-    public string CountedUnitsDisplay => LatestReading?.CountedUnits is { } value ? $"{value:N2} {Item.UnitOfMeasure}" : "—";
-    public string QuantityPerUnitDisplay => Item.QuantityPerUnit?.ToString("N2") ?? "—";
-    public string MinimumStockDisplay => Item.MinimumStock?.ToString("N2") ?? "—";
+    public string UnitOfMeasure => LatestReading?.UnitOfMeasureSnapshot ?? Item.UnitOfMeasure;
+    public string LatestReadingDisplay => LatestReading?.InventoryDate.ToString("dd/MM/yyyy") ?? "—";
+    public string CurrentStockDisplay => LatestReading?.CalculatedQuantity.ToString("0.############") ?? "—";
+    public string CountedUnitsDisplay => LatestReading is { } value ? $"{value.CountedUnits:0.######} {value.UnitOfMeasureSnapshot}" : "—";
+    public string QuantityPerUnitDisplay => LatestReading?.QuantityPerUnitSnapshot.ToString("0.######") ?? "—";
+    public string MinimumStockDisplay => Item.MinimumStock?.ToString("0.######") ?? "—";
     public string ConsumptionDisplay => string.IsNullOrWhiteSpace(Item.ConsumptionAverageText) ? "—" : Item.ConsumptionAverageText;
-    public string LeadTimeDisplay => Item.LeadTimeDays.HasValue ? $"{Item.LeadTimeDays} gg" : "—";
-    public string OrderedDisplay => "Non disponibile";
-    public bool HasAnagraphicWarning => Item.NeedsVerification;
-    public string StatusDisplay => "Non disponibile";
+    public string OrderedDisplay => "—";
+    public string StatusDisplay => Status switch { ConsumableStockStatus.Ok => "OK", ConsumableStockStatus.ToOrder => "Da ordinare", _ => "Da verificare" };
 }
 
-public sealed class ConsumableInventoryEntryRow(ConsumableItem item, ConsumableInventoryReading? previous) : ObservableObject
+public sealed class ConsumableInventoryEntryRow(ConsumableItem item, ConsumableSqlReading? previous) : ObservableObject
 {
     private string _newQuantityText = string.Empty, _note = string.Empty;
-    public ConsumableItem Item { get; } = item; public string ProductName => Item.ProductName; public string Department => Item.Department; public string UnitOfMeasure => Item.UnitOfMeasure;
+    public ConsumableItem Item { get; } = item;
+    public string ProductName => Item.ProductName; public string Department => Item.Department; public string UnitOfMeasure => Item.UnitOfMeasure;
     public decimal? QuantityPerUnit => Item.QuantityPerUnit;
-    public decimal? PreviousQuantity => previous?.Quantity; public DateTime? PreviousDate => previous?.ReadingDate;
+    public decimal? PreviousQuantity => previous?.CalculatedQuantity;
     public decimal? NewQuantity { get; private set; }
-    public decimal? CalculatedQuantity => NewQuantity.HasValue && QuantityPerUnit is > 0 ? NewQuantity.Value * QuantityPerUnit.Value : null;
-    public string CalculatedQuantityDisplay => CalculatedQuantity?.ToString("N2") ?? "—";
-    public string NewQuantityText { get => _newQuantityText; set { var normalized = (value ?? "").Replace('.', ','); if (!SetProperty(ref _newQuantityText, normalized)) return; NewQuantity = decimal.TryParse(normalized, NumberStyles.Number, CultureInfo.GetCultureInfo("it-IT"), out var parsed) && parsed >= 0 ? parsed : null; OnPropertyChanged(nameof(CalculatedQuantity)); OnPropertyChanged(nameof(CalculatedQuantityDisplay)); OnPropertyChanged(nameof(VariationDisplay)); } }
-    public string VariationDisplay => CalculatedQuantity.HasValue ? $"{CalculatedQuantity.Value - (PreviousQuantity ?? 0m):+0.##;-0.##;0}" : "—";
+    public decimal? CalculatedQuantity { get; private set; }
+    public string ValidationMessage { get; private set; } = string.Empty;
+    public string CalculatedQuantityDisplay => CalculatedQuantity?.ToString("0.############") ?? "—";
+    public string NewQuantityText
+    {
+        get => _newQuantityText;
+        set
+        {
+            if (!SetProperty(ref _newQuantityText, value ?? string.Empty)) return;
+            NewQuantity = null; CalculatedQuantity = null; ValidationMessage = string.Empty;
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                if (!decimal.TryParse(value.Trim().Replace('.', ','), NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
+                    CultureInfo.GetCultureInfo("it-IT"), out var parsed)) ValidationMessage = "UDM rilevate non valide.";
+                else
+                {
+                    try { CalculatedQuantity = ConsumableInventoryRules.Calculate(parsed, QuantityPerUnit ?? 0); NewQuantity = parsed; }
+                    catch (Exception exception) when (exception is InvalidOperationException or OverflowException) { ValidationMessage = exception.Message; }
+                }
+            }
+            OnPropertyChanged(nameof(CalculatedQuantity)); OnPropertyChanged(nameof(CalculatedQuantityDisplay));
+            OnPropertyChanged(nameof(VariationDisplay)); OnPropertyChanged(nameof(ValidationMessage));
+        }
+    }
+    public string VariationDisplay => CalculatedQuantity.HasValue && PreviousQuantity.HasValue && previous?.UnitOfMeasureSnapshot == UnitOfMeasure
+        ? $"{CalculatedQuantity.Value - PreviousQuantity.Value:+0.############;-0.############;0}" : "—";
     public string Note { get => _note; set => SetProperty(ref _note, value); }
 }
 
-public sealed record ConsumableHistoryRow(ConsumableItem Item, ConsumableInventoryReading Reading, ConsumableInventoryReading? Previous)
+public sealed record ConsumableHistoryRow(ConsumableSqlReading Reading, ConsumableSqlReading? Previous)
 {
-    public DateTime Date => Reading.ReadingDate; public string ProductName => Item.ProductName; public string SupplierName => Item.SupplierName;
-    public string Department => Item.Department; public decimal Quantity => Reading.Quantity; public string UnitOfMeasure => Item.UnitOfMeasure;
-    public string CountedUnitsDisplay => Reading.CountedUnits?.ToString("N2") ?? "Legacy";
-    public string QuantityPerUnitDisplay => Reading.QuantityPerUnitSnapshot?.ToString("N2") ?? "—";
-    public string CalculationDisplay => Reading.CountedUnits.HasValue && Reading.QuantityPerUnitSnapshot.HasValue ? $"{Reading.CountedUnits:N2} × {Reading.QuantityPerUnitSnapshot:N2} = {Reading.Quantity:N2}" : Reading.Quantity.ToString("N2");
-    public decimal? StockVariation => Previous is null ? null : Reading.Quantity - Previous.Quantity;
-    public string StockVariationDisplay => StockVariation.HasValue ? $"{StockVariation:+0.##;-0.##;0}" : "—";
-    public string Operator => Reading.Operator ?? "Importazione legacy"; public string Note => Reading.Note;
+    public DateTime Date => Reading.InventoryDate; public string ProductName => Reading.ProductSnapshot; public string SupplierName => Reading.SupplierSnapshot;
+    public string Department => Reading.DepartmentSnapshot; public string UnitOfMeasure => Reading.UnitOfMeasureSnapshot;
+    public string CountedUnitsDisplay => Reading.CountedUnits.ToString("0.######");
+    public string QuantityPerUnitDisplay => Reading.QuantityPerUnitSnapshot.ToString("0.######");
+    public string CalculationDisplay => $"{Reading.CountedUnits:0.######} × {Reading.QuantityPerUnitSnapshot:0.######} = {Reading.CalculatedQuantity:0.############}";
+    public decimal? StockVariation => Previous is null || Previous.UnitOfMeasureSnapshot != UnitOfMeasure ? null : Reading.CalculatedQuantity - Previous.CalculatedQuantity;
+    public string StockVariationDisplay => StockVariation.HasValue ? $"{StockVariation:+0.############;-0.############;0}" : "—";
+    public string Operator => Reading.OperatorSnapshot; public string Note => Reading.Note;
 }

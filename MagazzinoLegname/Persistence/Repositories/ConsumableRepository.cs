@@ -85,7 +85,7 @@ public sealed class SqlConsumableRepository(IDbContextFactory<MagazzinoDbContext
         if (item.Packaging.Trim().Length > 1000) throw new InvalidOperationException("Packaging: massimo 1000 caratteri.");
     }
 
-    private static ConsumableItem Map(ConsumableItemEntity entity) => new()
+    internal static ConsumableItem Map(ConsumableItemEntity entity) => new()
     {
         Id = entity.Id, RowVersion = entity.RowVersion.ToArray(),
         InternalCode = entity.InternalCode,

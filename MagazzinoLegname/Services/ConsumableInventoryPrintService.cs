@@ -22,6 +22,7 @@ public sealed class ConsumableInventoryPrintService
         if (items.Length == 0) throw new InvalidOperationException("Non ci sono materiali attivi da stampare.");
 
         var dialog = new PrintDialog();
+        dialog.PrintTicket.PageMediaSize = new System.Printing.PageMediaSize(System.Printing.PageMediaSizeName.ISOA4);
         if (dialog.ShowDialog() != true) return;
         var width = dialog.PrintableAreaWidth > 0 ? dialog.PrintableAreaWidth : 793.7;
         var height = dialog.PrintableAreaHeight > 0 ? dialog.PrintableAreaHeight : 1122.5;
@@ -72,7 +73,7 @@ public sealed class ConsumableInventoryPrintService
             var item = items[index];
             table.RowDefinitions.Add(new RowDefinition { Height = new GridLength(RowHeight) });
             var changedDepartment = !string.Equals(department, item.Department, StringComparison.CurrentCultureIgnoreCase);
-            AddRow(table, index + 1, [item.ProductName, item.Department, item.UnitOfMeasure, item.QuantityPerUnit?.ToString("N2") ?? "—", string.Empty, string.Empty], false, changedDepartment);
+            AddRow(table, index + 1, [item.ProductName, item.Department, item.UnitOfMeasure, item.QuantityPerUnit?.ToString("0.######") ?? "—", string.Empty, string.Empty], false, changedDepartment);
             department = item.Department;
         }
         Grid.SetRow(table, 2); root.Children.Add(table);
