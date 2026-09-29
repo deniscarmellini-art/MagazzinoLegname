@@ -30,11 +30,11 @@
         </Style>
     </UserControl.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <Grid>
         <Grid Margin="0,0,0,8">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
@@ -48,16 +48,16 @@
                     <TextBlock Text="SETTIMANA B" Style="{StaticResource FieldLabelStyle}"/>
                     <DatePicker SelectedDate="{Binding SelectedWeekB, Mode=TwoWay}" Width="150" Margin="0,4,0,0"/>
                 </StackPanel>
-                <TextBlock Grid.Column="2" Text="La data selezionata viene allineata al lunedì · B deve essere successiva ad A" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11" VerticalAlignment="Bottom" Margin="16,0"/>
+                <StackPanel Grid.Column="2" Margin="16,0"><Button Content="Aggiorna da SQL" Click="Reload_Click" HorizontalAlignment="Right" Style="{StaticResource SecondaryButtonStyle}"/><TextBlock Text="{Binding DatabaseMessage}" TextWrapping="Wrap" FontSize="11"/></StackPanel>
             </Grid>
 
             <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="0" Margin="0,0,0,10" ClipToBounds="True">
                 <Grid>
-                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                     <Border Style="{StaticResource PlanningTableTitleStyle}">
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition Width="0.78*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="0.22*"/></Grid.ColumnDefinitions>
-                        <StackPanel><TextBlock Text="ARRIVI PREVISTI PER FORNITORE" Style="{StaticResource PlanningSectionTitleStyle}"/><TextBlock Text="Un carico per cella · lunedì-venerdì · seleziona materiale e qualità" Style="{StaticResource PageSubtitleStyle}"/></StackPanel>
+                        <StackPanel><TextBlock Text="ARRIVI PREVISTI PER FORNITORE" Style="{StaticResource PlanningSectionTitleStyle}"/><TextBlock Text="Una pianificazione per fornitore/giorno · scegli materiale e numero carichi" Style="{StaticResource PageSubtitleStyle}"/></StackPanel>
                         <Border Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Background="{DynamicResource SurfaceRaisedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="11,7">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="MC standard/carico  "/>
@@ -73,7 +73,7 @@
                         </Grid>
                     </Border>
 
-                    <ScrollViewer Grid.Row="1" MaxHeight="274"
+                    <ScrollViewer Grid.Row="1"
                                   VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled">
                     <Grid>
@@ -87,7 +87,7 @@
                             </Grid>
 
                             <ItemsControl Grid.Column="1" ItemsSource="{Binding CalendarWeeks}">
-                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1" Columns="2"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1" Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemContainerStyle><Style TargetType="ContentPresenter"><Setter Property="HorizontalAlignment" Value="Stretch"/><Setter Property="VerticalAlignment" Value="Stretch"/></Style></ItemsControl.ItemContainerStyle>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -103,7 +103,7 @@
                                                     <DataTemplate>
                                                         <ItemsControl ItemsSource="{Binding Cells}" Height="34">
                                                             <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                                                            <ItemsControl.ItemTemplate><DataTemplate><Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,1" Padding="2"><ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding Selection, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsEditable}" Height="28" Padding="5,2" FontSize="11"/></Border></DataTemplate></ItemsControl.ItemTemplate>
+                                                            <ItemsControl.ItemTemplate><DataTemplate><Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,1" Padding="2"><Grid ToolTip="{Binding Detail}"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="30"/></Grid.ColumnDefinitions><ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding Selection, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsEditable}" Height="28" Padding="2" FontSize="10"/><TextBox Grid.Column="1" Text="{Binding LoadQuantity, UpdateSourceTrigger=LostFocus, ValidatesOnExceptions=True}" IsEnabled="{Binding CanChangeQuantity}" ToolTip="Numero carichi. Salvataggio all'uscita dal campo." Height="28" Padding="2" FontSize="11"/></Grid></Border></DataTemplate></ItemsControl.ItemTemplate>
                                                         </ItemsControl>
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>
@@ -160,5 +160,5 @@
                 </Grid>
             </Border>
         </Grid>
-    </ScrollViewer>
+    </Grid>
 </UserControl>

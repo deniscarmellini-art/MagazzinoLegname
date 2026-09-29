@@ -5,6 +5,7 @@ namespace MagazzinoLegname.Persistence;
 
 public sealed class MagazzinoDbContext(DbContextOptions<MagazzinoDbContext> options) : DbContext(options)
 {
+    public DbSet<PlannedArrivalEntity> PlannedArrivals => Set<PlannedArrivalEntity>();
     public DbSet<ConsumableOrderEntity> ConsumableOrders => Set<ConsumableOrderEntity>();
     public DbSet<ConsumableInventorySessionEntity> ConsumableInventorySessions => Set<ConsumableInventorySessionEntity>();
     public DbSet<ConsumableInventoryReadingEntity> ConsumableInventoryReadings => Set<ConsumableInventoryReadingEntity>();

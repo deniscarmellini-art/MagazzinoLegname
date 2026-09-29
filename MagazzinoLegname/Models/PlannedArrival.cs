@@ -11,6 +11,20 @@ public sealed class PlannedArrival : ObservableObject
     private DateTime? _confirmedAt;
     private string? _confirmedBy;
 
+    public byte[] RowVersion { get; set; } = [];
+    public string SupplierNameSnapshot { get; set; } = "";
+    public decimal ExpectedCubicMeters { get; set; }
+    public string Notes { get; set; } = "";
+    public DateTime CreatedAtUtc { get; set; }
+    public DateTime UpdatedAtUtc { get; set; }
+    public PlannedArrival Copy()
+    {
+        var copy = new PlannedArrival { Id = Id, Date = Date, SupplierId = SupplierId, ConventionalThickness = ConventionalThickness,
+            Quality = Quality, LoadQuantity = LoadQuantity, RowVersion = RowVersion.ToArray(), SupplierNameSnapshot = SupplierNameSnapshot,
+            ExpectedCubicMeters = ExpectedCubicMeters, Notes = Notes, CreatedAtUtc = CreatedAtUtc, UpdatedAtUtc = UpdatedAtUtc };
+        if (Status == PlannedArrivalStatus.Confirmed) copy.Confirm(ConfirmedAt!.Value, ConfirmedBy);
+        return copy;
+    }
     public Guid Id { get; init; } = Guid.NewGuid();
     public required DateTime Date { get; init; }
     public required Guid SupplierId { get; init; }

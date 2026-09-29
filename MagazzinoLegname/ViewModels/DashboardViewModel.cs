@@ -88,7 +88,17 @@ public sealed class DashboardViewModel : ObservableObject
     public string InventoryValueDisplay => _allPackages.Count(p => p.IsAccountedPackage) == 0 || PackagesWithoutPrice == _allPackages.Count(p => p.IsAccountedPackage) ? "N/D"
         : InventoryValue.ToString("N0") + " €" + (PackagesWithoutPrice > 0 ? " · PARZIALE" : "");
 
-    public void Refresh() => Reload();
+    public void Refresh()
+    {
+        try { _planning.Reload(); }
+        catch (Exception error) { System.Diagnostics.Debug.WriteLine(error); System.Windows.MessageBox.Show(error.Message, "Pianificazione SQL non disponibile"); }
+        Reload();
+    }
+    private void ConfirmPlannedArrival(Guid id)
+    {
+        try { _planning.ConfirmArrival(id); }
+        catch (Exception error) { System.Diagnostics.Debug.WriteLine(error); System.Windows.MessageBox.Show(error.Message, "Pianificazione SQL"); }
+    }
 
     private void Reload()
     {
@@ -167,14 +177,13 @@ public sealed class DashboardViewModel : ObservableObject
         foreach (var arrival in arrivals)
         {
             var supplierName = _suppliers.Suppliers
-                .FirstOrDefault(item => item.Id == arrival.SupplierId)?.Name ?? "—";
+                .FirstOrDefault(item => item.Id == arrival.SupplierId)?.Name ?? arrival.SupplierNameSnapshot;
             WeeklyPlannedArrivals.Add(new WeeklyPlannedArrivalRow(arrival.Date, supplierName,
                 arrival.ConventionalThickness!.Value, arrival.Quality!, arrival.LoadQuantity,
-                new RelayCommand(() => _planning.ConfirmArrival(arrival.Id))));
+                new RelayCommand(() => ConfirmPlannedArrival(arrival.Id))));
         }
         WeeklyPlannedLoadCount = arrivals.Sum(item => item.LoadQuantity);
-        WeeklyPlannedCubicMeters = arrivals.Sum(item => item.LoadQuantity
-            * _planningSettings.Settings.GetStandardCubicMetersPerExpectedLoad(item.ConventionalThickness!.Value));
+        WeeklyPlannedCubicMeters = arrivals.Sum(item => item.ExpectedCubicMeters);
 
         OnPropertyChanged(nameof(PresentPackages)); OnPropertyChanged(nameof(InventoryCubicMeters));
         OnPropertyChanged(nameof(CubicMetersToConsolidate)); OnPropertyChanged(nameof(RealCubicMeters));

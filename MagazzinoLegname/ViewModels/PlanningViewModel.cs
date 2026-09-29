@@ -29,7 +29,7 @@ public sealed class PlanningViewModel : ObservableObject
         BuildCalendar();
         BuildForecast();
         _suppliers.CatalogChanged += (_, _) => { BuildCalendar(); RecalculateForecast(); };
-        _planning.PlanningChanged += (_, _) => RecalculateForecast();
+        _planning.PlanningChanged += (_, _) => { BuildCalendar(); RecalculateForecast(); };
         _settings.SettingsChanged += (_, _) => RecalculateForecast();
         _inventory.InventoryChanged += (_, _) => RecalculateForecast();
         ClassificationWorkflowService.Shared.WorkflowChanged += (_, _) => RecalculateForecast();
@@ -67,13 +67,13 @@ public sealed class PlanningViewModel : ObservableObject
     }
     public string PeriodText => $"A: {_selectedWeekA:dd/MM}–{_selectedWeekA.AddDays(4):dd/MM}  ·  B: {_selectedWeekB:dd/MM}–{_selectedWeekB.AddDays(4):dd/MM}";
     private IReadOnlyList<(string Label, DateTime Monday)> ActiveWeeks =>
-        [("SETTIMANA A", _selectedWeekA), ("SETTIMANA B", _selectedWeekB)];
+        [("SETTIMANA A", _selectedWeekA), ("SETTIMANA B", _selectedWeekB), ("SETTIMANA C", _selectedWeekB.AddDays(7))];
 
     private void BuildCalendar()
     {
-        var activeSuppliers = _suppliers.Suppliers.Where(item => item.IsActive).ToList();
+        var activeSuppliers = _suppliers.Suppliers.Where(item => item.IsActive || _planning.Arrivals.Any(x => x.SupplierId == item.Id)).ToList();
         ActiveSupplierNames.Clear();
-        foreach (var supplier in activeSuppliers) ActiveSupplierNames.Add(supplier.Name);
+        foreach (var supplier in activeSuppliers) ActiveSupplierNames.Add(supplier.Name + (supplier.IsActive ? "" : " (inattivo)"));
 
         CalendarWeeks.Clear();
         foreach (var activeWeek in ActiveWeeks)
@@ -82,9 +82,9 @@ public sealed class PlanningViewModel : ObservableObject
             var days = Enumerable.Range(0, 5)
                 .Select(offset => new PlanningDayViewModel(weekStart.AddDays(offset))).ToList();
             var supplierRows = activeSuppliers.Select(supplier =>
-                new PlanningSupplierWeekRowViewModel(supplier.Name,
+                new PlanningSupplierWeekRowViewModel(supplier.Name + (supplier.IsActive ? "" : " (inattivo)"),
                     days.Select(day => new PlanningArrivalCellViewModel(
-                        _planning.GetOrCreateArrival(supplier.Id, day.Date))))).ToList();
+                        _planning.GetOrCreateArrival(supplier.Id, day.Date), _planning, supplier.IsActive, ReportError)))).ToList();
             CalendarWeeks.Add(new PlanningCalendarWeekViewModel(
                 activeWeek.Label, weekStart, days, supplierRows));
         }
@@ -127,8 +127,8 @@ public sealed class PlanningViewModel : ObservableObject
                         && arrival.ConventionalThickness == row.ConventionalThickness
                         && arrival.Quality == row.Quality)
                     .Sum(arrival => arrival.LoadQuantity);
-                var standardCubicMeters = Settings.GetStandardCubicMetersPerExpectedLoad(row.ConventionalThickness);
-                var arrivals = loadCount * standardCubicMeters;
+                var arrivals = _planning.Arrivals.Where(x => x.Date.Date >= weekStart && x.Date.Date <= weekEnd && x.Status == PlannedArrivalStatus.Expected
+                    && x.ConventionalThickness == row.ConventionalThickness && x.Quality == row.Quality).Sum(x => x.ExpectedCubicMeters);
                 var cell = row.Weeks[weekIndex];
                 cell.Update(openingBalance, loadCount, arrivals);
                 openingBalance = cell.ClosingBalance;
@@ -138,11 +138,24 @@ public sealed class PlanningViewModel : ObservableObject
 
     private void RefreshActiveWeeks()
     {
-        BuildCalendar();
+        Refresh();
         BuildForecast();
         OnPropertyChanged(nameof(PeriodText));
     }
 
+    private string _databaseMessage = "Carichi pianificati: aggiornare da SQL.";
+    public string DatabaseMessage { get => _databaseMessage; private set => SetProperty(ref _databaseMessage, value); }
+    public event Action<string>? ErrorOccurred;
+    private void ReportError(Exception error)
+    {
+        System.Diagnostics.Debug.WriteLine($"[Pianificazione UI] {error}");
+        DatabaseMessage = error.Message; ErrorOccurred?.Invoke(error.Message);
+    }
+    public void Refresh()
+    {
+        try { _planning.Invalidate(); _settings.Reload(); _suppliers.Reload(); _planning.Reload(); BuildCalendar(); RecalculateForecast(); DatabaseMessage = "Carichi pianificati aggiornati da SQL. Le modifiche alle celle vengono salvate automaticamente."; }
+        catch (Exception error) { ReportError(error); }
+    }
     private static DateTime StartOfWeek(DateTime date) =>
         date.Date.AddDays(-(((int)date.DayOfWeek + 6) % 7));
 }
@@ -171,50 +184,47 @@ public sealed class PlanningSupplierWeekRowViewModel(
 
 public sealed class PlanningArrivalCellViewModel : ObservableObject
 {
-    public static IReadOnlyList<string> AvailableOptions { get; } =
-    ["Nessun arrivo", "23 C", "23 VISTA", "34 C", "34 VISTA", "44 C", "44 VISTA"];
-
-    public PlanningArrivalCellViewModel(PlannedArrival arrival)
-    {
-        Arrival = arrival;
-        Arrival.PropertyChanged += (_, _) =>
-        {
-            OnPropertyChanged(nameof(Options));
-            OnPropertyChanged(nameof(Selection));
-            OnPropertyChanged(nameof(IsEditable));
-        };
-    }
+    public static IReadOnlyList<string> AvailableOptions { get; } = ["Nessun arrivo", "23 C", "23 VISTA", "34 C", "34 VISTA", "44 C", "44 VISTA"];
+    private readonly PlanningDataService _planning;
+    private readonly Action<Exception> _report;
+    private readonly bool _supplierActive;
+    public PlanningArrivalCellViewModel(PlannedArrival arrival, PlanningDataService planning, bool supplierActive, Action<Exception> report)
+    { Arrival = arrival; _planning = planning; _supplierActive = supplierActive; _report = report; }
     public PlannedArrival Arrival { get; }
-    public IReadOnlyList<string> Options => Arrival.Status == PlannedArrivalStatus.Confirmed
-        ? [$"✓ Arrivato · {Arrival.ConventionalThickness:0} {Arrival.Quality}"]
-        : AvailableOptions;
-    public bool IsEditable => Arrival.Status == PlannedArrivalStatus.Expected;
-    public string Selection
+    public IReadOnlyList<string> Options => Arrival.Status == PlannedArrivalStatus.Confirmed ? [$"✓ Arrivato · {Arrival.ConventionalThickness:0} {Arrival.Quality}"] : !_supplierActive ? ["Nessun arrivo", Selection] : AvailableOptions;
+    public bool IsEditable => _planning.IsAvailable && Arrival.Status == PlannedArrivalStatus.Expected && (_supplierActive || Arrival.RowVersion.Length > 0);
+    public bool CanChangeQuantity => IsEditable && _supplierActive && Arrival.LoadQuantity > 0;
+    public string Detail => $"{Arrival.Date:dd/MM/yyyy} · {Arrival.LoadQuantity} carichi · {Arrival.ExpectedCubicMeters:N2} m³ · {Arrival.Notes}";
+    public int LoadQuantity
     {
-        get => Arrival.Status == PlannedArrivalStatus.Confirmed
-            ? $"✓ Arrivato · {Arrival.ConventionalThickness:0} {Arrival.Quality}"
-            : Arrival.LoadQuantity <= 0 || !Arrival.ConventionalThickness.HasValue
-            ? "Nessun arrivo"
-            : $"{Arrival.ConventionalThickness.Value:0} {Arrival.Quality}";
+        get => Arrival.LoadQuantity;
         set
         {
-            if (!IsEditable) return;
-            if (value == Selection) return;
-            if (value == "Nessun arrivo")
-            {
-                Arrival.LoadQuantity = 0;
-                Arrival.ConventionalThickness = null;
-                Arrival.Quality = null;
-            }
-            else
-            {
-                var parts = value.Split(' ', 2);
-                Arrival.ConventionalThickness = decimal.Parse(parts[0]);
-                Arrival.Quality = parts[1];
-                Arrival.LoadQuantity = 1;
-            }
-            OnPropertyChanged();
+            if (!CanChangeQuantity || value == Arrival.LoadQuantity) return;
+            if (value <= 0) { _report(new InvalidOperationException("Inserire almeno un carico; per eliminare scegliere Nessun arrivo.")); OnPropertyChanged(); return; }
+            var draft = Arrival.Copy(); draft.LoadQuantity = value; Persist(draft, false);
         }
+    }
+    public string Selection
+    {
+        get => Arrival.Status == PlannedArrivalStatus.Confirmed ? $"✓ Arrivato · {Arrival.ConventionalThickness:0} {Arrival.Quality}" :
+            Arrival.LoadQuantity <= 0 ? "Nessun arrivo" : $"{Arrival.ConventionalThickness:0} {Arrival.Quality}";
+        set
+        {
+            if (!IsEditable || string.IsNullOrEmpty(value) || value == Selection) return;
+            if (value == "Nessun arrivo") { Persist(Arrival.Copy(), true); return; }
+            if (!_supplierActive) { _report(new InvalidOperationException("Fornitore inattivo: è possibile solo eliminare la pianificazione esistente.")); OnPropertyChanged(); return; }
+            if (!AvailableOptions.Contains(value)) return;
+            var parts = value.Split(' ', 2); var draft = Arrival.Copy();
+            draft.ConventionalThickness = decimal.Parse(parts[0]); draft.Quality = parts[1]; draft.LoadQuantity = Math.Max(1, draft.LoadQuantity);
+            Persist(draft, false);
+        }
+    }
+    private void Persist(PlannedArrival draft, bool delete)
+    {
+        try { if (delete) _planning.Delete(draft); else _planning.Save(draft); }
+        catch (Exception error) { _report(error); }
+        OnPropertyChanged(nameof(Selection)); OnPropertyChanged(nameof(LoadQuantity));
     }
 }
 
