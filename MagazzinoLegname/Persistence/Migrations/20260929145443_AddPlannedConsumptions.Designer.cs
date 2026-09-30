@@ -4,6 +4,7 @@ using MagazzinoLegname.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MagazzinoLegname.Persistence.Migrations
 {
     [DbContext(typeof(MagazzinoDbContext))]
-    partial class MagazzinoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260929145443_AddPlannedConsumptions")]
+    partial class AddPlannedConsumptions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -952,6 +955,9 @@ namespace MagazzinoLegname.Persistence.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("date");
+
                     b.Property<decimal>("ExpectedCubicMeters")
                         .HasColumnType("decimal(28,9)");
 
@@ -969,12 +975,9 @@ namespace MagazzinoLegname.Persistence.Migrations
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime>("WeekStart")
-                        .HasColumnType("date");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("WeekStart", "ConventionalThickness", "Quality")
+                    b.HasIndex("Date", "ConventionalThickness", "Quality")
                         .IsUnique();
 
                     b.ToTable("PlannedConsumptions", null, t =>
@@ -982,8 +985,6 @@ namespace MagazzinoLegname.Persistence.Migrations
                             t.HasCheckConstraint("CK_PlannedConsumptions_Material", "[ConventionalThickness] IN (23,34,44) AND [Quality] IN ('C','VISTA')");
 
                             t.HasCheckConstraint("CK_PlannedConsumptions_Quantity", "[ExpectedCubicMeters] > 0");
-
-                            t.HasCheckConstraint("CK_PlannedConsumptions_WeekStart", "DATEDIFF(day, '19000101', [WeekStart]) % 7 = 0");
                         });
                 });
 

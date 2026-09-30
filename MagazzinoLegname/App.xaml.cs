@@ -16,6 +16,7 @@ public partial class App : Application
 {
         public App()
         {
+            PlanningDiagnostics.Attach(this);
             FrameworkElement.LanguageProperty.OverrideMetadata(
                 typeof(FrameworkElement),
                 new FrameworkPropertyMetadata(XmlLanguage.GetLanguage("it-IT")));

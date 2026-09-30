@@ -9,6 +9,9 @@ public partial class PlanningView : UserControl, INavigationAware
     public PlanningView()
     {
         InitializeComponent(); DataContext = new PlanningViewModel();
+#if DEBUG
+        LayoutUpdated += (_, _) => MagazzinoLegname.Services.PlanningDiagnostics.Log("12 UI update completed (LayoutUpdated)");
+#endif
         ViewModel.ErrorOccurred += message => MessageBox.Show(message, "Pianificazione SQL", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
     public void OnNavigatedTo() => ViewModel.Refresh();

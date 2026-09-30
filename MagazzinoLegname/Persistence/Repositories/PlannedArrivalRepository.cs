@@ -53,7 +53,8 @@ public sealed class SqlPlannedArrivalRepository(IDbContextFactory<MagazzinoDbCon
    x.SupplierNameSnapshot = supplier.Name; x.ConventionalThickness = a.ConventionalThickness.Value; x.Quality = a.Quality;
    x.LoadQuantity = a.LoadQuantity; x.Notes = a.Notes.Trim(); x.UpdatedAtUtc = DateTime.UtcNow;
    x.Status = a.Status; x.ConfirmedAt = a.ConfirmedAt; x.ConfirmedBy = a.ConfirmedBy;
-   db.SaveChanges(); tx.Commit();
+   db.SaveChanges(); MagazzinoLegname.Services.PlanningDiagnostics.Log("3 SaveChanges OK");
+   tx.Commit(); MagazzinoLegname.Services.PlanningDiagnostics.Log("4 transaction COMMIT OK");
   }); }
   catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 2601 or 2627 }) { throw new DbUpdateConcurrencyException("Esiste già una pianificazione per questo fornitore/giorno.", ex); }
  }

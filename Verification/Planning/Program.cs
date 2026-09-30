@@ -1,4 +1,4 @@
-using MagazzinoLegname.Models;
+﻿using MagazzinoLegname.Models;
 using MagazzinoLegname.Persistence;
 using MagazzinoLegname.Persistence.Entities;
 using MagazzinoLegname.Persistence.Repositories;
@@ -19,14 +19,14 @@ decimal Standard() { using var db = factory.CreateDbContext(); return db.Applica
 if(args[0] == "create") {
  using(var db = factory.CreateDbContext()) {
   var pending=db.Database.GetPendingMigrations().ToArray();
-  Check(pending.All(x=>x.EndsWith("_AddPlannedArrivals")), "migration only PlannedArrivals");
+  Check(pending.All(x=>(x.EndsWith("_AddPlannedArrivals") || x.EndsWith("_AddPlannedConsumptions") || x.EndsWith("_RestoreWeeklyPlannedConsumptions"))), "migrations only planning tables");
   db.Database.Migrate(); Check(!db.Database.HasPendingModelChanges(), "EF model matches migration");
   db.Suppliers.Add(new SupplierEntity { Id=id, Code=code, Name="TEST PIANIFICAZIONE", IsActive=true }); db.SaveChanges();
  }
  var service = new PlanningDataService(repo); service.Reload(); var before=repo.GetAll().Count;
  service.GetOrCreateArrival(id,date); Check(repo.GetAll().Count==before && service.Arrivals.All(x=>x.SupplierId!=id), "empty cells are drafts only; no RAM authority/SQL rows");
  service.Save(Draft()); Check(Current().LoadQuantity==1 && Current().ExpectedCubicMeters==Standard() && Current().RowVersion.Length==8,"A create supplier/family34/C/1 load and reload");
- service.Save(Draft(8)); service.Save(Draft(17)); Check(repo.GetAll().Count(x=>x.SupplierId==id)==3,"D dates across three weeks persisted");
+ service.Save(Draft(8)); service.Save(Draft(17)); Check(repo.GetAll().Count(x=>x.SupplierId==id)==3,"D dates across different periods persisted");
 }
 else if(args[0] == "update") {
  Check(Current().LoadQuantity==1 && Current().ExpectedCubicMeters==Standard(),"A separate process restart preserves planning");
@@ -47,10 +47,14 @@ else if(args[0] == "verify") {
  Check(repo.GetAll().All(x=>x.SupplierId!=id||x.Date!=date),"C delete survives separate process restart");
  Check(Current(8).Status==PlannedArrivalStatus.Confirmed && Current(17).LoadQuantity==1,"D other periods and confirmation survive restart");
  var vm=new PlanningViewModel(); vm.Refresh(); vm.SelectedWeekA=date; vm.SelectedWeekB=date.AddDays(7);
- Check(vm.CalendarWeeks.Count==3 && vm.CalendarWeeks.All(x=>x.Days.Count==5) && vm.ForecastRows.Count==6,"UI model three Mon-Fri weeks and six material rows");
- vm.SelectedWeekA=date.AddDays(28); vm.SelectedWeekA=date; vm.SelectedWeekB=date.AddDays(7);
+ Check(vm.CalendarWeeks.Count==2 && vm.CalendarWeeks.Select(x=>x.Label).SequenceEqual(new[]{"SETTIMANA A","SETTIMANA B"}) && vm.CalendarWeeks.All(x=>x.Days.Count==5 && x.Days.Select(d=>d.Date.DayOfWeek).SequenceEqual(new[]{DayOfWeek.Monday,DayOfWeek.Tuesday,DayOfWeek.Wednesday,DayOfWeek.Thursday,DayOfWeek.Friday})) && vm.ForecastRows.Count==6 && vm.ForecastRows.All(x=>x.Weeks.Count==2),"UI model exactly two Mon-Fri weeks and six material rows with two weekly consumption cells");
+ var saved=repo.GetAll().Where(x=>x.SupplierId==id).Select(x=>$"{x.Id}|{x.LoadQuantity}|{x.ExpectedCubicMeters}|{Convert.ToHexString(x.RowVersion)}").ToArray();
+ vm.SelectedWeekA=date.AddDays(14); vm.SelectedWeekB=date.AddDays(21);
+ Check(vm.CalendarWeeks.Count==2 && vm.CalendarWeeks[0].SupplierRows.SelectMany(x=>x.Cells).Any(x=>x.Arrival.SupplierId==id&&x.Arrival.Date==date.AddDays(17)&&x.Arrival.LoadQuantity==1),"D forward period loads SQL arrival in week A");
+ vm.SelectedWeekA=date; vm.SelectedWeekB=date.AddDays(7);
+ Check(saved.SequenceEqual(repo.GetAll().Where(x=>x.SupplierId==id).Select(x=>$"{x.Id}|{x.LoadQuantity}|{x.ExpectedCubicMeters}|{Convert.ToHexString(x.RowVersion)}")),"D period navigation preserves SQL values and RowVersion");
  Check(repo.GetAll().Count(x=>x.SupplierId==id)==2,"D period navigation never deletes data");
- Check(vm.CalendarWeeks[2].SupplierRows.SelectMany(x=>x.Cells).Any(x=>x.Arrival.SupplierId==id&&x.Arrival.LoadQuantity==1),"D SQL arrival restored into visible third week");
+ Check(vm.CalendarWeeks[1].SupplierRows.SelectMany(x=>x.Cells).Any(x=>x.Arrival.SupplierId==id&&x.Arrival.Date==date.AddDays(8)&&x.Arrival.Status==PlannedArrivalStatus.Confirmed),"D backward period restores confirmed SQL arrival in week B");
 }
 else if(args[0] == "wpf") {
  Exception? failure=null;
@@ -61,15 +65,18 @@ else if(args[0] == "wpf") {
    var vm = (PlanningViewModel)view.DataContext; vm.Refresh(); vm.SelectedWeekA=date; vm.SelectedWeekB=date.AddDays(7);
    view.Measure(new System.Windows.Size(1400,700)); view.Arrange(new System.Windows.Rect(0,0,1400,700)); view.UpdateLayout();
    System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(()=>{},System.Windows.Threading.DispatcherPriority.ApplicationIdle);
-   Check(vm.CalendarWeeks.Count==3,"WPF compiled view loads three weeks without exception");
+   Check(vm.CalendarWeeks.Count==2 && vm.ForecastRows.All(x=>x.Weeks.Count==2),"WPF compiled view loads exactly two weeks without exception");
    var cell=vm.CalendarWeeks[0].SupplierRows.SelectMany(x=>x.Cells).Single(x=>x.Arrival.SupplierId==id&&x.Arrival.Date==date);
    cell.Selection="34 C";
+   System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(()=>{},System.Windows.Threading.DispatcherPriority.ApplicationIdle);
    Check(Current().LoadQuantity==1,"WPF cell selection INSERT/reload");
    cell=vm.CalendarWeeks[0].SupplierRows.SelectMany(x=>x.Cells).Single(x=>x.Arrival.SupplierId==id&&x.Arrival.Date==date);
    cell.LoadQuantity=2;
+   System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(()=>{},System.Windows.Threading.DispatcherPriority.ApplicationIdle);
    Check(Current().LoadQuantity==2&&Current().ExpectedCubicMeters==2*Standard(),"WPF cell quantity UPDATE/reload");
    cell=vm.CalendarWeeks[0].SupplierRows.SelectMany(x=>x.Cells).Single(x=>x.Arrival.SupplierId==id&&x.Arrival.Date==date);
    cell.Selection="Nessun arrivo";
+   System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(()=>{},System.Windows.Threading.DispatcherPriority.ApplicationIdle);
    Check(repo.GetAll().All(x=>x.SupplierId!=id||x.Date!=date),"WPF empty selection DELETE/reload");
    view.UpdateLayout(); app.Shutdown();
   } catch(Exception ex) { failure=ex; }

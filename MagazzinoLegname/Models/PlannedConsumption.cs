@@ -1,14 +1,18 @@
-using MagazzinoLegname.Infrastructure;
-
 namespace MagazzinoLegname.Models;
 
-public sealed class PlannedConsumption : ObservableObject
+// A detached SQL cell (or an unsaved empty draft), expressed in cubic metres.
+public sealed class PlannedConsumption
 {
-    private decimal _cubicMeters;
-
     public Guid Id { get; init; } = Guid.NewGuid();
     public required DateTime WeekStart { get; init; }
     public required decimal ConventionalThickness { get; init; }
     public required string Quality { get; init; }
-    public decimal CubicMeters { get => _cubicMeters; set => SetProperty(ref _cubicMeters, Math.Max(0m, value)); }
+    public decimal ExpectedCubicMeters { get; set; }
+    public DateTime CreatedAtUtc { get; init; }
+    public DateTime UpdatedAtUtc { get; init; }
+    public byte[] RowVersion { get; init; } = [];
+    public PlannedConsumption Copy() => new() { Id = Id, WeekStart = WeekStart,
+        ConventionalThickness = ConventionalThickness, Quality = Quality,
+        ExpectedCubicMeters = ExpectedCubicMeters, CreatedAtUtc = CreatedAtUtc,
+        UpdatedAtUtc = UpdatedAtUtc, RowVersion = RowVersion.ToArray() };
 }
