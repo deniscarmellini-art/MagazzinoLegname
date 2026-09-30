@@ -1,4 +1,4 @@
-<UserControl x:Class="MagazzinoLegname.Views.StatisticsView"
+﻿<UserControl x:Class="MagazzinoLegname.Views.StatisticsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF">
@@ -81,6 +81,16 @@
             <Setter Property="CornerRadius" Value="13,13,0,0"/>
         </Style>
     </UserControl.Resources>
+    <DockPanel>
+        <DockPanel DockPanel.Dock="Top" Margin="8,0,8,8" LastChildFill="True">
+            <Button DockPanel.Dock="Right" Content="Aggiorna da SQL" Click="RefreshSql_Click" Style="{StaticResource SecondaryButtonStyle}" Margin="12,0,0,0"/>
+            <TextBlock Text="{Binding RefreshMessage}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+        </DockPanel>
+        <Border>
+            <Border.Style><Style TargetType="Border"><Style.Triggers>
+                <DataTrigger Binding="{Binding IsDataAvailable}" Value="False"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+            </Style.Triggers></Style></Border.Style>
+
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="0,0,0,12">
@@ -237,4 +247,6 @@
             </Grid>
         </StackPanel>
     </ScrollViewer>
+        </Border>
+    </DockPanel>
 </UserControl>

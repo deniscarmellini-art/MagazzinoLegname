@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using System.Collections.ObjectModel;
 using System;
 using System.Windows.Input;
@@ -8,16 +8,16 @@ using MagazzinoLegname.Services;
 
 namespace MagazzinoLegname.ViewModels;
 
-public sealed class DashboardViewModel : ObservableObject
+public sealed class DashboardViewModel : ConsultationViewModel
 {
     private readonly InventoryProjectionService _projection = InventoryProjectionService.Shared;
-    private readonly PlanningDataService _planning = PlanningDataService.Shared;
+    private readonly PlanningDataService _planning = new(new MagazzinoLegname.Persistence.Repositories.SqlPlannedArrivalRepository(MagazzinoLegname.Persistence.SqlPersistenceRoot.ContextFactory));
     private readonly PlanningSettingsService _planningSettings = PlanningSettingsService.Shared;
     private readonly SupplierCatalogService _suppliers = SupplierCatalogService.Shared;
     private readonly MaterialParameters _materialParameters = MaterialParametersService.Shared.Parameters;
     private IReadOnlyList<InventoryPackage> _allPackages = [];
 
-    public DashboardViewModel()
+    public DashboardViewModel(Action? reloadSources = null) : base(reloadSources)
     {
         ClassificationWorkflowService.Shared.WorkflowChanged += (_, _) => Reload();
         _projection.InventoryChanged += (_, _) => Reload();
@@ -88,12 +88,7 @@ public sealed class DashboardViewModel : ObservableObject
     public string InventoryValueDisplay => _allPackages.Count(p => p.IsAccountedPackage) == 0 || PackagesWithoutPrice == _allPackages.Count(p => p.IsAccountedPackage) ? "N/D"
         : InventoryValue.ToString("N0") + " €" + (PackagesWithoutPrice > 0 ? " · PARZIALE" : "");
 
-    public void Refresh()
-    {
-        try { _planning.Reload(); }
-        catch (Exception error) { System.Diagnostics.Debug.WriteLine(error); System.Windows.MessageBox.Show(error.Message, "Pianificazione SQL non disponibile"); }
-        Reload();
-    }
+    public void Refresh() => RefreshFromSql(Reload, _planning.Reload);
     private void ConfirmPlannedArrival(Guid id)
     {
         try { _planning.ConfirmArrival(id); }
@@ -102,6 +97,7 @@ public sealed class DashboardViewModel : ObservableObject
 
     private void Reload()
     {
+        if (!CanRebuild) return;
         _allPackages = _projection.BuildInventory();
         var accountedPackages = _allPackages.Where(package => package.IsAccountedPackage).ToArray();
         PresentPackages = _allPackages.Count;

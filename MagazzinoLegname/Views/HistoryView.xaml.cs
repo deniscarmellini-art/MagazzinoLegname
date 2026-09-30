@@ -1,3 +1,4 @@
+﻿using MagazzinoLegname.Navigation;
 using System.Windows.Controls;
 
 using System.Windows;
@@ -5,9 +6,13 @@ using MagazzinoLegname.ViewModels;
 
 namespace MagazzinoLegname.Views;
 
-public partial class HistoryView : UserControl
+public partial class HistoryView : UserControl, INavigationAware
 {
     private HistoryViewModel ViewModel => (HistoryViewModel)DataContext;
+
+    public void OnNavigatedTo() => ViewModel.Refresh();
+
+    private void RefreshSql_Click(object sender, RoutedEventArgs e) => ViewModel.Refresh();
 
     public HistoryView()
     {

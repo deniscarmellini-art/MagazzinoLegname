@@ -1,11 +1,11 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using MagazzinoLegname.Infrastructure;
 using MagazzinoLegname.Models;
 using MagazzinoLegname.Services;
 
 namespace MagazzinoLegname.ViewModels;
 
-public sealed class HistoryViewModel : ObservableObject
+public sealed class HistoryViewModel : ConsultationViewModel
 {
     private readonly ClassificationWorkflowService _workflow = ClassificationWorkflowService.Shared;
     private readonly InventoryProjectionService _inventory = InventoryProjectionService.Shared;
@@ -24,7 +24,7 @@ public sealed class HistoryViewModel : ObservableObject
     private HistoryMovementRow? _selectedLoadTimelineMovement;
     private LoadHistorySummary? _selectedLoadSummary;
 
-    public HistoryViewModel()
+    public HistoryViewModel(Action? reloadSources = null) : base(reloadSources)
     {
         _workflow.WorkflowChanged += (_, _) => Reload();
         _inventory.InventoryChanged += (_, _) => Reload();
@@ -105,8 +105,11 @@ public sealed class HistoryViewModel : ObservableObject
         SelectedLoadSummary = null;
     }
 
+    public void Refresh() => RefreshFromSql(Reload);
+
     private void Reload()
     {
+        if (!CanRebuild) return;
         _allMovements = BuildMovementRows().OrderByDescending(item => item.DateTime).ToList();
         ReplaceOptions(Suppliers, "Tutti", _allMovements.Select(item => item.SupplierName));
         ReplaceOptions(Thicknesses, "Tutti", _allMovements.Where(item => item.ConventionalThickness.HasValue)

@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -10,6 +10,8 @@ public partial class DashboardView : UserControl, INavigationAware
 {
     private MagazzinoLegname.ViewModels.DashboardViewModel ViewModel =>
         (MagazzinoLegname.ViewModels.DashboardViewModel)DataContext;
+
+    private void RefreshSql_Click(object sender, RoutedEventArgs e) => ViewModel.Refresh();
 
     public DashboardView()
     {

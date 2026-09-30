@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using LiveChartsCore;
 using LiveChartsCore.Measure;
 using LiveChartsCore.SkiaSharpView;
@@ -10,7 +10,7 @@ using SkiaSharp;
 
 namespace MagazzinoLegname.ViewModels;
 
-public sealed class StatisticsViewModel : ObservableObject
+public sealed class StatisticsViewModel : ConsultationViewModel
 {
     private readonly ClassificationWorkflowService _workflow = ClassificationWorkflowService.Shared;
     private readonly InventoryProjectionService _inventory = InventoryProjectionService.Shared;
@@ -25,18 +25,18 @@ public sealed class StatisticsViewModel : ObservableObject
     private DateTime? _dateFrom;
     private DateTime? _dateTo;
 
-    public StatisticsViewModel()
+    public StatisticsViewModel(Action? reloadSources = null) : base(reloadSources)
     {
         Periods = ["Questo mese", "Ultimi 3 mesi", "Ultimi 6 mesi", "Anno corrente", "Personalizzato"];
         Thicknesses = ["Tutti", "23", "34", "44"];
         Qualities = ["Tutte", "C", "VISTA"];
-        _workflow.WorkflowChanged += (_, _) => Refresh();
-        _inventory.InventoryChanged += (_, _) => Refresh();
-        _legacyHistory.HistoryChanged += (_, _) => { RefreshSuppliers(); Refresh(); };
-        _suppliers.CatalogChanged += (_, _) => { RefreshSuppliers(); Refresh(); };
+        _workflow.WorkflowChanged += (_, _) => Recalculate();
+        _inventory.InventoryChanged += (_, _) => Recalculate();
+        _legacyHistory.HistoryChanged += (_, _) => { RefreshSuppliers(); Recalculate(); };
+        _suppliers.CatalogChanged += (_, _) => { RefreshSuppliers(); Recalculate(); };
         RefreshSuppliers();
         UpdateFilterDates();
-        Refresh();
+        Recalculate();
     }
 
     public IReadOnlyList<string> Periods { get; }
@@ -68,7 +68,7 @@ public sealed class StatisticsViewModel : ObservableObject
             if (!SetProperty(ref _selectedPeriod, value)) return;
             UpdateFilterDates();
             OnPropertyChanged(nameof(IsCustomPeriod));
-            Refresh();
+            Recalculate();
         }
     }
     public bool IncludeInactiveSuppliers
@@ -78,14 +78,14 @@ public sealed class StatisticsViewModel : ObservableObject
         {
             if (!SetProperty(ref _includeInactiveSuppliers, value)) return;
             RefreshSuppliers();
-            Refresh();
+            Recalculate();
         }
     }
-    public string SelectedSupplier { get => _selectedSupplier; set { if (SetProperty(ref _selectedSupplier, value)) Refresh(); } }
-    public string SelectedThickness { get => _selectedThickness; set { if (SetProperty(ref _selectedThickness, value)) Refresh(); } }
-    public string SelectedQuality { get => _selectedQuality; set { if (SetProperty(ref _selectedQuality, value)) Refresh(); } }
-    public DateTime? DateFrom { get => _dateFrom; set { if (SetProperty(ref _dateFrom, value) && IsCustomPeriod) Refresh(); } }
-    public DateTime? DateTo { get => _dateTo; set { if (SetProperty(ref _dateTo, value) && IsCustomPeriod) Refresh(); } }
+    public string SelectedSupplier { get => _selectedSupplier; set { if (SetProperty(ref _selectedSupplier, value)) Recalculate(); } }
+    public string SelectedThickness { get => _selectedThickness; set { if (SetProperty(ref _selectedThickness, value)) Recalculate(); } }
+    public string SelectedQuality { get => _selectedQuality; set { if (SetProperty(ref _selectedQuality, value)) Recalculate(); } }
+    public DateTime? DateFrom { get => _dateFrom; set { if (SetProperty(ref _dateFrom, value) && IsCustomPeriod) Recalculate(); } }
+    public DateTime? DateTo { get => _dateTo; set { if (SetProperty(ref _dateTo, value) && IsCustomPeriod) Recalculate(); } }
     public bool IsCustomPeriod => SelectedPeriod == "Personalizzato";
 
     public decimal CubicMetersEntered { get; private set; }
@@ -105,6 +105,7 @@ public sealed class StatisticsViewModel : ObservableObject
 
     private void RefreshSuppliers()
     {
+        if (!CanRebuild) return;
         Suppliers.Clear();
         Suppliers.Add("Tutti");
         foreach (var supplierName in ScopedSuppliers().Select(item => item.Name)
@@ -138,11 +139,17 @@ public sealed class StatisticsViewModel : ObservableObject
         OnPropertyChanged(nameof(DateTo));
     }
 
-    private void Refresh()
+    public void Refresh() => RefreshFromSql(() => { RefreshSuppliers(); Recalculate(); });
+
+    private static DateTime EndOfDay(DateTime value) => value.Date == DateTime.MaxValue.Date
+        ? DateTime.MaxValue : value.Date.AddDays(1).AddTicks(-1);
+
+    private void Recalculate()
     {
+        if (!CanRebuild) return;
         var from = (DateFrom ?? DateTime.MinValue).Date;
-        var to = (DateTo ?? DateTime.MaxValue).Date.AddDays(1).AddTicks(-1);
-        if (from > to) (from, to) = (to.Date, from.Date.AddDays(1).AddTicks(-1));
+        var to = EndOfDay(DateTo ?? DateTime.MaxValue);
+        if (from > to) (from, to) = (to.Date, EndOfDay(from));
 
         var allGroups = _workflow.Loads
             .SelectMany(load => load.Groups.Select(group => new GroupContext(load, group)))
@@ -347,14 +354,27 @@ public sealed class StatisticsViewModel : ObservableObject
         DateTime from, DateTime to)
     {
         TimePoints.Clear();
+        // Missing bounds keep the filter open, but the chart only needs the data extent.
+        var dates = entries.Select(x => x.Load.ArrivalDate)
+            .Concat(legacyEntries.Select(x => x.Record.ArrivalDate))
+            .Concat(discharges.Select(x => x.Date))
+            .Concat(legacyDischarges.Where(x => x.Record.FinishedOn.HasValue).Select(x => x.Record.FinishedOn!.Value))
+            .Concat(returns.Select(x => x.Movement.ReturnDate))
+            .Concat(legacyReturns.Where(x => x.Record.FinishedOn.HasValue).Select(x => x.Record.FinishedOn!.Value))
+            .ToArray();
+        if (!DateFrom.HasValue) from = dates.Length == 0 ? (DateTo ?? DateTime.Today).Date : dates.Min().Date;
+        if (!DateTo.HasValue) to = dates.Length == 0 ? from : EndOfDay(dates.Max());
+        if (to < from) to = from;
         var isWeekly = (to.Date - from.Date).TotalDays + 1 <= 45;
         TimeChartGranularity = isWeekly ? "Settimanale" : "Mensile";
         var firstBucket = isWeekly ? StartOfWeek(from) : new DateTime(from.Year, from.Month, 1);
         var lastBucket = isWeekly ? StartOfWeek(to) : new DateTime(to.Year, to.Month, 1);
 
-        for (var bucket = firstBucket; bucket <= lastBucket; bucket = isWeekly ? bucket.AddDays(7) : bucket.AddMonths(1))
+        for (var bucket = firstBucket; bucket <= lastBucket;)
         {
-            var bucketEnd = isWeekly ? bucket.AddDays(7) : bucket.AddMonths(1);
+            var finalCalendarBucket = isWeekly ? bucket > DateTime.MaxValue.AddDays(-7)
+                : bucket.Year == 9999 && bucket.Month == 12;
+            var bucketEnd = finalCalendarBucket ? DateTime.MaxValue : isWeekly ? bucket.AddDays(7) : bucket.AddMonths(1);
             var incoming = entries
                 .Where(item => item.Load.ArrivalDate >= bucket && item.Load.ArrivalDate < bucketEnd)
                 .Sum(item => item.Group.IncomingPhysicalCubicMeters)
@@ -372,6 +392,8 @@ public sealed class StatisticsViewModel : ObservableObject
             TimePoints.Add(new StatisticsTimePoint(bucket,
                 isWeekly ? bucket.ToString("dd/MM") : bucket.ToString("MMM yyyy"),
                 incoming, discharged, returned));
+            if (finalCalendarBucket) break;
+            bucket = bucketEnd;
         }
 
         var incomingPaint = new SolidColorPaint(new SKColor(46, 139, 214));

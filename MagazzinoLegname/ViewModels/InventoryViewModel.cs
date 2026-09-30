@@ -1,11 +1,11 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using MagazzinoLegname.Infrastructure;
 using MagazzinoLegname.Models;
 using MagazzinoLegname.Services;
 
 namespace MagazzinoLegname.ViewModels;
 
-public sealed class InventoryViewModel : ObservableObject
+public sealed class InventoryViewModel : ConsultationViewModel
 {
     private readonly InventoryProjectionService _projection = InventoryProjectionService.Shared;
     private readonly MaterialParameters _materialParameters = MaterialParametersService.Shared.Parameters;
@@ -18,7 +18,7 @@ public sealed class InventoryViewModel : ObservableObject
     private string _selectedWasteStatus = "Tutti";
     private string _selectedPackageType = "Tutti";
 
-    public InventoryViewModel()
+    public InventoryViewModel(Action? reloadSources = null) : base(reloadSources)
     {
         ClassificationWorkflowService.Shared.WorkflowChanged += (_, _) => Reload();
         _projection.InventoryChanged += (_, _) => Reload();
@@ -64,8 +64,11 @@ public sealed class InventoryViewModel : ObservableObject
         Reload();
     }
 
+    public void Refresh() => RefreshFromSql(Reload);
+
     private void Reload()
     {
+        if (!CanRebuild) return;
         var previousSupplier = _selectedSupplier;
         var previousThickness = _selectedThickness;
         var previousWidth = _selectedWidth;

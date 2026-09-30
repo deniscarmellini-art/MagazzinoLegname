@@ -1,3 +1,4 @@
+﻿using MagazzinoLegname.Navigation;
 using System.Windows;
 using System.Windows.Controls;
 using MagazzinoLegname.Models;
@@ -7,9 +8,13 @@ using Microsoft.Win32;
 
 namespace MagazzinoLegname.Views;
 
-public partial class InventoryView : UserControl
+public partial class InventoryView : UserControl, INavigationAware
 {
     private InventoryViewModel ViewModel => (InventoryViewModel)DataContext;
+
+    public void OnNavigatedTo() => ViewModel.Refresh();
+
+    private void RefreshSql_Click(object sender, RoutedEventArgs e) => ViewModel.Refresh();
 
     public InventoryView()
     {
