@@ -78,25 +78,6 @@ public partial class SettingsView : UserControl, INavigationAware
         if (dialog.ShowDialog() == true) ViewModel.SelectedConsumable.PhotoPath = dialog.FileName;
     }
     private void RemoveConsumablePhoto_Click(object sender, RoutedEventArgs e) { if (ViewModel.SelectedConsumable is not null) ViewModel.SelectedConsumable.PhotoPath = null; }
-    private void SelectConsumablesLegacy_Click(object sender, RoutedEventArgs e)
-    {
-        var dialog = new OpenFileDialog { Title = "Seleziona Materiale di Consumo CLT-XLAM", Filter = "File Excel (*.xlsx;*.xlsm)|*.xlsx;*.xlsm", CheckFileExists = true };
-        if (dialog.ShowDialog() == true) ViewModel.ConsumablesLegacyFilePath = dialog.FileName;
-    }
-    private void AnalyzeConsumablesLegacy_Click(object sender, RoutedEventArgs e)
-    {
-        try { ViewModel.AnalyzeConsumablesLegacy(); }
-        catch (Exception exception) { MessageBox.Show(exception.Message, "Analisi consumabili", MessageBoxButton.OK, MessageBoxImage.Warning); }
-    }
-    private void ImportConsumablesLegacy_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            var result = ViewModel.ImportConsumablesLegacy();
-            MessageBox.Show($"Importazione completata.\n\nArticoli creati: {result.Items:N0}\nRilevazioni create: {result.Readings:N0}\nPeriodo: {result.FirstReading:dd/MM/yyyy} - {result.LastReading:dd/MM/yyyy}\nArticoli da verificare: {result.ItemsToVerify:N0}\nFoto associate: {result.Photos:N0}\nFoto non associate: {result.UnassociatedPhotos:N0}", "Materiali di consumo", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-        catch (Exception exception) { MessageBox.Show(exception.Message, "Importazione consumabili", MessageBoxButton.OK, MessageBoxImage.Warning); }
-    }
     private void SelectLegacyFile_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFileDialog { Title = "Seleziona storico Excel", Filter = "Cartella di lavoro Excel con macro (*.xlsm)|*.xlsm", CheckFileExists = true, Multiselect = false };
@@ -154,14 +135,6 @@ public partial class SettingsView : UserControl, INavigationAware
                 "Importazione storico chiuso", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception exception) { MessageBox.Show(exception.Message, "Importazione bloccata", MessageBoxButton.OK, MessageBoxImage.Error); }
-    }
-    private void ResetTestData_Click(object sender, RoutedEventArgs e)
-    {
-        const string message = "Questa operazione elimina i dati operativi TEMPORANEI utilizzati per i test.\nContinuare?";
-        if (MessageBox.Show(message, "Azzera dati demo/test", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes) return;
-        ViewModel.ResetOperationalTestData();
-        MessageBox.Show("Dati operativi temporanei azzerati. Configurazioni, fornitori, parametri e operatori non sono stati modificati.",
-            "Store in-memory vuoto", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void AddContact_Click(object sender, RoutedEventArgs e) => ViewModel.AddContact();
     private void DeleteContact_Click(object sender, RoutedEventArgs e) => ViewModel.DeleteContact();

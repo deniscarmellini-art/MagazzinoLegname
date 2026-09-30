@@ -25,8 +25,6 @@ public sealed class SettingsViewModel : ObservableObject
     private ConsumableItem? _selectedConsumable;
     private string _consumableSearchText = string.Empty;
     private bool _isConsumableEditorVisible;
-    private string? _consumablesLegacyFilePath;
-    private ConsumablesLegacyImportPlan? _consumablesImportPlan;
 
     public SettingsViewModel()
     {
@@ -59,9 +57,6 @@ public sealed class SettingsViewModel : ObservableObject
     public IReadOnlyList<string> ConsumableUnits { get; } = ["kg", "L", "scatole", "fogli", "nr"];
     public IEnumerable<string> ConsumableSuppliers => ConsumableItems.Select(item => item.SupplierName).Where(value => !string.IsNullOrWhiteSpace(value)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(value => value);
     public IEnumerable<string> ConsumableDepartments => ConsumableItems.Select(item => item.Department).Where(value => !string.IsNullOrWhiteSpace(value)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(value => value);
-    public string? ConsumablesLegacyFilePath { get => _consumablesLegacyFilePath; set => SetProperty(ref _consumablesLegacyFilePath, value); }
-    public ConsumablesLegacyImportPlan? ConsumablesImportPlan { get => _consumablesImportPlan; private set { SetProperty(ref _consumablesImportPlan, value); OnPropertyChanged(nameof(HasConsumablesImportPlan)); } }
-    public bool HasConsumablesImportPlan => ConsumablesImportPlan is not null;
     public string? LegacyFilePath { get => _legacyFilePath; set { if (SetProperty(ref _legacyFilePath, value)) OnPropertyChanged(nameof(CanAnalyzeLegacy)); } }
     public LegacyImportReport? LegacyReport { get => _legacyReport; private set { if (SetProperty(ref _legacyReport, value)) OnPropertyChanged(nameof(HasLegacyReport)); } }
     public bool HasLegacyReport => LegacyReport is not null;
@@ -156,8 +151,6 @@ public sealed class SettingsViewModel : ObservableObject
         try { ConsumableCatalogService.Shared.Reload(); }
         finally { RefreshConsumableList(); }
     }
-    public void AnalyzeConsumablesLegacy() { if (string.IsNullOrWhiteSpace(ConsumablesLegacyFilePath)) throw new InvalidOperationException("Selezionare il file Excel."); ConsumablesImportPlan = new ConsumablesLegacyExcelImporter().Analyze(ConsumablesLegacyFilePath); }
-    public ConsumablesLegacyImportResult ImportConsumablesLegacy() { if (ConsumablesImportPlan is null) throw new InvalidOperationException("Analizzare prima il file Excel."); var result = new ConsumablesLegacyExcelImporter().Commit(ConsumablesImportPlan); ConsumablesImportPlan = null; RefreshConsumableList(); return result; }
     private void RefreshConsumableList()
     {
         FilteredConsumableItems.Clear();
@@ -194,11 +187,7 @@ public sealed class SettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(CanImportClosedHistory));
         return LegacyClosedHistoryResult;
     }
-    public void ResetOperationalTestData()
-    {
-        InMemoryTestDataResetService.Shared.ResetOperationalData();
-        LegacyReport = null; LegacyImportPlan = null; LegacyImportResult = null; LegacyClosedHistoryPlan = null; LegacyClosedHistoryResult = null; LegacyAnalysisError = null;
-    }
+
     public void SaveMaterialParameters() => MaterialParametersService.Shared.NotifyChanged();
     public void SavePlanningSettings() => PlanningSettingsService.Shared.NotifyChanged();
     public Operator AddOperator() => OperatorCatalogService.Shared.AddOperator();

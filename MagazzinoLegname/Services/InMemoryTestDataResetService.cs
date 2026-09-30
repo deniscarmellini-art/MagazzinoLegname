@@ -1,3 +1,4 @@
+#if DEBUG
 namespace MagazzinoLegname.Services;
 
 /// <summary>Utility esclusiva per l'attuale store temporaneo di test; non destinata alla persistenza produttiva.</summary>
@@ -18,3 +19,5 @@ public sealed class InMemoryTestDataResetService
         }
     }
 }
+
+#endif
