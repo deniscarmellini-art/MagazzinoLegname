@@ -24,6 +24,7 @@ public static class ConsultationSqlRefresh
         var workflow = ClassificationWorkflowService.Shared;
         workflow.ReloadInboundLoads(); // Includes groups, packages and waste adjustments.
         InventoryProjectionService.Shared.ReloadSqlTerminalMovements(); // Includes returns.
+        LegacyHistoricalStore.Shared.Reload();
         using var db = SqlPersistenceRoot.ContextFactory.CreateDbContext();
         var movements = db.ClassificationMovements.AsNoTracking()
             .OrderBy(x => x.OccurredAtUtc).ThenBy(x => x.Id).ToArray();

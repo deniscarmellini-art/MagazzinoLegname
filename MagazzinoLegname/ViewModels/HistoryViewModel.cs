@@ -36,7 +36,7 @@ public sealed class HistoryViewModel : ConsultationViewModel
     public ObservableCollection<string> Suppliers { get; } = [];
     public ObservableCollection<string> Thicknesses { get; } = [];
     public ObservableCollection<string> Operators { get; } = [];
-    public IReadOnlyList<string> MovementTypes { get; } = ["Tutti", "Entrata", "Classificazione", "Rettifica scarti", "Scarico", "Uscita supplementare", "Reso", "Rimozione manuale"];
+    public IReadOnlyList<string> MovementTypes { get; } = ["Tutti", "Entrata", "Classificazione", "Rettifica scarti", "Scarico", "Uscita supplementare", "Reso", "Rimozione manuale", "Chiusura legacy"];
     public IReadOnlyList<string> Qualities { get; } = ["Tutte", "C", "VISTA"];
     public IReadOnlyList<string> QuickFilters { get; } = ["Tutti", "Entrate", "Rettifiche", "Scarichi", "Uscite supplementari", "Resi", "Rimozioni manuali"];
     public ObservableCollection<HistoryMovementRow> LoadTimeline { get; } = [];
@@ -69,9 +69,9 @@ public sealed class HistoryViewModel : ConsultationViewModel
             LoadPackages.Clear();
             SelectedLoadSummary = new LoadHistorySummary { LoadNumber = legacyRecords[0].LoadNumber,
                 SupplierName = legacyRecords[0].SupplierName, InitialPackages = legacyRecords.Length,
-                PresentPackages = 0, DischargedPackages = legacyRecords.Length,
+                PresentPackages = 0, DischargedPackages = legacyRecords.Count(item => item.FinishedOn.HasValue && !item.IsSupplierReturn),
                 IncomingCubicMeters = legacyRecords.Sum(item => item.PhysicalCubicMeters),
-                DischargedCubicMeters = legacyRecords.Where(item => item.FinishedOn.HasValue).Sum(item => item.LegacyAvailableCubicMeters),
+                DischargedCubicMeters = legacyRecords.Where(item => item.FinishedOn.HasValue && !item.IsSupplierReturn).Sum(item => item.LegacyAvailableCubicMeters),
                 PresentCubicMeters = 0m };
             return;
         }
@@ -199,6 +199,12 @@ public sealed class HistoryViewModel : ConsultationViewModel
                 $"Carico: {aggregate.Key.LoadNumber}\nFornitore: {aggregate.Key.SupplierName}\nMateriale: {aggregate.Key.IncomingThickness:N2} × {aggregate.Key.IncomingWidth:N2} × {aggregate.Key.IncomingLength:N2}\n" +
                 $"Qualità: {aggregate.Key.Quality}\nPacchi: {rows.Length:N0}\nPezzi: {rows.Sum(item => item.Pieces):N0}\nMC fisici resi: {physical:N5}\nChiusura legacy: {closureValues}");
         }
+
+        foreach (var item in LegacyHistoricalStore.Shared.Records.Where(x => !x.FinishedOn.HasValue && !x.IsSupplierReturn))
+            yield return new HistoryMovementRow(null, "Chiusura legacy", item.HistoricalLoadId, null,
+                item.LoadNumber, item.SupplierName, $"{item.IncomingThickness} × {item.IncomingWidth} × {item.IncomingLength}",
+                null, item.QualityNormalized, "1 pacco", null, "Importazione legacy", "—",
+                $"Riga Excel {item.ExcelRow} · Chiusura originale: {item.FinishedRawValue}. Nessuna data o causale operativa ricostruita.");
 
         foreach (var load in workflow.Loads)
         {

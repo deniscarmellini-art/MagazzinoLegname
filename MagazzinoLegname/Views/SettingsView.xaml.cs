@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using MagazzinoLegname.ViewModels;
 using MagazzinoLegname.Navigation;
@@ -100,41 +100,12 @@ public partial class SettingsView : UserControl, INavigationAware
         }
         catch (Exception exception) { MessageBox.Show(exception.Message, "Esportazione non riuscita", MessageBoxButton.OK, MessageBoxImage.Warning); }
     }
-    private void ImportLegacyInMemory_Click(object sender, RoutedEventArgs e)
+    private async void ImportLegacySql_Click(object sender, RoutedEventArgs e)
     {
-        var plan = ViewModel.LegacyImportPlan;
-        if (plan is null) return;
-        var message = $"TEST TEMPORANEO IN MEMORIA\n\n" +
-            $"Pacchi: {plan.PackageCount:N0}\nCarichi: {plan.LoadCount:N0}\nClassificati: {plan.ClassifiedCount:N0}\nDa classificare: {plan.ToClassifyCount:N0}\n" +
-            $"Gruppi materiale: {plan.MaterialGroupCount:N0}\nGruppi classificati da rettificare: {plan.ClassifiedMaterialGroups:N0}\nGruppi da classificare: {plan.MaterialGroupsToClassify:N0}\n" +
-            $"MC fisici: {plan.PhysicalCubicMeters:N5}\nMC disponibili legacy: {plan.LegacyAvailableCubicMeters:N5}\n" +
-            $"Pacchi con prezzo: {plan.PackagesWithPrice:N0}\nPacchi senza prezzo: {plan.MissingPrices:N0}\nPrezzi non validi: {plan.InvalidPrices:N0}\n" +
-            $"MC fisici valorizzati: {plan.PricedPhysicalCubicMeters:N5}\nValore totale importabile: {plan.ImportableValue:N2} â‚¬\n" +
-            $"Fingerprint: {plan.FileFingerprint}\n\nI dati saranno persi alla chiusura dell'applicazione. Procedere?";
-        if (MessageBox.Show(message, "Conferma importazione giacenza iniziale", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes) return;
-        try
-        {
-            var result = ViewModel.ImportLegacyInMemory(null);
-            MessageBox.Show($"Importazione temporanea completata.\nPacchi: {result.PackagesCreated:N0}\nCarichi: {result.LoadsCreated:N0}\nBatch: {result.Batch.Id}", "Importazione giacenza iniziale", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-        catch (Exception exception) { MessageBox.Show(exception.Message, "Importazione bloccata", MessageBoxButton.OK, MessageBoxImage.Error); }
-    }
-    private void ImportClosedHistoryInMemory_Click(object sender, RoutedEventArgs e)
-    {
-        var plan = ViewModel.LegacyClosedHistoryPlan;
-        if (plan is null) return;
-        var message = $"STORICO CHIUSO · STORE TEMPORANEO IN MEMORIA\n\n" +
-            $"Record: {plan.RecordCount:N0}\nCarichi distinti: {plan.DistinctLoads:N0}\nFornitori: {plan.DistinctSuppliers:N0}\n" +
-            $"Periodo: {plan.CoveredPeriod}\nMC fisici: {plan.PhysicalCubicMeters:N5}\nRighe con anomalie informative: {plan.RowsWithWarnings:N0}\n" +
-            $"Fingerprint: {plan.FileFingerprint}\n\nI record saranno aggiunti esclusivamente allo storico legacy e non alla giacenza. Procedere?";
-        if (MessageBox.Show(message, "Conferma importazione storico chiuso", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes) return;
-        try
-        {
-            var result = ViewModel.ImportClosedHistoryInMemory();
-            MessageBox.Show($"Storico chiuso importato.\nRecord: {result.ImportedRecords:N0}\nCarichi: {result.DistinctLoads:N0}\nBatch: {result.Batch.Id}",
-                "Importazione storico chiuso", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-        catch (Exception exception) { MessageBox.Show(exception.Message, "Importazione bloccata", MessageBoxButton.OK, MessageBoxImage.Error); }
+        if (!ViewModel.CanImportLegacySql || ViewModel.LegacySqlPreview is not { } preview) return;
+        var message = preview.FileIdentity + "\n\n" + preview.Summary + "\n\nConfermare l'import iniziale SQL di giacenza e storico per questo fingerprint?";
+        if (MessageBox.Show(message, "Conferma import SQL una tantum", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes) return;
+        await ViewModel.ImportLegacySqlAsync();
     }
     private void AddContact_Click(object sender, RoutedEventArgs e) => ViewModel.AddContact();
     private void DeleteContact_Click(object sender, RoutedEventArgs e) => ViewModel.DeleteContact();

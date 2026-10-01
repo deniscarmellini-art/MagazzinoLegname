@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using MagazzinoLegname.Models;
 using MagazzinoLegname.Persistence.Entities;
 using MagazzinoLegname.Services;
@@ -174,7 +174,9 @@ public sealed class SqlInboundLoadRepository(IDbContextFactory<MagazzinoDbContex
                 IncomingWidth = x.IncomingWidth, WidthAfterPlaning = x.WidthAfterPlaning,
                 IncomingLength = x.IncomingLength, Quality = x.Quality,
                 PackageCount = x.PackageCount, InitialPieces = x.InitialPieces, AppliedPrice = x.AppliedPrice,
-                LineValue = x.HistoricalValue, IsLegacyImport = x.IsLegacyImport, RowVersion = x.RowVersion
+                LineValue = x.HistoricalValue, IsLegacyImport = x.IsLegacyImport, RowVersion = x.RowVersion,
+                LegacyLoadNumber = entity.LegacyLoadNumber, LegacyImportBatchId = entity.LegacyImportBatchId,
+                LegacyCertification = x.IsLegacyImport ? entity.Certification : null, LegacyEstimatedCubicMeters = x.LegacyEstimatedCubicMeters
             };
             var movement = x.ClassificationMovements.OrderByDescending(m => m.OccurredAtUtc).FirstOrDefault();
             group.ApplyPersistedClassification(x.RowVersion, x.IsClassified,
@@ -187,7 +189,8 @@ public sealed class SqlInboundLoadRepository(IDbContextFactory<MagazzinoDbContex
             LoadNumber = entity.LoadNumber, LoadYear = entity.LoadYear, AnnualProgressive = entity.AnnualProgressive,
             SupplierName = entity.Supplier.Name, SupplierCode = entity.Supplier.Code, Certification = entity.Certification,
             ArrivalDate = entity.ArrivalDate, DeliveryNoteNumber = entity.DeliveryNoteNumber ?? string.Empty,
-            ReceiptOperator = entity.ReceiptOperatorSnapshot ?? string.Empty, RowVersion = entity.RowVersion };
+            ReceiptOperator = entity.ReceiptOperatorSnapshot ?? string.Empty, RowVersion = entity.RowVersion,
+            LegacyLoadNumber = entity.LegacyLoadNumber, LegacyImportBatchId = entity.LegacyImportBatchId };
         var packages = entity.Packages.Where(x => x.PackageType == PersistentPackageType.Official).OrderBy(x => x.SequenceNumber)
             .Select(x => new PhysicalPackageDraft(x.Id, x.LoadId, x.MaterialGroupId, x.SequenceNumber, x.PieceCount ?? 0,
                 groups.Single(g => g.GroupId == x.MaterialGroupId).IncomingThickness,
@@ -197,7 +200,8 @@ public sealed class SqlInboundLoadRepository(IDbContextFactory<MagazzinoDbContex
                 groups.Single(g => g.GroupId == x.MaterialGroupId).Quality)
                 { TotalPackages = x.TotalOfficialPackages, ArrivalDate = x.ArrivalDate, Status = x.Status,
                     PackageCode = x.PackageCode, QrPayload = x.QrPayload, AppliedPrice = x.AppliedPrice,
-                    RowVersion = x.RowVersion }).ToList();
+                    RowVersion = x.RowVersion, LegacyPackageLabel = x.LegacyPackageLabel, LegacyExcelRow = x.LegacyExcelRow,
+                    LegacyQr = x.LegacyQr, LegacyImportBatchId = x.LegacyImportBatchId }).ToList();
         var supplementaryPackages = entity.Packages.Where(x => x.PackageType == PersistentPackageType.Supplementary)
             .OrderBy(x => x.SupplementarySequence).Select(x =>
             {

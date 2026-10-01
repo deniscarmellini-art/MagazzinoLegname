@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -104,13 +104,12 @@ public sealed class LegacyExcelReader
     private static decimal? Decimal(WorkbookPart workbook, Row row, Dictionary<string, int> columns, string name)
     {
         var text = Text(workbook, row, columns, name).Replace(" ", "");
-        return decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var number) || decimal.TryParse(text, NumberStyles.Any, CultureInfo.GetCultureInfo("it-IT"), out number) ? number : null;
+        return decimal.TryParse(text, NumberStyles.Number, text.Contains(',') ? CultureInfo.GetCultureInfo("it-IT") : CultureInfo.InvariantCulture, out var number) ? number : null;
     }
     private static string PriceText(WorkbookPart workbook, Row row, Dictionary<string, int> columns)
     {
         if (columns.ContainsKey("Prezzo")) return Text(workbook, row, columns, "Prezzo");
-        var cell = row.Elements<Cell>().FirstOrDefault(x => ColumnIndex(x.CellReference?.Value) == 24); // X
-        return cell is null ? "" : CellText(workbook, cell).Trim();
+        return ""; // No positional fallback: an unrelated column must never become a price.
     }
     private static decimal? ParseHistoricalPrice(string text)
     {

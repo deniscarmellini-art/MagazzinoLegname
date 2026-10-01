@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using MagazzinoLegname.Infrastructure;
 using MagazzinoLegname.Models;
 using MagazzinoLegname.Persistence;
@@ -18,10 +18,6 @@ public sealed class SettingsViewModel : ObservableObject
     private LegacyImportReport? _legacyReport;
     private bool _isLegacyAnalysisRunning;
     private string? _legacyAnalysisError;
-    private LegacyInitialInventoryImportPlan? _legacyImportPlan;
-    private LegacyInitialInventoryImportResult? _legacyImportResult;
-    private LegacyClosedHistoryImportPlan? _legacyClosedHistoryPlan;
-    private LegacyClosedHistoryImportResult? _legacyClosedHistoryResult;
     private ConsumableItem? _selectedConsumable;
     private string _consumableSearchText = string.Empty;
     private bool _isConsumableEditorVisible;
@@ -57,20 +53,12 @@ public sealed class SettingsViewModel : ObservableObject
     public IReadOnlyList<string> ConsumableUnits { get; } = ["kg", "L", "scatole", "fogli", "nr"];
     public IEnumerable<string> ConsumableSuppliers => ConsumableItems.Select(item => item.SupplierName).Where(value => !string.IsNullOrWhiteSpace(value)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(value => value);
     public IEnumerable<string> ConsumableDepartments => ConsumableItems.Select(item => item.Department).Where(value => !string.IsNullOrWhiteSpace(value)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(value => value);
-    public string? LegacyFilePath { get => _legacyFilePath; set { if (SetProperty(ref _legacyFilePath, value)) OnPropertyChanged(nameof(CanAnalyzeLegacy)); } }
+    public string? LegacyFilePath { get => _legacyFilePath; set { if (SetProperty(ref _legacyFilePath, value)) { LegacySqlPreview = null; LegacyReport = null; LegacySqlOutcome = null; OnPropertyChanged(nameof(CanAnalyzeLegacy)); } } }
     public LegacyImportReport? LegacyReport { get => _legacyReport; private set { if (SetProperty(ref _legacyReport, value)) OnPropertyChanged(nameof(HasLegacyReport)); } }
     public bool HasLegacyReport => LegacyReport is not null;
     public bool IsLegacyAnalysisRunning { get => _isLegacyAnalysisRunning; private set { if (SetProperty(ref _isLegacyAnalysisRunning, value)) OnPropertyChanged(nameof(CanAnalyzeLegacy)); } }
     public bool CanAnalyzeLegacy => !IsLegacyAnalysisRunning && !string.IsNullOrWhiteSpace(LegacyFilePath);
     public string? LegacyAnalysisError { get => _legacyAnalysisError; private set => SetProperty(ref _legacyAnalysisError, value); }
-    public LegacyInitialInventoryImportPlan? LegacyImportPlan { get => _legacyImportPlan; private set { if (SetProperty(ref _legacyImportPlan, value)) { OnPropertyChanged(nameof(HasLegacyImportPlan)); OnPropertyChanged(nameof(CanImportLegacy)); } } }
-    public LegacyInitialInventoryImportResult? LegacyImportResult { get => _legacyImportResult; private set => SetProperty(ref _legacyImportResult, value); }
-    public bool HasLegacyImportPlan => LegacyImportPlan is not null;
-    public bool CanImportLegacy => LegacyImportPlan?.CanCommit == true && LegacyImportResult is null;
-    public LegacyClosedHistoryImportPlan? LegacyClosedHistoryPlan { get => _legacyClosedHistoryPlan; private set { if (SetProperty(ref _legacyClosedHistoryPlan, value)) { OnPropertyChanged(nameof(HasLegacyClosedHistoryPlan)); OnPropertyChanged(nameof(CanImportClosedHistory)); } } }
-    public LegacyClosedHistoryImportResult? LegacyClosedHistoryResult { get => _legacyClosedHistoryResult; private set => SetProperty(ref _legacyClosedHistoryResult, value); }
-    public bool HasLegacyClosedHistoryPlan => LegacyClosedHistoryPlan is not null;
-    public bool CanImportClosedHistory => LegacyClosedHistoryPlan?.CanCommit == true && LegacyClosedHistoryResult is null;
     public SupplierContact? SelectedContact { get => _selectedContact; set => SetProperty(ref _selectedContact, value); }
     public Supplier? SelectedSupplier
     {
@@ -158,34 +146,46 @@ public sealed class SettingsViewModel : ObservableObject
         foreach (var item in ConsumableItems.Where(item => string.IsNullOrWhiteSpace(search) || item.InternalCode.Contains(search, StringComparison.OrdinalIgnoreCase) || item.ProductName.Contains(search, StringComparison.OrdinalIgnoreCase) || item.SupplierName.Contains(search, StringComparison.OrdinalIgnoreCase) || item.Department.Contains(search, StringComparison.OrdinalIgnoreCase)).OrderBy(item => item.ProductName))
             FilteredConsumableItems.Add(item);
     }
+    private LegacySqlPreview? _legacySqlPreview;
+    private string? _legacySqlOutcome;
+    private string _legacyImportOperator = "";
+    public LegacySqlPreview? LegacySqlPreview { get => _legacySqlPreview; private set { SetProperty(ref _legacySqlPreview, value); OnPropertyChanged(nameof(CanImportLegacySql)); } }
+    public string? LegacySqlOutcome { get => _legacySqlOutcome; private set => SetProperty(ref _legacySqlOutcome, value); }
+    public string LegacyImportOperator { get => _legacyImportOperator; set { SetProperty(ref _legacyImportOperator, value); OnPropertyChanged(nameof(CanImportLegacySql)); } }
+    public bool CanImportLegacySql => LegacySqlImportService.IsEnabled && !IsLegacyAnalysisRunning && LegacySqlPreview?.CanImport == true && !string.IsNullOrWhiteSpace(LegacyImportOperator);
     public async Task AnalyzeLegacyAsync()
     {
         if (!CanAnalyzeLegacy) return;
-        IsLegacyAnalysisRunning = true; LegacyAnalysisError = null; LegacyReport = null; LegacyImportPlan = null; LegacyImportResult = null; LegacyClosedHistoryPlan = null; LegacyClosedHistoryResult = null;
+        IsLegacyAnalysisRunning = true; LegacyAnalysisError = null; LegacyReport = null; LegacySqlPreview = null; LegacySqlOutcome = null;
+        var path = LegacyFilePath!;
         try
         {
-            var path = LegacyFilePath!;
-            LegacyReport = await Task.Run(() => new LegacyImportAnalyzer().Analyze(new LegacyExcelReader().Read(path)));
-            try { LegacyImportPlan = LegacyInitialInventoryImportService.Shared.BuildPlan(LegacyReport); }
-            catch (InvalidOperationException exception) { LegacyAnalysisError = $"Analisi completata, importazione non abilitata: {exception.Message}"; }
-            LegacyClosedHistoryPlan = LegacyHistoricalStore.Shared.BuildPlan(LegacyReport);
+            var preview = await Task.Run(() => new LegacySqlImportService(SqlPersistenceRoot.ContextFactory).Analyze(path));
+            if (LegacyFilePath == path) { LegacySqlPreview = preview; LegacyReport = preview.Report; }
         }
-        catch (Exception exception) { LegacyAnalysisError = exception.Message; }
-        finally { IsLegacyAnalysisRunning = false; }
+        catch (Exception exception) { PersistenceDebugLog.WriteException("Legacy SQL preview", exception); LegacyAnalysisError = exception.Message; }
+        finally { IsLegacyAnalysisRunning = false; OnPropertyChanged(nameof(CanImportLegacySql)); }
     }
-    public LegacyInitialInventoryImportResult ImportLegacyInMemory(string? operatorName)
+    public async Task ImportLegacySqlAsync()
     {
-        if (!CanImportLegacy || LegacyImportPlan is null) throw new InvalidOperationException("Il piano di importazione non è pronto o presenta collisioni.");
-        LegacyImportResult = LegacyInitialInventoryImportService.Shared.Commit(LegacyImportPlan, operatorName);
-        OnPropertyChanged(nameof(CanImportLegacy));
-        return LegacyImportResult;
-    }
-    public LegacyClosedHistoryImportResult ImportClosedHistoryInMemory()
-    {
-        if (!CanImportClosedHistory || LegacyClosedHistoryPlan is null) throw new InvalidOperationException("Il piano dello storico chiuso non è pronto o presenta collisioni.");
-        LegacyClosedHistoryResult = LegacyHistoricalStore.Shared.Commit(LegacyClosedHistoryPlan);
-        OnPropertyChanged(nameof(CanImportClosedHistory));
-        return LegacyClosedHistoryResult;
+        if (!CanImportLegacySql || LegacySqlPreview is null) return;
+        var preview = LegacySqlPreview; var operatorName = LegacyImportOperator;
+        IsLegacyAnalysisRunning = true; OnPropertyChanged(nameof(CanImportLegacySql));
+        LegacyAnalysisError = null;
+        try
+        {
+            var result = await Task.Run(() => new LegacySqlImportService(SqlPersistenceRoot.ContextFactory).Import(preview, operatorName));
+            LegacySqlOutcome = result.Summary;
+            LegacySqlPreview = null;
+            try { ConsultationSqlRefresh.Run(ConsultationSqlRefresh.Reload); }
+            catch (Exception exception)
+            {
+                PersistenceDebugLog.WriteException("Legacy SQL post-commit reload", exception);
+                LegacyAnalysisError = "Il salvataggio SQL è riuscito ma non è stato possibile aggiornare la pagina. Ricaricare le pagine di consultazione. " + exception.Message;
+            }
+        }
+        catch (Exception exception) { PersistenceDebugLog.WriteException("Legacy SQL import", exception); LegacyAnalysisError = exception.Message; LegacySqlPreview = null; }
+        finally { IsLegacyAnalysisRunning = false; OnPropertyChanged(nameof(CanImportLegacySql)); }
     }
 
     public void SaveMaterialParameters() => MaterialParametersService.Shared.NotifyChanged();

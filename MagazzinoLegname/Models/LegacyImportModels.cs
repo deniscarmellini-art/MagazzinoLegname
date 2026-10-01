@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 
 namespace MagazzinoLegname.Models;
 
@@ -86,8 +86,8 @@ public sealed class LegacyImportReport
     public int ExcludedRows => Rows.Count(x => x.IsExcluded);
     public int ClosedHistoryRows => Rows.Count(x => !x.IsExcluded && x.Category == LegacyRowCategory.ClosedHistory);
     public int CurrentInventoryRows => Rows.Count(x => !x.IsExcluded && x.Category == LegacyRowCategory.InitialInventory);
-    public int HistoricalLoads => Rows.Where(x => !x.IsExcluded && x.Category == LegacyRowCategory.ClosedHistory).Select(x => x.LoadNumber).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Count();
-    public int CurrentLoads => Rows.Where(x => !x.IsExcluded && x.Category == LegacyRowCategory.InitialInventory).Select(x => x.LoadNumber).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+    public int HistoricalLoads => Rows.Where(x => !x.IsExcluded && x.Category == LegacyRowCategory.ClosedHistory).Select(Services.LegacySqlImportService.LoadKey).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+    public int CurrentLoads => Rows.Where(x => !x.IsExcluded && x.Category == LegacyRowCategory.InitialInventory).Select(Services.LegacySqlImportService.LoadKey).Distinct(StringComparer.OrdinalIgnoreCase).Count();
     public int Classified => Rows.Count(x => !x.IsExcluded && x.Category == LegacyRowCategory.InitialInventory && x.IsClassified == true);
     public int ToClassify => Rows.Count(x => !x.IsExcluded && x.Category == LegacyRowCategory.InitialInventory && x.IsClassified != true);
     public decimal HistoricalPhysicalCubicMeters => Rows.Where(x => !x.IsExcluded && x.Category == LegacyRowCategory.ClosedHistory).Sum(x => x.RecalculatedPhysicalCubicMeters ?? 0m);

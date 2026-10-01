@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 
 namespace MagazzinoLegname.Models;
 
@@ -35,10 +35,10 @@ public sealed record LegacyHistoricalRecord
     public DateTime? FinishedOn { get; init; }
     public string? LegacyClosureText => FinishedOn.HasValue ? null : FinishedRawValue;
     public bool IsSupplierReturn => LegacyMovementClassifier.IsSupplierReturn(FinishedRawValue);
-    public string MovementType => IsSupplierReturn ? "Reso" : "Scarico";
+    public string MovementType => IsSupplierReturn ? "Reso" : FinishedOn.HasValue ? "Scarico" : "Chiusura legacy";
     public DateTime? ReturnedDate => IsSupplierReturn ? FinishedOn : null;
     public decimal? ReturnedPhysicalCubicMeters => IsSupplierReturn ? PhysicalCubicMeters : null;
-    public string FinalStatus => IsSupplierReturn ? "Reso" : "Scaricato";
+    public string FinalStatus => IsSupplierReturn ? "Reso" : FinishedOn.HasValue ? "Scaricato" : "Chiusura legacy";
     public string? LegacyQr { get; init; }
 }
 
