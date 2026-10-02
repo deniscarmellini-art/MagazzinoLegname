@@ -1,4 +1,4 @@
-using MagazzinoLegname.Persistence.Repositories;
+﻿using MagazzinoLegname.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace MagazzinoLegname.Persistence;
@@ -17,13 +17,20 @@ public static class SqlPersistenceRoot
     public static IWasteAdjustmentRepository WasteAdjustments { get; } = new SqlWasteAdjustmentRepository(ContextFactory);
     public static IPackageTerminalRepository PackageTerminals { get; } = new SqlPackageTerminalRepository(ContextFactory);
 
-    public static void InitializeDatabase()
+    public static DatabaseStartupStatus? StartupStatus { get; private set; }
+    public static DatabaseStartupStatus InitializeDatabase()
     {
-        var (settings, _) = DatabaseSettingsLoader.Load();
-        if (!settings.Database.Equals("MagazzinoLegname_Dev", StringComparison.OrdinalIgnoreCase))
-            throw new DatabaseConfigurationException("La Fase 2A può utilizzare esclusivamente il database MagazzinoLegname_Dev.");
-        using var context = ContextFactory.CreateDbContext();
-        context.Database.Migrate();
+        try
+        {
+            var settings = ((MagazzinoDbContextFactory)ContextFactory).Settings;
+            return StartupStatus = DatabaseStartupService.CheckAndInitialize(settings, ContextFactory);
+        }
+        catch (Exception exception)
+        {
+            PersistenceDebugLog.WriteException("Load database configuration", exception);
+            var failure = DatabaseErrorTranslator.Translate(exception);
+            return StartupStatus = new(false, "Configurazione database non validata", failure.OperatorMessage, failure.Kind);
+        }
     }
 
     public static InvalidOperationException OperatorException(Exception exception) => exception is InvalidOperationException operation

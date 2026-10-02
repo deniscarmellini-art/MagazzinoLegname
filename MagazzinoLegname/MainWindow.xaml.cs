@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using MagazzinoLegname.Navigation;
 
@@ -11,6 +11,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        DatabaseDestinationText.Text = Persistence.SqlPersistenceRoot.StartupStatus?.Destination ?? "Destinazione SQL non ancora verificata";
         _navigationService.PageChanged += (_, page) => PageContent.Content = page;
         ApplyHeader(PageKey.Dashboard);
         _navigationService.NavigateTo(PageKey.Dashboard);

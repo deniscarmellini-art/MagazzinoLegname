@@ -1,20 +1,20 @@
 {
   "Database": {
-    "Server": "localhost\\SQLEXPRESS",
-    "Database": "MagazzinoLegname_Dev",
+    "Server": "tcp:NAC25087.sede.local,1433",
+    "Database": "MagazzinoLegname",
     "Authentication": "Windows",
     "Encrypt": true,
     "TrustServerCertificate": true,
     "ConnectionTimeoutSeconds": 15,
     "CommandTimeoutSeconds": 30,
-    "Environment": "Development",
+    "Environment": "Shared",
     "AllowedServers": [
-      "localhost\\SQLEXPRESS"
+      "tcp:NAC25087.sede.local,1433"
     ],
     "AllowedDatabases": [
-      "MagazzinoLegname_Dev"
+      "MagazzinoLegname"
     ],
-    "AutoMigrateDevelopment": true,
+    "AutoMigrateDevelopment": false,
     "MigrationHost": "NAC25087"
   }
 }

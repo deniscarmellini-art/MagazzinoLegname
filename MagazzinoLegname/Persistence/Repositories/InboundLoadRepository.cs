@@ -138,10 +138,14 @@ public sealed class SqlInboundLoadRepository(IDbContextFactory<MagazzinoDbContex
         {
             using var db = contextFactory.CreateDbContext();
             using var transaction = db.Database.BeginTransaction(IsolationLevel.Serializable);
+            // Lock the parent even when no supplementary exists yet. All groups share this counter.
+            var lockedLoad = db.Loads
+                .FromSqlInterpolated($"SELECT * FROM dbo.Loads WITH (UPDLOCK, HOLDLOCK) WHERE Id = {load.Id}")
+                .SingleOrDefault() ?? throw new InvalidOperationException("Il carico non è più presente nel database.");
             if (!db.MaterialGroups.Any(x => x.Id == group.GroupId && x.LoadId == load.Id))
                 throw new InvalidOperationException("Il gruppo materiale non è presente nel database.");
             var existingSupplementaries = db.Packages
-                .FromSqlInterpolated($"SELECT * FROM dbo.Packages WITH (UPDLOCK, HOLDLOCK) WHERE MaterialGroupId = {group.GroupId} AND PackageType = {(int)PersistentPackageType.Supplementary}")
+                .FromSqlInterpolated($"SELECT * FROM dbo.Packages WITH (UPDLOCK, HOLDLOCK) WHERE LoadId = {lockedLoad.Id} AND PackageType = {(int)PersistentPackageType.Supplementary}")
                 .ToList();
             var next = (existingSupplementaries.Max(x => x.SupplementarySequence) ?? 0) + 1;
             var code = $"{load.SupplierCode}-{load.AnnualProgressive ?? 0}-{(load.LoadYear ?? load.ArrivalDate.Year) % 100:00}-S{next:00}";

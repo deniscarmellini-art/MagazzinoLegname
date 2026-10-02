@@ -1,4 +1,4 @@
-using MagazzinoLegname.Persistence.Entities;
+﻿using MagazzinoLegname.Persistence.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -51,7 +51,8 @@ public sealed class PackageConfiguration : IEntityTypeConfiguration<PackageEntit
     {
         builder.ToTable("Packages", table => table.HasCheckConstraint("CK_Packages_SupplementaryNoValue", "[PackageType] = 0 OR ([IncomingPhysicalCubicMeters] = 0 AND [AppliedPrice] IS NULL AND [HistoricalPackageValue] IS NULL)"));
         builder.HasKey(x => x.Id); builder.Property(x => x.PackageCode).HasMaxLength(80).IsRequired(); builder.HasIndex(x => x.PackageCode).IsUnique();
-        builder.HasIndex(x => new { x.MaterialGroupId, x.PackageType, x.SupplementarySequence }).IsUnique()
+        builder.HasIndex(x => x.LoadId); // Keep the unfiltered index for ordinary packages.
+        builder.HasIndex(x => new { x.LoadId, x.PackageType, x.SupplementarySequence }).IsUnique()
             .HasFilter("[PackageType] = 1 AND [SupplementarySequence] IS NOT NULL");
         builder.Property(x => x.Status).HasMaxLength(60).IsRequired();
         builder.Property(x => x.QrPayload).HasMaxLength(1000).IsRequired(); builder.Property(x => x.PackageType).HasConversion<int>();

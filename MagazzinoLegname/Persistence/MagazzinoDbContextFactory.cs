@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 #if DEBUG
 using Microsoft.Extensions.Logging;
@@ -8,13 +8,14 @@ namespace MagazzinoLegname.Persistence;
 
 public sealed class MagazzinoDbContextFactory : IDbContextFactory<MagazzinoDbContext>, IDesignTimeDbContextFactory<MagazzinoDbContext>
 {
-    private readonly string? _baseDirectory;
-    public MagazzinoDbContextFactory() { }
-    public MagazzinoDbContextFactory(string baseDirectory) => _baseDirectory = baseDirectory;
+    private readonly Lazy<DatabaseSettings> _settings;
+    public MagazzinoDbContextFactory() : this(null) { }
+    public MagazzinoDbContextFactory(string? baseDirectory) => _settings = new(() => DatabaseSettingsLoader.Load(baseDirectory).Settings);
+    internal DatabaseSettings Settings => _settings.Value;
 
     public MagazzinoDbContext CreateDbContext()
     {
-        var (settings, _) = DatabaseSettingsLoader.Load(_baseDirectory);
+        var settings = Settings;
         var optionsBuilder = new DbContextOptionsBuilder<MagazzinoDbContext>()
             .UseSqlServer(settings.BuildConnectionString(), sql =>
             {
@@ -22,10 +23,9 @@ public sealed class MagazzinoDbContextFactory : IDbContextFactory<MagazzinoDbCon
                 sql.EnableRetryOnFailure(3, TimeSpan.FromSeconds(2), null);
             });
 #if DEBUG
-        if (settings.Database.Equals("MagazzinoLegname_Dev", StringComparison.OrdinalIgnoreCase))
+        if (settings.IsDevelopment)
         {
-            optionsBuilder.EnableSensitiveDataLogging()
-                .EnableDetailedErrors()
+            optionsBuilder.EnableDetailedErrors()
                 .LogTo(PersistenceDebugLog.WriteEfCommand,
                     [DbLoggerCategory.Database.Command.Name], LogLevel.Information);
         }

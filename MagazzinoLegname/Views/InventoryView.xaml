@@ -72,19 +72,19 @@
                     <DataGridTextColumn Header="Data arrivo" Width="90" Binding="{Binding ArrivalDate, Mode=OneWay, StringFormat=dd/MM/yyyy}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
                     <DataGridTextColumn Header="Tipo" Width="105" Binding="{Binding PackageTypeDisplay, Mode=OneWay}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
                     <DataGridTextColumn Header="Pacco" Width="65" Binding="{Binding PackagePosition, Mode=OneWay}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
-                    <DataGridTextColumn Header="Spessore" Width="75" Binding="{Binding ConventionalThickness, Mode=OneWay, StringFormat=N2}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
-                    <DataGridTextColumn Header="Larghezza" Width="80" Binding="{Binding WidthAfterPlaning, Mode=OneWay, StringFormat=N2}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
-                    <DataGridTextColumn Header="Lunghezza" Width="85" Binding="{Binding IncomingLength, Mode=OneWay, StringFormat=N2}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
-                    <DataGridTextColumn Header="Qualità" Width="65" Binding="{Binding Quality, Mode=OneWay}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
-                    <DataGridTemplateColumn Header="Stato" Width="190">
+                    <DataGridTextColumn Header="Spessore" Width="90" Binding="{Binding ConventionalThickness, Mode=OneWay, StringFormat=N2}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
+                    <DataGridTextColumn Header="Larghezza" Width="100" Binding="{Binding WidthAfterPlaning, Mode=OneWay, StringFormat=N2}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
+                    <DataGridTextColumn Header="Lunghezza" Width="100" Binding="{Binding IncomingLength, Mode=OneWay, StringFormat=N2}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
+                    <DataGridTextColumn Header="Qualità" Width="70" Binding="{Binding Quality, Mode=OneWay}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
+                    <DataGridTemplateColumn Header="Stato" Width="165">
                         <DataGridTemplateColumn.CellTemplate><DataTemplate><Border Background="#172839" CornerRadius="7" Padding="9,5" Margin="5" HorizontalAlignment="Stretch"><TextBlock Text="{Binding InventoryStatus, Mode=OneWay}" Foreground="{DynamicResource PrimaryTextBrush}" FontWeight="SemiBold" TextAlignment="Center" HorizontalAlignment="Stretch"/></Border></DataTemplate></DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTemplateColumn Header="Rettifica scarti" Width="105">
+                    <DataGridTemplateColumn Header="Rettifica scarti" Width="125">
                         <DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding WasteAdjustmentStatus, Mode=OneWay}" FontSize="17" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock.ToolTip><StackPanel><TextBlock Text="Dati della rettifica del gruppo" FontWeight="Bold"/><TextBlock Text="{Binding WasteAdjustmentDate, Mode=OneWay, StringFormat=Data: {0:dd/MM/yyyy HH:mm}, TargetNullValue=Non ancora effettuata}"/><TextBlock Text="{Binding WasteAdjustmentOperator, Mode=OneWay, StringFormat=Operatore: {0}, TargetNullValue=—}"/></StackPanel></TextBlock.ToolTip></TextBlock></DataTemplate></DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTextColumn Header="MC ingresso" Width="95" Binding="{Binding IncomingCubicMetersDisplay, Mode=OneWay}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
-                    <DataGridTextColumn Header="Scarto qualità %" Width="115" Binding="{Binding QualityWasteDisplay, Mode=OneWay}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
-                    <DataGridTextColumn Header="MC Giacenza" Width="95" Binding="{Binding InventoryCubicMetersDisplay, Mode=OneWay}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
+                    <DataGridTextColumn Header="MC ingresso" Width="100" Binding="{Binding IncomingCubicMetersDisplay, Mode=OneWay}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
+                    <DataGridTextColumn Header="Scarto %" Width="100" Binding="{Binding QualityWasteDisplay, Mode=OneWay}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
+                    <DataGridTextColumn Header="MC Giacenza" Width="100" Binding="{Binding InventoryCubicMetersDisplay, Mode=OneWay}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
                     <DataGridTextColumn Header="Valore €" Width="110" Binding="{Binding PackageValueDisplay}" ElementStyle="{StaticResource InventoryCellTextStyle}"/>
                     <DataGridTemplateColumn Header="Azioni" Width="115">
                         <DataGridTemplateColumn.CellTemplate>

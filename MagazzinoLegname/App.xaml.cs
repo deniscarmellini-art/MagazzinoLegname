@@ -29,7 +29,13 @@ public partial class App : Application
     {
         try
         {
-            SqlPersistenceRoot.InitializeDatabase();
+            var status = SqlPersistenceRoot.InitializeDatabase();
+            if (!status.Success)
+            {
+                MessageBox.Show(status.Display, "Avvio database bloccato", MessageBoxButton.OK, MessageBoxImage.Error);
+                Shutdown(-1);
+                return;
+            }
             SqlDomainConfigurationState.Initialize();
         }
         catch (Exception exception)
@@ -40,7 +46,7 @@ public partial class App : Application
             Debug.WriteLine($"Startup inner exception: {exception.InnerException}");
             Debug.WriteLine($"Startup stack trace: {exception.StackTrace}");
 #endif
-            MessageBox.Show(DatabaseErrorTranslator.Translate(exception).OperatorMessage,
+            MessageBox.Show((SqlPersistenceRoot.StartupStatus?.Destination ?? "Configurazione database") + "\n" + DatabaseErrorTranslator.Translate(exception).OperatorMessage,
                 "Avvio non riuscito", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(-1);
             return;
